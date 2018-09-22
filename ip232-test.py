@@ -18,7 +18,7 @@ def recv_loop(sock: socket.socket):
             event = BaseEvent.decode(pkt)
             print(event)
         except Exception as e:
-            log.error("Unabled to decode packet: %s", data, exc_info=True)
+            log.error("Unabled to decode packet: %s: %s", data, str(e))
 
 
 def main():

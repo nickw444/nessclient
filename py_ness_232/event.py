@@ -1,4 +1,5 @@
 import datetime
+import struct
 from builtins import bytes
 from enum import Enum
 from typing import List
@@ -48,6 +49,35 @@ class SystemStatusEvent(BaseEvent):
         AUTO_INCLUDE = 0x07
         TAMPER_UNSEALED = 0x08
         TAMPER_NORMAL = 0x09
+
+        # System Events
+        POWER_FAILURE = 0x10
+        POWER_NORMAL = 0x11
+        BATTERY_FAILURE = 0x12
+        BATTERY_NORMAL = 0x13
+        REPORT_FAILURE = 0x14
+        REPORT_NORMAL = 0x15
+        SUPERVISION_FAILURE = 0x16
+        SUPERVISION_NORMAL = 0x17
+        REAL_TIME_CLOCK = 0x19
+
+        # Area Events
+        ENTRY_DELAY_START = 0x20
+        ENTRY_DELAY_END = 0x21
+        EXIT_DELAY_START = 0x22
+        EXIT_DELAY_END = 0x23
+        ARMED_AWAY = 0x24
+        ARMED_HOME = 0x25
+        ARMED_DAY = 0x26
+        ARMED_NIGHT = 0x27
+        ARMED_VACATION = 0x28
+        ARMED_HIGHEST = 0x2e
+        DISARMED = 0x2f
+        ARMING_DELAYED = 0x30
+
+        # Result Events
+        OUTPUT_ON = 0x31
+        OUTPUT_OFF = 0x32
 
     def __init__(self, packet: Packet):
         super(SystemStatusEvent, self).__init__(packet)
@@ -101,12 +131,31 @@ class StatusUpdate(BaseEvent):
 
 
 class ZoneUpdate(StatusUpdate):
+    class Zone(Enum):
+        ZONE_1 = 0x0100
+        ZONE_2 = 0x0200
+        ZONE_3 = 0x0400
+        ZONE_4 = 0x0800
+        ZONE_5 = 0x1000
+        ZONE_6 = 0x2000
+        ZONE_7 = 0x4000
+        ZONE_8 = 0x8000
+        ZONE_9 = 0x0001
+        ZONE_10 = 0x0002
+        ZONE_11 = 0x0004
+        ZONE_12 = 0x0008
+        ZONE_13 = 0x0010
+        ZONE_14 = 0x0020
+        ZONE_15 = 0x0040
+        ZONE_16 = 0x0080
+
     def __init__(self, packet: Packet):
         super(ZoneUpdate, self).__init__(packet)
 
         self.id = StatusUpdate.RequestID(packet.data[0])
-        # TODO: Use bytes 1 + 2 to find zone numbers included.
-        self.included_zones: List[int] = []
+        (zones,) = struct.unpack('>H', packet.data[1:3])
+        print("Zones", zones)
+        self.included_zones: List[ZoneUpdate.Zone] = [z for z in ZoneUpdate.Zone if z.value & zones]
 
 
 class MiscellaneousAlarmsUpdate(StatusUpdate):
