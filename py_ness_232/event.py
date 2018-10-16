@@ -10,7 +10,7 @@ from .packet import CommandType, Packet
 class BaseEvent(object):
     def __init__(self, packet: Packet):
         super(BaseEvent, self).__init__()
-        self.address: Optional[int] = packet.address
+        self.address = packet.address # type: Optional[int]
         self.timestamp = None
         if packet.timestamp is not None:
             self.timestamp = BaseEvent.decode_timestamp(packet.timestamp)
