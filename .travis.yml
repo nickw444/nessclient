@@ -1,0 +1,28 @@
+language: python
+python:
+  - "3.7"
+  - "3.6"
+  - "3.5"
+
+install:
+  - pip install coveralls flake8 mypy
+  - pip install .
+
+script: 
+  - flake8 py_ness_232 py_ness_232_tests
+  - mypy --strict py_ness_232
+  - coverage run --source=py_ness_232 setup.py test
+
+after_success: coveralls
+
+before_deploy:
+  - git describe --tags > VERSION
+
+deploy:
+  provider: pypi
+  skip_cleanup: true
+  user: nickw444-deploy
+  password: "$PYPI_PASSWORD"
+  on: 
+    tags: true
+    python: 3.7
