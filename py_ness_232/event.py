@@ -2,7 +2,7 @@ import datetime
 import struct
 from builtins import bytes
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 from .packet import CommandType, Packet
 
@@ -10,16 +10,16 @@ from .packet import CommandType, Packet
 class BaseEvent(object):
     def __init__(self, packet: Packet):
         super(BaseEvent, self).__init__()
-        self.address: int = packet.address
+        self.address: Optional[int] = packet.address
         self.timestamp = None
         if packet.timestamp is not None:
             self.timestamp = BaseEvent.decode_timestamp(packet.timestamp)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<{} {}>'.format(self.__class__.__name__, self.__dict__)
 
     @classmethod
-    def decode_timestamp(cls, data: bytes):
+    def decode_timestamp(cls, data: bytes) -> datetime.datetime:
         # Timestamp is a special snowflake - it is received as raw decimal ASCII
         # rather than encoded hex. We must convert it back to decimal in order to
         # decode it.
@@ -27,7 +27,7 @@ class BaseEvent(object):
         return datetime.datetime.strptime(decimal, '%y%m%d%H%M%S')
 
     @classmethod
-    def decode(cls, packet: Packet):
+    def decode(cls, packet: Packet) -> 'BaseEvent':
         if packet.command == CommandType.SYSTEM_STATUS:
             return SystemStatusEvent.decode(packet)
         elif packet.command == CommandType.USER_INTERFACE:
@@ -81,12 +81,13 @@ class SystemStatusEvent(BaseEvent):
 
     def __init__(self, packet: Packet):
         super(SystemStatusEvent, self).__init__(packet)
-        self.type: SystemStatusEvent.EventType = SystemStatusEvent.EventType(packet.data[0])
+        self.type: SystemStatusEvent.EventType = SystemStatusEvent.EventType(
+            packet.data[0])
         self.id: int = packet.data[1]
         self.area: int = packet.data[2]
 
     @classmethod
-    def decode(cls, packet: Packet):
+    def decode(cls, packet: Packet) -> 'SystemStatusEvent':
         return SystemStatusEvent(packet)
 
 
@@ -114,7 +115,7 @@ class StatusUpdate(BaseEvent):
         super(StatusUpdate, self).__init__(packet)
 
     @classmethod
-    def decode(self, packet: Packet):
+    def decode(self, packet: Packet) -> 'StatusUpdate':
         request_id = StatusUpdate.RequestID(packet.data[0])
         if request_id.name.startswith('ZONE'):
             return ZoneUpdate(packet)
@@ -155,7 +156,8 @@ class ZoneUpdate(StatusUpdate):
         self.id = StatusUpdate.RequestID(packet.data[0])
         (zones,) = struct.unpack('>H', packet.data[1:3])
         print("Zones", zones)
-        self.included_zones: List[ZoneUpdate.Zone] = [z for z in ZoneUpdate.Zone if z.value & zones]
+        self.included_zones: List[ZoneUpdate.Zone] = [
+            z for z in ZoneUpdate.Zone if z.value & zones]
 
 
 class MiscellaneousAlarmsUpdate(StatusUpdate):
