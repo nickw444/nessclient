@@ -35,7 +35,6 @@ setup(
     long_description_content_type='text/markdown',
     url='https://github.com/nickw444/py-ness-232',
     zip_safe=False,
-    install_requires=['requests'],
     classifiers=[
         'Intended Audience :: Developers',
         'Programming Language :: Python',
