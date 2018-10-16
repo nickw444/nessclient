@@ -27,7 +27,8 @@ class Packet:
             raise ValueError("Packet cannot be decoded - checksum verification failed.")
 
     @classmethod
-    def create(cls, start: int, address: int, data: bytes, command: CommandType) -> 'Packet':
+    def create(cls, start: int, address: int, data: bytes,
+               command: CommandType) -> 'Packet':
         return Packet(
             start=start,
             address=address,
@@ -75,13 +76,15 @@ class Packet:
         seq = data[address_len + 1] >> 7
         # assert data_len == 3
 
+        timestamp = data[address_len + 3 + data_len:
+                         address_len + 3 + data_len + timestamp_len] \
+            if has_timestamp else None
+
         return Packet(
             start=start,
             address=data[1] if has_address else None,
             seq=seq,
             command=CommandType(data[address_len + 2]),
             data=data[address_len + 3:address_len + 3 + data_len],
-            timestamp=data[
-                      address_len + 3 + data_len:address_len + 3 + data_len + timestamp_len] if has_timestamp else None,
+            timestamp=timestamp,
         )
-

@@ -81,7 +81,8 @@ class SystemStatusEvent(BaseEvent):
 
     def __init__(self, packet: Packet):
         super(SystemStatusEvent, self).__init__(packet)
-        self.type: SystemStatusEvent.EventType = SystemStatusEvent.EventType(packet.data[0])
+        self.type: SystemStatusEvent.EventType = SystemStatusEvent.EventType(
+            packet.data[0])
         self.id: int = packet.data[1]
         self.area: int = packet.data[2]
 
@@ -155,7 +156,8 @@ class ZoneUpdate(StatusUpdate):
         self.id = StatusUpdate.RequestID(packet.data[0])
         (zones,) = struct.unpack('>H', packet.data[1:3])
         print("Zones", zones)
-        self.included_zones: List[ZoneUpdate.Zone] = [z for z in ZoneUpdate.Zone if z.value & zones]
+        self.included_zones: List[ZoneUpdate.Zone] = [
+            z for z in ZoneUpdate.Zone if z.value & zones]
 
 
 class MiscellaneousAlarmsUpdate(StatusUpdate):
