@@ -2,14 +2,14 @@ import datetime
 import struct
 from builtins import bytes
 from enum import Enum
-from typing import List, Optional, TypeVar
+from typing import List, Optional, TypeVar, Type
 
 from .packet import CommandType, Packet
 
 T = TypeVar('T', bound=Enum)
 
 
-def unpack_unsigned_short_data_enum(packet: Packet, enum_type: T) -> List[T]:
+def unpack_unsigned_short_data_enum(packet: Packet, enum_type: Type[T]) -> List[T]:
     (raw_data,) = struct.unpack('>H', packet.data[1:3])
     return [e for e in enum_type if e.value & raw_data]
 
@@ -172,7 +172,7 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
         DURESS = 0x0001
         PANIC = 0x0002
         MEDICAL = 0x0004
-        FIRE =0x0008
+        FIRE = 0x0008
         INSTALL_END = 0x0010
         EXT_TAMPER = 0x0020
         PANEL_TAMPER = 0x0040
@@ -186,8 +186,8 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
     def __init__(self, packet: Packet):
         super(MiscellaneousAlarmsUpdate, self).__init__(packet)
 
-        self.included_alarms: List[MiscellaneousAlarmsUpdate.AlarmType] = unpack_unsigned_short_data_enum(
-            packet, MiscellaneousAlarmsUpdate.AlarmType)
+        self.included_alarms: List[MiscellaneousAlarmsUpdate.AlarmType] = \
+            unpack_unsigned_short_data_enum(packet, MiscellaneousAlarmsUpdate.AlarmType)
 
 
 class ArmingUpdate(StatusUpdate):
