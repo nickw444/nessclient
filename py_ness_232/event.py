@@ -2,9 +2,16 @@ import datetime
 import struct
 from builtins import bytes
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, TypeVar
 
 from .packet import CommandType, Packet
+
+T = TypeVar('T', bound=Enum)
+
+
+def unpack_unsigned_short_data_enum(packet: Packet, enum_type: T) -> List[T]:
+    (raw_data,) = struct.unpack('>H', packet.data[1:3])
+    return [e for e in enum_type if e.value & raw_data]
 
 
 class BaseEvent(object):
@@ -162,83 +169,87 @@ class ZoneUpdate(StatusUpdate):
 
 class MiscellaneousAlarmsUpdate(StatusUpdate):
     class AlarmType(Enum):
-        DURESS = ''
-        PANIC = ''
-        MEDICAL = ''
-        FIRE = ''
-        INSTALL_END = ''
-        EXT_TAMPER = ''
-        PANEL_TAMPER = ''
-        KEYPAD_TAMPER = ''
-        PENDANT_PANIC = ''
-        PANEL_BATTERY_LOW = ''
-        PANEL_BATTERY_LOW2 = ''
-        MAINS_FAIL = ''
-        CBUS_FAIL = ''
+        DURESS = 0x0001
+        PANIC = 0x0002
+        MEDICAL = 0x0004
+        FIRE =0x0008
+        INSTALL_END = 0x0010
+        EXT_TAMPER = 0x0020
+        PANEL_TAMPER = 0x0040
+        KEYPAD_TAMPER = 0x0080
+        PENDANT_PANIC = 0x0100
+        PANEL_BATTERY_LOW = 0x0200
+        PANEL_BATTERY_LOW2 = 0x0400
+        MAINS_FAIL = 0x0800
+        CBUS_FAIL = 0x1000
 
     def __init__(self, packet: Packet):
         super(MiscellaneousAlarmsUpdate, self).__init__(packet)
 
-        self.included_alarms: List[MiscellaneousAlarmsUpdate.AlarmType] = []
+        self.included_alarms: List[MiscellaneousAlarmsUpdate.AlarmType] = unpack_unsigned_short_data_enum(
+            packet, MiscellaneousAlarmsUpdate.AlarmType)
 
 
 class ArmingUpdate(StatusUpdate):
     class ArmingStatus(Enum):
-        AREA_1_ARMED = ''
-        AREA_2_ARMED = ''
-        AREA_1_FULLY_ARMED = ''
-        AREA_2_FULLY_ARMED = ''
-        MONITOR_ARMED = ''
-        DAY_MODE_ARMED = ''
-        ENTRY_DELAY_1_ON = ''
-        ENTRY_DELAY_2_ON = ''
-        MANUAL_EXCLUDE_MODE = ''
-        MEMORY_MODE = ''
-        DAY_ZONE_SELECT = ''
+        AREA_1_ARMED = 0x0001
+        AREA_2_ARMED = 0x0002
+        AREA_1_FULLY_ARMED = 0x0004
+        AREA_2_FULLY_ARMED = 0x0008
+        MONITOR_ARMED = 0x0010
+        DAY_MODE_ARMED = 0x0020
+        ENTRY_DELAY_1_ON = 0x0040
+        ENTRY_DELAY_2_ON = 0x0080
+        MANUAL_EXCLUDE_MODE = 0x0100
+        MEMORY_MODE = 0x0200
+        DAY_ZONE_SELECT = 0x0400
 
     def __init__(self, packet: Packet):
         super(ArmingUpdate, self).__init__(packet)
 
-        self.status: List[ArmingUpdate.ArmingStatus] = []
+        self.status: List[ArmingUpdate.ArmingStatus] = unpack_unsigned_short_data_enum(
+            packet, ArmingUpdate.ArmingStatus)
 
 
 class OutputsUpdate(StatusUpdate):
     class OutputType(Enum):
-        SIREN_LOUD = '0001'
-        SIREN_SOFT = '0002'
-        SIREN_SOFT_MONITOR = '0004'
-        SIREN_SOFT_FIRE = '0008'
-        STROBE = '0010'
-        RESET = '0020'
-        SONALART = '0040'
-        KEYPAD_DISPLAY_ENABLE = '0080'
-        AUX1 = '0100'
-        AUX2 = '0200'
-        AUX3 = '0400'
-        AUX4 = '0800'
-        MONITOR_OUT = '1000'
-        POWER_FAIL = '2000'
-        PANEL_BATT_FAIL = '4000'
-        TAMPER_XPAND = '8000'
+        SIREN_LOUD = 0x0001
+        SIREN_SOFT = 0x0002
+        SIREN_SOFT_MONITOR = 0x0004
+        SIREN_SOFT_FIRE = 0x0008
+        STROBE = 0x0010
+        RESET = 0x0020
+        SONALART = 0x0040
+        KEYPAD_DISPLAY_ENABLE = 0x0080
+        AUX1 = 0x0100
+        AUX2 = 0x0200
+        AUX3 = 0x0400
+        AUX4 = 0x0800
+        MONITOR_OUT = 0x1000
+        POWER_FAIL = 0x2000
+        PANEL_BATT_FAIL = 0x4000
+        TAMPER_XPAND = 0x8000
 
     def __init__(self, packet: Packet):
         super(OutputsUpdate, self).__init__(packet)
 
-        self.outputs: List[OutputsUpdate.OutputType] = []
+        self.outputs: List[OutputsUpdate.OutputType] = unpack_unsigned_short_data_enum(
+            packet, OutputsUpdate.OutputType)
 
 
 class ViewStateUpdate(StatusUpdate):
     class State(Enum):
-        NORMAL = ''
-        BRIEF_DAY_CHIME = ''
-        HOME = ''
-        MEMORY = ''
-        BRIEF_DAY_ZONE_SELECT = ''
-        EXCLUDE_SELECT = ''
-        USER_PROGRAM = ''
-        INSTALLER_PROGRAM = ''
+        NORMAL = 0xf000
+        BRIEF_DAY_CHIME = 0xe000
+        HOME = 0xd000
+        MEMORY = 0xc000
+        BRIEF_DAY_ZONE_SELECT = 0xb000
+        EXCLUDE_SELECT = 0xa000
+        USER_PROGRAM = 0x9000
+        INSTALLER_PROGRAM = 0x8000
 
     def __init__(self, packet: Packet):
         super(ViewStateUpdate, self).__init__(packet)
 
-        self.states: List[ViewStateUpdate.State] = []
+        (state,) = struct.unpack('>H', packet.data[1:3])
+        self.state = ViewStateUpdate.State(state)
