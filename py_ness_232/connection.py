@@ -1,72 +1,74 @@
-import socket
+import asyncio
+import logging
 from abc import ABC
 from typing import Optional
+
+LOGGER = logging.getLogger(__name__)
 
 
 class Connection(ABC):
     """Represents a connection to a Ness D8X/D16X server"""
 
-    def read(self) -> Optional[bytes]:
+    async def read(self) -> Optional[bytes]:
         raise NotImplementedError()
 
-    def write(self, data: bytes) -> None:
+    async def write(self, data: bytes) -> None:
         raise NotImplementedError()
 
-    def close(self) -> None:
+    async def close(self) -> None:
+        raise NotImplementedError()
+
+    async def connect(self) -> bool:
         raise NotImplementedError()
 
 
 class IP232Connection(Connection):
     """A connection via IP232 with a Ness D8X/D16X server"""
 
-    def __init__(self, host: str, port: int):
+    def __init__(self, host: str, port: int, loop: asyncio.AbstractEventLoop = None):
         super().__init__()
 
         self.__host = host
         self.__port = port
-        self.__socket: Optional[socket.socket] = None
+        self.__loop = loop
+        self.__reader: asyncio.StreamReader = None
+        self.__writer: asyncio.StreamWriter = None
 
-    def __connect(self) -> None:
-        self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.__socket.connect((self.__host, self.__port))
+    @property
+    def connected(self):
+        return self.__reader is not None and self.__writer is not None
 
-    def read(self) -> Optional[bytes]:
-        if self.__socket is None:
-            self.__connect()
-            assert self.__socket is not None
+    async def connect(self) -> bool:
+        self.__reader, self.__writer = await asyncio.open_connection(
+            host=self.__host,
+            port=self.__port,
+            loop=self.__loop
+        )
+        return True
 
-        data = self.__socket.recv(1024)
+    async def read(self) -> Optional[bytes]:
+        try:
+            data = await self.__reader.readuntil(b'\n')
+        except asyncio.IncompleteReadError as e:
+            LOGGER.warning(
+                "Got exception: %s. Most likely the other side has "
+                "disconnected!", e)
+            self.__writer = None
+            self.__reader = None
+            return None
+
         if data is None:
-            self.close()
+            LOGGER.warning("Empty response received")
+            self.__writer = None
+            self.__reader = None
             return None
 
-        data = data.strip()
-        if len(data) == 0:
-            return None
+        return data.strip()
 
-        return data
-
-    def write(self, data: bytes) -> None:
-        if self.__socket is None:
-            self.__connect()
-            assert self.__socket is not None
-
-        self.__socket.send(data)
+    async def write(self, data: bytes) -> None:
+        self.__writer.write(data)
+        await self.__writer.drain()
 
     def close(self) -> None:
-        if self.__socket is not None:
-            self.__socket.close()
-            self.__socket = None
-
-
-class RS232Connection(Connection):
-    """A connection via RS232 with a Ness D8X/D16X server"""
-
-    def read(self) -> Optional[bytes]:
-        pass
-
-    def write(self, data: bytes) -> None:
-        pass
-
-    def close(self) -> None:
-        pass
+        if self.connected:
+            self.__writer.close()

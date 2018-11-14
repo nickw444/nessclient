@@ -1,6 +1,4 @@
-import datetime
 import struct
-from builtins import bytes
 from enum import Enum
 from typing import List, Optional, TypeVar, Type
 
@@ -10,28 +8,27 @@ T = TypeVar('T', bound=Enum)
 
 
 def unpack_unsigned_short_data_enum(packet: Packet, enum_type: Type[T]) -> List[T]:
-    (raw_data,) = struct.unpack('>H', packet.data[1:3])
+    data = bytearray.fromhex(packet.data)
+    (raw_data,) = struct.unpack('>H', data[1:3])
     return [e for e in enum_type if e.value & raw_data]
 
 
+def pack_unsigned_short_data_enum(items: List[Enum]) -> str:
+    value = 0
+    for item in items:
+        value |= item.value
+
+    packed_value = struct.pack('>H', value)
+    return packed_value.hex()
+
+
 class BaseEvent(object):
-    def __init__(self, packet: Packet):
-        super(BaseEvent, self).__init__()
-        self.address: Optional[int] = packet.address
-        self.timestamp = None
-        if packet.timestamp is not None:
-            self.timestamp = BaseEvent.decode_timestamp(packet.timestamp)
+    def __init__(self, address: Optional[int], timestamp: Optional[int]):
+        self.address = address
+        self.timestamp = timestamp
 
     def __repr__(self) -> str:
         return '<{} {}>'.format(self.__class__.__name__, self.__dict__)
-
-    @classmethod
-    def decode_timestamp(cls, data: bytes) -> datetime.datetime:
-        # Timestamp is a special snowflake - it is received as raw decimal ASCII
-        # rather than encoded hex. We must convert it back to decimal in order to
-        # decode it.
-        decimal = data.hex()
-        return datetime.datetime.strptime(decimal, '%y%m%d%H%M%S')
 
     @classmethod
     def decode(cls, packet: Packet) -> 'BaseEvent':
@@ -41,6 +38,9 @@ class BaseEvent(object):
             return StatusUpdate.decode(packet)
         else:
             raise ValueError("Unknown command: {}".format(packet.command))
+
+    def encode(self) -> Packet:
+        raise NotImplementedError()
 
 
 class SystemStatusEvent(BaseEvent):
@@ -86,16 +86,33 @@ class SystemStatusEvent(BaseEvent):
         OUTPUT_ON = 0x31
         OUTPUT_OFF = 0x32
 
-    def __init__(self, packet: Packet):
-        super(SystemStatusEvent, self).__init__(packet)
-        self.type: SystemStatusEvent.EventType = SystemStatusEvent.EventType(
-            packet.data[0])
-        self.id: int = packet.data[1]
-        self.area: int = packet.data[2]
+    def __init__(self, type: 'SystemStatusEvent.EventType', zone: int, area: int, **kwargs):
+        super(SystemStatusEvent, self).__init__(**kwargs)
+        self.type = type
+        self.zone = zone
+        self.area = area
 
     @classmethod
     def decode(cls, packet: Packet) -> 'SystemStatusEvent':
-        return SystemStatusEvent(packet)
+        data = bytearray.fromhex(packet.data)
+        return SystemStatusEvent(
+            type=SystemStatusEvent.EventType(data[0]),
+            zone=data[1],
+            area=data[2],
+            timestamp=packet.timestamp,
+            address=packet.address,
+        )
+
+    def encode(self) -> Packet:
+        data = '{:02x}{:02x}{:02x}'.format(self.type.value, self.zone, self.area)
+        return Packet(
+            address=self.address,
+            seq=0x00,
+            command=CommandType.SYSTEM_STATUS,
+            data=data,
+            timestamp=None,
+            is_user_interface_resp=False,
+        )
 
 
 class StatusUpdate(BaseEvent):
@@ -118,22 +135,23 @@ class StatusUpdate(BaseEvent):
         OUTPUTS = 0x15
         VIEW_STATE = 0x16
 
-    def __init__(self, packet: Packet):
-        super(StatusUpdate, self).__init__(packet)
+    def __init__(self, request_id: 'StatusUpdate.RequestID', **kwargs):
+        super(StatusUpdate, self).__init__(**kwargs)
+        self.request_id = request_id
 
     @classmethod
     def decode(self, packet: Packet) -> 'StatusUpdate':
-        request_id = StatusUpdate.RequestID(packet.data[0])
+        request_id = StatusUpdate.RequestID(int(packet.data[0:2], 16))
         if request_id.name.startswith('ZONE'):
-            return ZoneUpdate(packet)
+            return ZoneUpdate.decode(packet)
         elif request_id == StatusUpdate.RequestID.MISCELLANEOUS_ALARMS:
-            return MiscellaneousAlarmsUpdate(packet)
+            return MiscellaneousAlarmsUpdate.decode(packet)
         elif request_id == StatusUpdate.RequestID.ARMING:
-            return ArmingUpdate(packet)
+            return ArmingUpdate.decode(packet)
         elif request_id == StatusUpdate.RequestID.OUTPUTS:
-            return OutputsUpdate(packet)
+            return OutputsUpdate.decode(packet)
         elif request_id == StatusUpdate.RequestID.VIEW_STATE:
-            return ViewStateUpdate(packet)
+            return ViewStateUpdate.decode(packet)
         else:
             raise ValueError("Unhandled request_id case: {}".format(request_id))
 
@@ -157,14 +175,33 @@ class ZoneUpdate(StatusUpdate):
         ZONE_15 = 0x0040
         ZONE_16 = 0x0080
 
-    def __init__(self, packet: Packet):
-        super(ZoneUpdate, self).__init__(packet)
+    def __init__(self, included_zones: List['ZoneUpdate.Zone'], **kwargs):
+        super(ZoneUpdate, self).__init__(**kwargs)
+        self.included_zones = included_zones
 
-        self.id = StatusUpdate.RequestID(packet.data[0])
-        (zones,) = struct.unpack('>H', packet.data[1:3])
-        print("Zones", zones)
-        self.included_zones: List[ZoneUpdate.Zone] = [
-            z for z in ZoneUpdate.Zone if z.value & zones]
+    @classmethod
+    def decode(cls, packet: Packet):
+        request_id = StatusUpdate.RequestID(int(packet.data[0:2], 16))
+        return ZoneUpdate(
+            request_id=request_id,
+            included_zones=unpack_unsigned_short_data_enum(packet, ZoneUpdate.Zone),
+            timestamp=packet.timestamp,
+            address=packet.address,
+        )
+
+    def encode(self) -> Packet:
+        data = '{:02x}{}'.format(
+            self.request_id.value,
+            pack_unsigned_short_data_enum(self.included_zones),
+        )
+        return Packet(
+            address=self.address,
+            seq=0x00,
+            command=CommandType.USER_INTERFACE,
+            data=data,
+            timestamp=None,
+            is_user_interface_resp=True,
+        )
 
 
 class MiscellaneousAlarmsUpdate(StatusUpdate):
@@ -183,11 +220,19 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
         MAINS_FAIL = 0x0800
         CBUS_FAIL = 0x1000
 
-    def __init__(self, packet: Packet):
-        super(MiscellaneousAlarmsUpdate, self).__init__(packet)
+    def __init__(self, included_alarms: List['MiscellaneousAlarmsUpdate.AlarmType'], **kwargs):
+        super(MiscellaneousAlarmsUpdate, self).__init__(
+            request_id=StatusUpdate.RequestID.MISCELLANEOUS_ALARMS, **kwargs)
 
-        self.included_alarms: List[MiscellaneousAlarmsUpdate.AlarmType] = \
-            unpack_unsigned_short_data_enum(packet, MiscellaneousAlarmsUpdate.AlarmType)
+        self.included_alarms = included_alarms
+
+    @classmethod
+    def decode(cls, packet: Packet) -> 'MiscellaneousAlarmsUpdate':
+        return MiscellaneousAlarmsUpdate(
+            included_alarms=unpack_unsigned_short_data_enum(packet, MiscellaneousAlarmsUpdate.AlarmType),
+            timestamp=packet.timestamp,
+            address=packet.address
+        )
 
 
 class ArmingUpdate(StatusUpdate):
@@ -204,11 +249,33 @@ class ArmingUpdate(StatusUpdate):
         MEMORY_MODE = 0x0200
         DAY_ZONE_SELECT = 0x0400
 
-    def __init__(self, packet: Packet):
-        super(ArmingUpdate, self).__init__(packet)
+    def __init__(self, status: List['ArmingUpdate.ArmingStatus'], **kwargs):
+        super(ArmingUpdate, self).__init__(
+            request_id=StatusUpdate.RequestID.ARMING, **kwargs)
 
-        self.status: List[ArmingUpdate.ArmingStatus] = unpack_unsigned_short_data_enum(
-            packet, ArmingUpdate.ArmingStatus)
+        self.status = status
+
+    @classmethod
+    def decode(cls, packet: Packet):
+        return ArmingUpdate(
+            status=unpack_unsigned_short_data_enum(packet, ArmingUpdate.ArmingStatus),
+            address=packet.address,
+            timestamp=packet.timestamp
+        )
+
+    def encode(self) -> Packet:
+        data = '{:02x}{}'.format(
+            self.request_id.value,
+            pack_unsigned_short_data_enum(self.status),
+        )
+        return Packet(
+            address=self.address,
+            seq=0x00,
+            command=CommandType.USER_INTERFACE,
+            data=data,
+            timestamp=None,
+            is_user_interface_resp=True,
+        )
 
 
 class OutputsUpdate(StatusUpdate):
@@ -230,11 +297,19 @@ class OutputsUpdate(StatusUpdate):
         PANEL_BATT_FAIL = 0x4000
         TAMPER_XPAND = 0x8000
 
-    def __init__(self, packet: Packet):
-        super(OutputsUpdate, self).__init__(packet)
+    def __init__(self, outputs: List['OutputsUpdate.OutputType'], **kwargs):
+        super(OutputsUpdate, self).__init__(
+            request_id=StatusUpdate.RequestID.OUTPUTS, **kwargs)
 
-        self.outputs: List[OutputsUpdate.OutputType] = unpack_unsigned_short_data_enum(
-            packet, OutputsUpdate.OutputType)
+        self.outputs = outputs
+
+    @classmethod
+    def decode(cls, packet: Packet):
+        return OutputsUpdate(
+            outputs=unpack_unsigned_short_data_enum(packet, OutputsUpdate.OutputType),
+            timestamp=packet.timestamp,
+            address=packet.address,
+        )
 
 
 class ViewStateUpdate(StatusUpdate):
@@ -248,8 +323,16 @@ class ViewStateUpdate(StatusUpdate):
         USER_PROGRAM = 0x9000
         INSTALLER_PROGRAM = 0x8000
 
-    def __init__(self, packet: Packet):
-        super(ViewStateUpdate, self).__init__(packet)
+    def __init__(self, state: 'ViewStateUpdate.State', **kwargs):
+        super(ViewStateUpdate, self).__init__(
+            request_id=StatusUpdate.RequestID.VIEW_STATE, **kwargs)
+        self.state = state
 
-        (state,) = struct.unpack('>H', packet.data[1:3])
-        self.state = ViewStateUpdate.State(state)
+    @classmethod
+    def decode(cls, packet: Packet) -> 'ViewStateUpdate':
+        state = ViewStateUpdate.State(int(packet.data[2:6], 16))
+        return ViewStateUpdate(
+            state=state,
+            timestamp=packet.timestamp,
+            address=packet.address,
+        )
