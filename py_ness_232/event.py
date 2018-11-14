@@ -1,3 +1,4 @@
+import datetime
 import struct
 from enum import Enum
 from typing import List, Optional, TypeVar, Type
@@ -13,7 +14,7 @@ def unpack_unsigned_short_data_enum(packet: Packet, enum_type: Type[T]) -> List[
     return [e for e in enum_type if e.value & raw_data]
 
 
-def pack_unsigned_short_data_enum(items: List[Enum]) -> str:
+def pack_unsigned_short_data_enum(items: List[T]) -> str:
     value = 0
     for item in items:
         value |= item.value
@@ -23,7 +24,7 @@ def pack_unsigned_short_data_enum(items: List[Enum]) -> str:
 
 
 class BaseEvent(object):
-    def __init__(self, address: Optional[int], timestamp: Optional[int]):
+    def __init__(self, address: Optional[int], timestamp: Optional[datetime.datetime]):
         self.address = address
         self.timestamp = timestamp
 
@@ -86,8 +87,9 @@ class SystemStatusEvent(BaseEvent):
         OUTPUT_ON = 0x31
         OUTPUT_OFF = 0x32
 
-    def __init__(self, type: 'SystemStatusEvent.EventType', zone: int, area: int, **kwargs):
-        super(SystemStatusEvent, self).__init__(**kwargs)
+    def __init__(self, type: 'SystemStatusEvent.EventType', zone: int, area: int,
+                 address: Optional[int], timestamp: Optional[datetime.datetime]) -> None:
+        super(SystemStatusEvent, self).__init__(address=address, timestamp=timestamp)
         self.type = type
         self.zone = zone
         self.area = area
@@ -135,8 +137,9 @@ class StatusUpdate(BaseEvent):
         OUTPUTS = 0x15
         VIEW_STATE = 0x16
 
-    def __init__(self, request_id: 'StatusUpdate.RequestID', **kwargs):
-        super(StatusUpdate, self).__init__(**kwargs)
+    def __init__(self, request_id: 'StatusUpdate.RequestID', address: Optional[int],
+                 timestamp: Optional[datetime.datetime]) -> None:
+        super(StatusUpdate, self).__init__(address=address, timestamp=timestamp)
         self.request_id = request_id
 
     @classmethod
@@ -175,12 +178,13 @@ class ZoneUpdate(StatusUpdate):
         ZONE_15 = 0x0040
         ZONE_16 = 0x0080
 
-    def __init__(self, included_zones: List['ZoneUpdate.Zone'], **kwargs):
-        super(ZoneUpdate, self).__init__(**kwargs)
+    def __init__(self, included_zones: List['ZoneUpdate.Zone'], request_id: 'StatusUpdate.RequestID',
+                 address: Optional[int], timestamp: Optional[datetime.datetime]) -> None:
+        super(ZoneUpdate, self).__init__(request_id=request_id, address=address, timestamp=timestamp)
         self.included_zones = included_zones
 
     @classmethod
-    def decode(cls, packet: Packet):
+    def decode(cls, packet: Packet) -> 'ZoneUpdate':
         request_id = StatusUpdate.RequestID(int(packet.data[0:2], 16))
         return ZoneUpdate(
             request_id=request_id,
@@ -220,9 +224,13 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
         MAINS_FAIL = 0x0800
         CBUS_FAIL = 0x1000
 
-    def __init__(self, included_alarms: List['MiscellaneousAlarmsUpdate.AlarmType'], **kwargs):
+    def __init__(self, included_alarms: List['MiscellaneousAlarmsUpdate.AlarmType'],
+                 address: Optional[int],
+                 timestamp: Optional[datetime.datetime]):
         super(MiscellaneousAlarmsUpdate, self).__init__(
-            request_id=StatusUpdate.RequestID.MISCELLANEOUS_ALARMS, **kwargs)
+            request_id=StatusUpdate.RequestID.MISCELLANEOUS_ALARMS,
+            address=address,
+            timestamp=timestamp)
 
         self.included_alarms = included_alarms
 
@@ -249,14 +257,17 @@ class ArmingUpdate(StatusUpdate):
         MEMORY_MODE = 0x0200
         DAY_ZONE_SELECT = 0x0400
 
-    def __init__(self, status: List['ArmingUpdate.ArmingStatus'], **kwargs):
+    def __init__(self, status: List['ArmingUpdate.ArmingStatus'],
+                 address: Optional[int],
+                 timestamp: Optional[datetime.datetime]):
         super(ArmingUpdate, self).__init__(
-            request_id=StatusUpdate.RequestID.ARMING, **kwargs)
+            request_id=StatusUpdate.RequestID.ARMING,
+            address=address, timestamp=timestamp)
 
         self.status = status
 
     @classmethod
-    def decode(cls, packet: Packet):
+    def decode(cls, packet: Packet) -> 'ArmingUpdate':
         return ArmingUpdate(
             status=unpack_unsigned_short_data_enum(packet, ArmingUpdate.ArmingStatus),
             address=packet.address,
@@ -297,14 +308,15 @@ class OutputsUpdate(StatusUpdate):
         PANEL_BATT_FAIL = 0x4000
         TAMPER_XPAND = 0x8000
 
-    def __init__(self, outputs: List['OutputsUpdate.OutputType'], **kwargs):
+    def __init__(self, outputs: List['OutputsUpdate.OutputType'], address: Optional[int],
+                 timestamp: Optional[datetime.datetime]):
         super(OutputsUpdate, self).__init__(
-            request_id=StatusUpdate.RequestID.OUTPUTS, **kwargs)
+            request_id=StatusUpdate.RequestID.OUTPUTS, address=address, timestamp=timestamp)
 
         self.outputs = outputs
 
     @classmethod
-    def decode(cls, packet: Packet):
+    def decode(cls, packet: Packet) -> 'OutputsUpdate':
         return OutputsUpdate(
             outputs=unpack_unsigned_short_data_enum(packet, OutputsUpdate.OutputType),
             timestamp=packet.timestamp,
@@ -323,9 +335,10 @@ class ViewStateUpdate(StatusUpdate):
         USER_PROGRAM = 0x9000
         INSTALLER_PROGRAM = 0x8000
 
-    def __init__(self, state: 'ViewStateUpdate.State', **kwargs):
+    def __init__(self, state: 'ViewStateUpdate.State', address: Optional[int],
+                 timestamp: Optional[datetime.datetime]):
         super(ViewStateUpdate, self).__init__(
-            request_id=StatusUpdate.RequestID.VIEW_STATE, **kwargs)
+            request_id=StatusUpdate.RequestID.VIEW_STATE, address=address, timestamp=timestamp)
         self.state = state
 
     @classmethod

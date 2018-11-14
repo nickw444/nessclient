@@ -26,7 +26,7 @@ class Client:
             connection = IP232Connection(host=host, port=port, loop=loop)
 
         self.alarm = Alarm()
-        self._on_event_received = None
+        self._on_event_received: Optional[Callable[[BaseEvent], None]] = None
         self._connection = connection
         self._closed = False
         self._backoff = Backoff()
@@ -47,7 +47,7 @@ class Client:
         command = '*{}#'.format(code)
         return await self.send_command(command)
 
-    async def aux(self, output_id: int, state: bool = True):
+    async def aux(self, output_id: int, state: bool = True) -> None:
         command = '{}{}{}'.format(
             output_id, output_id,
             '*' if state else '#')
@@ -62,7 +62,7 @@ class Client:
             self.send_command('S14'),
         )
 
-    async def _connect(self):
+    async def _connect(self) -> None:
         while not self._connection.connected:
             try:
                 await self._connection.connect()
@@ -83,7 +83,7 @@ class Client:
         await self._connect()
         return await self._connection.write(packet.encode().encode('ascii'))
 
-    async def keepalive(self):
+    async def keepalive(self) -> None:
         while not self._closed:
             await self._connect()
 
@@ -92,28 +92,28 @@ class Client:
                 if data is None:
                     break
 
-                data = data.decode('utf-8').strip()
-                _LOGGER.debug("Decoding data: '%s'", data)
-                if len(data) > 0:
-                    pkt = Packet.decode(data)
+                decoded_data = data.decode('utf-8').strip()
+                _LOGGER.debug("Decoding data: '%s'", decoded_data)
+                if len(decoded_data) > 0:
+                    pkt = Packet.decode(decoded_data)
                     event = BaseEvent.decode(pkt)
                     if self._on_event_received is not None:
                         self._on_event_received(event)
 
                     self.alarm.handle_event(event)
 
-    def close(self):
+    def close(self) -> None:
         self._closed = True
         self._connection.close()
 
-    def on_state_change(self, f: Callable[['ArmingState'], None]):
+    def on_state_change(self, f: Callable[['ArmingState'], None]) -> Callable[['ArmingState'], None]:
         self.alarm._on_state_change = f
         return f
 
-    def on_zone_change(self, f: Callable[[int, bool], None]):
+    def on_zone_change(self, f: Callable[[int, bool], None]) -> Callable[[int, bool], None]:
         self.alarm._on_zone_change = f
         return f
 
-    def on_event_received(self, f: Callable[[BaseEvent], None]):
+    def on_event_received(self, f: Callable[[BaseEvent], None]) -> Callable[[BaseEvent], None]:
         self._on_event_received = f
         return f

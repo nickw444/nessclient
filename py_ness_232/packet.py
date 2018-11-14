@@ -2,7 +2,7 @@ import datetime
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import Optional, Iterable
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class Packet:
     is_user_interface_resp: bool = False
 
     @property
-    def start(self):
+    def start(self) -> int:
         rv = 0x02 | 0x80
         if self.address is not None and not self.is_user_interface_resp:
             rv |= 0x01
@@ -34,7 +34,7 @@ class Packet:
         return rv
 
     @property
-    def length_field(self):
+    def length_field(self) -> int:
         return int(self.length) | (self.seq << 7)
 
     @property
@@ -139,7 +139,7 @@ class DataIterator:
         self._data = data
         self._position = 0
 
-    def take_bytes(self, n, half=False) -> str:
+    def take_bytes(self, n: int, half: bool = False) -> str:
         multi = 2 if not half else 1
         position = self._position
         self._position += n * multi
@@ -148,13 +148,13 @@ class DataIterator:
 
         return self._data[position:self._position]
 
-    def take_hex(self, half=False) -> int:
+    def take_hex(self, half: bool = False) -> int:
         return int(self.take_bytes(1, half), 16)
 
-    def take_dec(self, half=False) -> int:
+    def take_dec(self, half: bool = False) -> int:
         return int(self.take_bytes(1, half), 10)
 
-    def is_consumed(self):
+    def is_consumed(self) -> bool:
         return self._position >= len(self._data)
 
 
@@ -178,9 +178,12 @@ def decode_timestamp(data: str) -> datetime.datetime:
     return datetime.datetime.strptime(data, '%y%m%d%H%M%S')
 
 
-def is_data_valid(data: str) -> bool:
-    split_string = lambda x, n: [x[i:i + n] for i in range(0, len(x), n)]
+def split_string(x: str, n: int) -> Iterable[str]:
+    for i in range(0, len(x), n):
+        yield x[i:i + n]
 
+
+def is_data_valid(data: str) -> bool:
     sum = 0
     for byte in split_string(data, 2):
         sum += int(byte, 16)

@@ -34,14 +34,14 @@ class Alarm:
     class Zone:
         triggered: Optional[bool]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.arming_state: ArmingState = ArmingState.UNKNOWN
         self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(16)]
 
         self._on_state_change: Optional[Callable[['ArmingState'], None]] = None
         self._on_zone_change: Optional[Callable[[int, bool], None]] = None
 
-    def handle_event(self, event: BaseEvent):
+    def handle_event(self, event: BaseEvent) -> None:
         if isinstance(event, ArmingUpdate):
             self._handle_arming_update(event)
         elif isinstance(event, ZoneUpdate) and event.request_id == ZoneUpdate.RequestID.ZONE_INPUT_UNSEALED:
@@ -49,13 +49,13 @@ class Alarm:
         elif isinstance(event, SystemStatusEvent):
             self._handle_system_status_event(event)
 
-    def _handle_arming_update(self, update: ArmingUpdate):
+    def _handle_arming_update(self, update: ArmingUpdate) -> None:
         if ArmingUpdate.ArmingStatus.AREA_1_ARMED in update.status:
             return self._update_arming_state(ArmingState.ARMED)
         else:
             return self._update_arming_state(ArmingState.DISARMED)
 
-    def _handle_zone_input_update(self, update: ZoneUpdate):
+    def _handle_zone_input_update(self, update: ZoneUpdate) -> None:
         for i, zone in enumerate(self.zones):
             zone_id = i + 1
             name = 'ZONE_{}'.format(zone_id)
@@ -64,7 +64,7 @@ class Alarm:
             else:
                 self._update_zone(zone_id, False)
 
-    def _handle_system_status_event(self, event: SystemStatusEvent):
+    def _handle_system_status_event(self, event: SystemStatusEvent) -> None:
         """
         # DISARMED -> ARMED_AWAY -> EXIT_DELAY_START -> EXIT_DELAY_END
         #  (trip): -> ALARM -> OUTPUT_ON -> ALARM_RESTORE
@@ -100,12 +100,12 @@ class Alarm:
         elif event.type == SystemStatusEvent.EventType.ARMING_DELAYED:
             pass
 
-    def _update_arming_state(self, state: 'ArmingState'):
+    def _update_arming_state(self, state: 'ArmingState') -> None:
         if self._on_state_change is not None and self.arming_state != state:
             self.arming_state = state
             self._on_state_change(state)
 
-    def _update_zone(self, zone_id: int, state: bool):
+    def _update_zone(self, zone_id: int, state: bool) -> None:
         zone = self.zones[zone_id - 1]
         if self._on_zone_change is not None and zone.triggered != state:
             zone.triggered = state
