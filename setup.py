@@ -44,4 +44,7 @@ setup(
         'justbackoff',
         'dataclasses;python_version<"3.7"'
     ],
+    extras_require={
+        'cli': ['click']
+    },
 )
