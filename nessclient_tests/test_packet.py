@@ -3,7 +3,7 @@ import logging
 import unittest
 from os import path
 
-from py_ness_232.packet import Packet, CommandType
+from nessclient.packet import Packet, CommandType
 
 _LOGGER = logging.getLogger(__name__)
 

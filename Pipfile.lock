@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "6aeba0cad4607b706ad4240b1137adf3c07ccf7c3a7d69c62006616c11884c4e"
+            "sha256": "4ee3ec5027fe7451fa1521a78fa7efc0cea7d89f0122f666b2744caffce2d772"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -29,7 +29,7 @@
             ],
             "version": "==0.4.0"
         },
-        "py-ness-232": {
+        "nessclient": {
             "editable": true,
             "extras": [
                 "cli"

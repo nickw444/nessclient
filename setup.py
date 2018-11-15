@@ -25,9 +25,9 @@ except Exception as e:
     version = '0.0.0-dev'
 
 setup(
-    name='py-ness-232',
+    name='nessclient',
     version=version,
-    packages=['py_ness_232'],
+    packages=['nessclient'],
     author="Nick Whyte",
     author_email='nick@nickwhyte.com',
     description="Implementation/abstraction of the Ness D8x / D16x Serial Interface ASCII protocol",
@@ -39,7 +39,7 @@ setup(
         'Intended Audience :: Developers',
         'Programming Language :: Python',
     ],
-    test_suite="py_ness_232_tests",
+    test_suite="nessclient_tests",
     install_requires=[
         'justbackoff',
         'dataclasses;python_version<"3.7"'

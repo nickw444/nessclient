@@ -1,9 +1,9 @@
 import unittest
 
-from py_ness_232.event import (
+from nessclient.event import (
     ZoneUpdate, pack_unsigned_short_data_enum, ArmingUpdate,
     BaseEvent, StatusUpdate, ViewStateUpdate)
-from py_ness_232.packet import Packet
+from nessclient.packet import Packet
 
 
 class UtilsTestCase(unittest.TestCase):
