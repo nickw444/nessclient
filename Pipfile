@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+"py-ness-232" = {editable = true, path = "."}
 
 [dev-packages]
 "flake8" = "*"

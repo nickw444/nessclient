@@ -39,5 +39,9 @@ setup(
         'Intended Audience :: Developers',
         'Programming Language :: Python',
     ],
-    test_suite="py_ness_232_tests"
+    test_suite="py_ness_232_tests",
+    install_requires=[
+        'justbackoff',
+        'dataclasses;python_version<"3.7"'
+    ],
 )
