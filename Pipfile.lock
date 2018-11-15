@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "9181fe22a1dbd2dfc2f395837a5d2deecdb17fdb3ac827cfff540c8004705d92"
+            "sha256": "6aeba0cad4607b706ad4240b1137adf3c07ccf7c3a7d69c62006616c11884c4e"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -16,6 +16,13 @@
         ]
     },
     "default": {
+        "click": {
+            "hashes": [
+                "sha256:2335065e6395b9e67ca716de5f7526736bfa6ceead690adf616d925bdc622b13",
+                "sha256:5b94b49521f6456670fdb30cd82a4eca9412788a93fa6dd6df72c94d5a8ff2d7"
+            ],
+            "version": "==7.0"
+        },
         "justbackoff": {
             "hashes": [
                 "sha256:59dbc027e9f684cc1d89348178b68063ff2ca8db0f5db23f79aa765083a4ed99"
@@ -24,6 +31,9 @@
         },
         "py-ness-232": {
             "editable": true,
+            "extras": [
+                "cli"
+            ],
             "path": "."
         }
     },

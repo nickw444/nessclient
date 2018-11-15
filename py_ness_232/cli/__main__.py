@@ -6,9 +6,11 @@ from .events import events
 from .send_command import send_command
 from .server import server
 
+LOG_LEVELS = ['error', 'warning', 'info', 'debug']
+
 
 @click.group()
-@click.option('--log-level', type=click.Choice(['error', 'warning', 'info', 'debug']), default='warning')
+@click.option('--log-level', type=click.Choice(LOG_LEVELS), default='warning')
 def cli(log_level: str):
     level = getattr(logging, log_level.upper())
     logging.basicConfig(level=level)
