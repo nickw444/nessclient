@@ -33,7 +33,7 @@ setup(
     description="Implementation/abstraction of the Ness D8x / D16x Serial Interface ASCII protocol",
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/nickw444/py-ness-232',
+    url='https://github.com/nickw444/nessclient',
     zip_safe=False,
     classifiers=[
         'Intended Audience :: Developers',
