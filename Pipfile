@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-justbackoff = "*"
+"py-ness-232" = {editable = true, path = "."}
 
 [dev-packages]
 "flake8" = "*"

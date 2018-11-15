@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "101008184a8783d1deff3b6f3fa58ebae0879dd26b5e72078b2dc2ed69bc5944"
+            "sha256": "9181fe22a1dbd2dfc2f395837a5d2deecdb17fdb3ac827cfff540c8004705d92"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -20,8 +20,11 @@
             "hashes": [
                 "sha256:59dbc027e9f684cc1d89348178b68063ff2ca8db0f5db23f79aa765083a4ed99"
             ],
-            "index": "pypi",
             "version": "==0.4.0"
+        },
+        "py-ness-232": {
+            "editable": true,
+            "path": "."
         }
     },
     "develop": {
