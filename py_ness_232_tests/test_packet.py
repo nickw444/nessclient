@@ -18,6 +18,9 @@ class PacketTestCase(unittest.TestCase):
             # b'8700036100070018092118370677',
             '8300c6012345678912EE7'
         ]
+        '''
+        83 0 0c 60 12345678912E E7
+        '''
 
         for case in cases:
             pkt = Packet.decode(case)
