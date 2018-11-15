@@ -8,9 +8,9 @@ install:
   - pip install .
 
 script:
-  - flake8 py_ness_232 py_ness_232_tests
-  - mypy --strict py_ness_232
-  - coverage run --source=py_ness_232 setup.py test
+  - flake8 nessclient nessclient_tests
+  - mypy --strict nessclient
+  - coverage run --source=nessclient setup.py test
 
 after_success: coveralls
 
