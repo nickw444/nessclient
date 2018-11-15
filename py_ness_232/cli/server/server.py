@@ -29,7 +29,8 @@ class Server:
             _LOGGER.info("Server listening on {}:{}".format(host, port))
             while True:
                 conn, addr = s.accept()
-                threading.Thread(target=self._on_client_connected, args=(conn, addr)).start()
+                threading.Thread(
+                    target=self._on_client_connected, args=(conn, addr)).start()
 
     def write_event(self, event: BaseEvent):
         pkt = event.encode()

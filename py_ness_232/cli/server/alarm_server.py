@@ -43,7 +43,8 @@ class AlarmServer():
 
             print(command)
 
-    def _alarm_state_changed(self, previous_state: Alarm.ArmingState, state: Alarm.ArmingState):
+    def _alarm_state_changed(self, previous_state: Alarm.ArmingState,
+                             state: Alarm.ArmingState):
         if state != Alarm.ArmingState.DISARMED:
             self._stop_simulation()
 
@@ -89,7 +90,9 @@ class AlarmServer():
     def _handle_zone_input_unsealed_status_update_request(self):
         event = ZoneUpdate(
             request_id=StatusUpdate.RequestID.ZONE_INPUT_UNSEALED,
-            included_zones=[get_zone_for_id(z.id) for z in self._alarm.zones if z.state == Zone.State.UNSEALED],
+            included_zones=[
+                get_zone_for_id(z.id) for z in
+                self._alarm.zones if z.state == Zone.State.UNSEALED],
             address=0x00,
             timestamp=None,
         )
