@@ -178,9 +178,15 @@ class ZoneUpdate(StatusUpdate):
         ZONE_15 = 0x0040
         ZONE_16 = 0x0080
 
-    def __init__(self, included_zones: List['ZoneUpdate.Zone'], request_id: 'StatusUpdate.RequestID',
-                 address: Optional[int], timestamp: Optional[datetime.datetime]) -> None:
-        super(ZoneUpdate, self).__init__(request_id=request_id, address=address, timestamp=timestamp)
+    def __init__(
+            self, included_zones: List['ZoneUpdate.Zone'],
+            request_id: 'StatusUpdate.RequestID',
+            address: Optional[int],
+            timestamp: Optional[datetime.datetime]) -> None:
+        super(ZoneUpdate, self).__init__(
+            request_id=request_id,
+            address=address,
+            timestamp=timestamp)
         self.included_zones = included_zones
 
     @classmethod
@@ -237,7 +243,8 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
     @classmethod
     def decode(cls, packet: Packet) -> 'MiscellaneousAlarmsUpdate':
         return MiscellaneousAlarmsUpdate(
-            included_alarms=unpack_unsigned_short_data_enum(packet, MiscellaneousAlarmsUpdate.AlarmType),
+            included_alarms=unpack_unsigned_short_data_enum(
+                packet, MiscellaneousAlarmsUpdate.AlarmType),
             timestamp=packet.timestamp,
             address=packet.address
         )
@@ -308,11 +315,11 @@ class OutputsUpdate(StatusUpdate):
         PANEL_BATT_FAIL = 0x4000
         TAMPER_XPAND = 0x8000
 
-    def __init__(self, outputs: List['OutputsUpdate.OutputType'], address: Optional[int],
-                 timestamp: Optional[datetime.datetime]):
+    def __init__(self, outputs: List['OutputsUpdate.OutputType'],
+                 address: Optional[int], timestamp: Optional[datetime.datetime]):
         super(OutputsUpdate, self).__init__(
-            request_id=StatusUpdate.RequestID.OUTPUTS, address=address, timestamp=timestamp)
-
+            request_id=StatusUpdate.RequestID.OUTPUTS,
+            address=address, timestamp=timestamp)
         self.outputs = outputs
 
     @classmethod
@@ -335,10 +342,11 @@ class ViewStateUpdate(StatusUpdate):
         USER_PROGRAM = 0x9000
         INSTALLER_PROGRAM = 0x8000
 
-    def __init__(self, state: 'ViewStateUpdate.State', address: Optional[int],
-                 timestamp: Optional[datetime.datetime]):
+    def __init__(self, state: 'ViewStateUpdate.State',
+                 address: Optional[int], timestamp: Optional[datetime.datetime]):
         super(ViewStateUpdate, self).__init__(
-            request_id=StatusUpdate.RequestID.VIEW_STATE, address=address, timestamp=timestamp)
+            request_id=StatusUpdate.RequestID.VIEW_STATE,
+            address=address, timestamp=timestamp)
         self.state = state
 
     @classmethod

@@ -106,14 +106,17 @@ class Client:
         self._closed = True
         self._connection.close()
 
-    def on_state_change(self, f: Callable[['ArmingState'], None]) -> Callable[['ArmingState'], None]:
+    def on_state_change(self, f: Callable[[ArmingState], None]
+                        ) -> Callable[[ArmingState], None]:
         self.alarm._on_state_change = f
         return f
 
-    def on_zone_change(self, f: Callable[[int, bool], None]) -> Callable[[int, bool], None]:
+    def on_zone_change(self, f: Callable[[int, bool], None]
+                       ) -> Callable[[int, bool], None]:
         self.alarm._on_zone_change = f
         return f
 
-    def on_event_received(self, f: Callable[[BaseEvent], None]) -> Callable[[BaseEvent], None]:
+    def on_event_received(self, f: Callable[[BaseEvent], None]
+                          ) -> Callable[[BaseEvent], None]:
         self._on_event_received = f
         return f

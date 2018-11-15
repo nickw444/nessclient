@@ -44,7 +44,8 @@ class Alarm:
     def handle_event(self, event: BaseEvent) -> None:
         if isinstance(event, ArmingUpdate):
             self._handle_arming_update(event)
-        elif isinstance(event, ZoneUpdate) and event.request_id == ZoneUpdate.RequestID.ZONE_INPUT_UNSEALED:
+        elif (isinstance(event, ZoneUpdate)
+              and event.request_id == ZoneUpdate.RequestID.ZONE_INPUT_UNSEALED):
             self._handle_zone_input_update(event)
         elif isinstance(event, SystemStatusEvent):
             self._handle_system_status_event(event)
@@ -66,13 +67,13 @@ class Alarm:
 
     def _handle_system_status_event(self, event: SystemStatusEvent) -> None:
         """
-        # DISARMED -> ARMED_AWAY -> EXIT_DELAY_START -> EXIT_DELAY_END
-        #  (trip): -> ALARM -> OUTPUT_ON -> ALARM_RESTORE
-        #     (disarm): -> DISARMED -> OUTPUT_OFF
-        #  (disarm): -> DISARMED
-        #  (disarm before EXIT_DELAY_END): -> DISARMED -> EXIT_DELAY_END
+        DISARMED -> ARMED_AWAY -> EXIT_DELAY_START -> EXIT_DELAY_END
+         (trip): -> ALARM -> OUTPUT_ON -> ALARM_RESTORE
+            (disarm): -> DISARMED -> OUTPUT_OFF
+         (disarm): -> DISARMED
+         (disarm before EXIT_DELAY_END): -> DISARMED -> EXIT_DELAY_END
 
-        # TODO(NW): Check ALARM_RESTORE state transition to move back into ARMED_AWAY state
+        TODO(NW): Check ALARM_RESTORE state transition to move back into ARMED_AWAY state
         """
         if event.type == SystemStatusEvent.EventType.UNSEALED:
             return self._update_zone(event.zone, True)

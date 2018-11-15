@@ -49,7 +49,8 @@ class PacketTestCase(unittest.TestCase):
         self.assertEqual(pkt.seq, 0x00)
         self.assertEqual(pkt.command, CommandType.SYSTEM_STATUS)
         self.assertEqual(pkt.data, '000700')
-        self.assertEqual(pkt.timestamp, datetime.datetime(year=2018, month=9, day=21, hour=18, minute=37, second=9))
+        self.assertEqual(pkt.timestamp, datetime.datetime(
+            year=2018, month=9, day=21, hour=18, minute=37, second=9))
         # self.assertEqual(pkt.checksum, 0x74)
 
     def testEncodeDecode1(self):
@@ -69,7 +70,8 @@ class PacketTestCase(unittest.TestCase):
             seq=0x00,
             command=CommandType.USER_INTERFACE,
             data='000100',
-            timestamp=datetime.datetime(year=2018, month=5, day=10, hour=15, minute=32, second=55),
+            timestamp=datetime.datetime(
+                year=2018, month=5, day=10, hour=15, minute=32, second=55),
         )
         self.assertEqual(pkt.length, 3)
         self.assertEqual(pkt.encode(), '87000360000100180510153255E3')

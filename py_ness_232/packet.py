@@ -119,13 +119,15 @@ class Packet:
         if has_timestamp(start):
             timestamp = decode_timestamp(data.take_bytes(6))
 
-        checksum = data.take_hex()
+        # TODO(NW): Figure out checksum validation
+        # checksum = data.take_hex()
 
         if not data.is_consumed():
             raise ValueError('Unable to consume all data')
 
         return Packet(
-            is_user_interface_resp=is_user_interface_resp(start) and command == CommandType.USER_INTERFACE,
+            is_user_interface_resp=(is_user_interface_resp(start) and
+                                    command == CommandType.USER_INTERFACE),
             address=address,
             seq=seq,
             command=command,

@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from abc import ABC, abstractproperty, abstractmethod
+from abc import ABC, abstractmethod
 from typing import Optional
 
 LOGGER = logging.getLogger(__name__)
@@ -33,7 +33,8 @@ class Connection(ABC):
 class IP232Connection(Connection):
     """A connection via IP232 with a Ness D8X/D16X server"""
 
-    def __init__(self, host: str, port: int, loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()):
+    def __init__(self, host: str, port: int,
+                 loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()):
         super().__init__()
 
         self._host = host
