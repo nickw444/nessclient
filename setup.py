@@ -47,4 +47,7 @@ setup(
     extras_require={
         'cli': ['click']
     },
+    entry_points={
+        'console_scripts': ['ness-cli=nessclient.cli.__main__:cli'],
+    }
 )
