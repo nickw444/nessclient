@@ -9,6 +9,8 @@ name = "pypi"
 [dev-packages]
 "flake8" = "*"
 mypy = "*"
+sphinx = "*"
+"m2r" = "*"
 
 [requires]
 python_version = "3.7"
