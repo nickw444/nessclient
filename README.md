@@ -6,5 +6,32 @@
 
 A python implementation/abstraction of the [Ness D8x / D16x Serial Interface ASCII protocol](http://www.nesscorporation.com/Software/Ness_D8-D16_ASCII_protocol.pdf)
 
-Currently a work-in-progress. Please check back soon or raise a pull request. This library is being developed with the intention of integrating it with [Home Assistant](https://www.home-assistant.io/).
+## Installing nessclient
 
+`nessclient` is available directly from pip:
+
+```sh
+pip install nessclient
+```
+
+## CLI
+
+This package includes a CLI which uses the library to interface with the Ness Serial Interface. You can read more in [the docs]()
+
+To use the CLI you must install it's dependencies by installing it with extras for `cli`: 
+
+```
+pip install nessclient[cli]
+ness-cli --help
+``` 
+
+## API Documentation
+You can find the full API documentation [here]()
+
+## Examples
+
+Please see [Examples]() section in the docs for examples. These same examples can be found as source in the [examples/](examples) directory. 
+ 
+## Developing
+
+Please see [Developing]() section in the docs for development environment setup information.
