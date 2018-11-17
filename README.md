@@ -14,9 +14,13 @@ A python implementation/abstraction of the [Ness D8x / D16x Serial Interface ASC
 pip install nessclient
 ```
 
+## Documentation
+
+The full documentation can be found at [Read the Docs](https://nessclient.readthedocs.io/en/latest/)
+
 ## CLI
 
-This package includes a CLI which uses the library to interface with the Ness Serial Interface. You can read more in [the docs]()
+This package includes a CLI which uses the library to interface with the Ness Serial Interface. You can read more in [the docs](https://nessclient.readthedocs.io/en/latest/cli.html)
 
 To use the CLI you must install it's dependencies by installing it with extras for `cli`: 
 
@@ -26,12 +30,12 @@ ness-cli --help
 ``` 
 
 ## API Documentation
-You can find the full API documentation [here]()
+You can find the full API documentation [here](https://nessclient.readthedocs.io/en/latest/api.html)
 
 ## Examples
 
-Please see [Examples]() section in the docs for examples. These same examples can be found as source in the [examples/](examples) directory. 
+Please see [Examples](https://nessclient.readthedocs.io/en/latest/examples.html) section in the docs for examples. These same examples can be found as source in the [examples/](examples) directory. 
  
 ## Developing
 
-Please see [Developing]() section in the docs for development environment setup information.
+Please see [Developing](https://nessclient.readthedocs.io/en/latest/developing.html) section in the docs for development environment setup information.
