@@ -27,7 +27,7 @@ except Exception as e:
 setup(
     name='nessclient',
     version=version,
-    packages=['nessclient'],
+    packages=['nessclient', 'nessclient.cli', 'nessclient.cli.server'],
     author="Nick Whyte",
     author_email='nick@nickwhyte.com',
     description="Implementation/abstraction of the Ness D8x / D16x Serial Interface ASCII protocol",
