@@ -1,6 +1,8 @@
 import asyncio
 import logging
+import socket
 from abc import ABC, abstractmethod
+from asyncio import StreamReader, StreamReaderProtocol, StreamWriter
 from typing import Optional
 
 LOGGER = logging.getLogger(__name__)
@@ -49,12 +51,29 @@ class IP232Connection(Connection):
         return self._reader is not None and self._writer is not None
 
     async def connect(self) -> bool:
-        self._reader, self._writer = await asyncio.open_connection(
+        self._reader, self._writer = await self.open_connection(
             host=self._host,
             port=self._port,
-            loop=self._loop
         )
         return True
+
+    async def open_connection(self, host: str, port: int):
+        """
+        Opens a connection to the remote host.
+
+        Code copied from asyncio.open_connection and modified to support
+        enabling TCP socket keepalive.
+        """
+        reader = StreamReader(limit=2 ** 16, loop=self._loop)
+        protocol = StreamReaderProtocol(reader, loop=self._loop)
+        transport, _ = await self._loop.create_connection(
+            lambda: protocol, host, port)
+        s: Optional[socket.socket] = transport.get_extra_info('socket')
+        if s is not None:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+
+        writer = StreamWriter(transport, protocol, reader, self._loop)
+        return reader, writer
 
     async def read(self) -> Optional[bytes]:
         assert self._reader is not None
