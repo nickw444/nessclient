@@ -8,6 +8,7 @@ LOGGER = logging.getLogger(__name__)
 
 class Connection(ABC):
     """Represents a connection to a Ness D8X/D16X server"""
+
     @abstractmethod
     async def read(self) -> Optional[bytes]:
         raise NotImplementedError()
