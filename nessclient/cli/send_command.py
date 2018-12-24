@@ -14,5 +14,5 @@ def send_command(host: str, port: int, command: str):
     client = Client(host=host, port=port, loop=loop)
 
     loop.run_until_complete(client.send_command(command))
-    client.close()
+    loop.run_until_complete(client.close())
     loop.close()
