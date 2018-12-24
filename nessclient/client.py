@@ -85,13 +85,14 @@ class Client:
         await self._connect()
         return await self._connection.write(packet.encode().encode('ascii'))
 
-    async def keepalive(self) -> None:
+    async def _recv_loop(self):
         while not self._closed:
             await self._connect()
 
             while True:
                 data = await self._connection.read()
                 if data is None:
+                    _LOGGER.debug("Received None data from connection.read()")
                     break
 
                 decoded_data = data.decode('utf-8').strip()
@@ -103,6 +104,20 @@ class Client:
                         self._on_event_received(event)
 
                     self.alarm.handle_event(event)
+
+    async def _update_loop(self, update_interval: int):
+        """Schedule a state update to keep the connection alive"""
+        await asyncio.sleep(update_interval)
+        while not self._closed:
+            _LOGGER.debug("Forcing a keepalive state update")
+            await self.update()
+            await asyncio.sleep(update_interval)
+
+    async def keepalive(self, update_interval: int = 60) -> None:
+        await asyncio.gather(
+            self._recv_loop(),
+            self._update_loop(update_interval=update_interval),
+        )
 
     def close(self) -> None:
         self._closed = True
