@@ -30,5 +30,5 @@ def events(host: str, port: int):
         client.update(),
     ))
 
-    client.close()
+    loop.run_until_complete(client.close())
     loop.close()

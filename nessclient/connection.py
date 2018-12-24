@@ -3,7 +3,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 
-LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 
 class Connection(ABC):
@@ -18,7 +18,7 @@ class Connection(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def close(self) -> None:
+    async def close(self) -> None:
         raise NotImplementedError()
 
     @abstractmethod
@@ -52,7 +52,7 @@ class IP232Connection(Connection):
         self._reader, self._writer = await asyncio.open_connection(
             host=self._host,
             port=self._port,
-            loop=self._loop
+            loop=self._loop,
         )
         return True
 
@@ -61,8 +61,8 @@ class IP232Connection(Connection):
 
         try:
             data = await self._reader.readuntil(b'\n')
-        except asyncio.IncompleteReadError as e:
-            LOGGER.warning(
+        except (asyncio.IncompleteReadError, TimeoutError) as e:
+            _LOGGER.warning(
                 "Got exception: %s. Most likely the other side has "
                 "disconnected!", e)
             self._writer = None
@@ -70,7 +70,7 @@ class IP232Connection(Connection):
             return None
 
         if data is None:
-            LOGGER.warning("Empty response received")
+            _LOGGER.warning("Empty response received")
             self._writer = None
             self._reader = None
             return None
@@ -83,8 +83,9 @@ class IP232Connection(Connection):
         self._writer.write(data)
         await self._writer.drain()
 
-    def close(self) -> None:
+    async def close(self) -> None:
         if self.connected and self._writer is not None:
             self._writer.close()
+            await self._writer.wait_closed()  # type: ignore
             self._writer = None
             self._reader = None
