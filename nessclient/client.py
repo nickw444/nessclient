@@ -30,6 +30,7 @@ class Client:
         self._connection = connection
         self._closed = False
         self._backoff = Backoff()
+        self._connect_lock = asyncio.Lock()
 
     async def arm_away(self, code: Optional[str] = None) -> None:
         command = 'A{}E'.format(code if code else '')
@@ -63,14 +64,15 @@ class Client:
         )
 
     async def _connect(self) -> None:
-        while not self._connection.connected:
-            try:
-                await self._connection.connect()
-            except (ConnectionRefusedError, OSError) as e:
-                _LOGGER.warning('Failed to connect: %s', e)
-                await sleep(self._backoff.duration())
+        async with self._connect_lock:
+            while not self._connection.connected:
+                try:
+                    await self._connection.connect()
+                except (ConnectionRefusedError, OSError) as e:
+                    _LOGGER.warning('Failed to connect: %s', e)
+                    await sleep(self._backoff.duration())
 
-        self._backoff.reset()
+            self._backoff.reset()
 
     async def send_command(self, command: str) -> None:
         packet = Packet(

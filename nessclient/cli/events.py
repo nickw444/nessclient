@@ -8,8 +8,8 @@ from ..event import BaseEvent
 
 @click.command(help='Listen for emitted alarm events')
 @click.option('--host', required=True)
-@click.option('--port', required=True)
-def events(host, port):
+@click.option('--port', required=True, type=int)
+def events(host: str, port: int):
     loop = asyncio.get_event_loop()
     client = Client(host=host, port=port, loop=loop)
 
