@@ -18,7 +18,7 @@ class Connection(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def close(self) -> None:
+    async def close(self) -> None:
         raise NotImplementedError()
 
     @abstractmethod
@@ -83,8 +83,9 @@ class IP232Connection(Connection):
         self._writer.write(data)
         await self._writer.drain()
 
-    def close(self) -> None:
+    async def close(self) -> None:
         if self.connected and self._writer is not None:
             self._writer.close()
+            await self._writer.wait_closed()  # type: ignore
             self._writer = None
             self._reader = None

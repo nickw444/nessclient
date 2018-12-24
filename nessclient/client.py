@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 from asyncio import sleep
 from typing import Optional, Callable
@@ -18,7 +19,8 @@ class Client:
                  connection: Optional[Connection] = None,
                  host: Optional[str] = None,
                  port: Optional[int] = None,
-                 loop: Optional[asyncio.AbstractEventLoop] = None):
+                 loop: Optional[asyncio.AbstractEventLoop] = None,
+                 update_interval: int = 60):
         if connection is None:
             assert host is not None
             assert port is not None
@@ -31,6 +33,8 @@ class Client:
         self._closed = False
         self._backoff = Backoff()
         self._connect_lock = asyncio.Lock()
+        self._last_recv: Optional[datetime.datetime] = None
+        self._update_interval = update_interval
 
     async def arm_away(self, code: Optional[str] = None) -> None:
         command = 'A{}E'.format(code if code else '')
@@ -65,12 +69,19 @@ class Client:
 
     async def _connect(self) -> None:
         async with self._connect_lock:
+            if self._should_reconnect():
+                _LOGGER.debug('Closing stale connection and reconnecting')
+                await self._connection.close()
+
             while not self._connection.connected:
+                _LOGGER.debug('Attempting to connect')
                 try:
                     await self._connection.connect()
                 except (ConnectionRefusedError, OSError) as e:
                     _LOGGER.warning('Failed to connect: %s', e)
                     await sleep(self._backoff.duration())
+
+                self._last_recv = datetime.datetime.now()
 
             self._backoff.reset()
 
@@ -95,7 +106,13 @@ class Client:
                     _LOGGER.debug("Received None data from connection.read()")
                     break
 
-                decoded_data = data.decode('utf-8').strip()
+                self._last_recv = datetime.datetime.now()
+                try:
+                    decoded_data = data.decode('utf-8').strip()
+                except UnicodeDecodeError:
+                    _LOGGER.warning("Failed to decode data", exc_info=True)
+                    continue
+
                 _LOGGER.debug("Decoding data: '%s'", decoded_data)
                 if len(decoded_data) > 0:
                     pkt = Packet.decode(decoded_data)
@@ -105,23 +122,28 @@ class Client:
 
                     self.alarm.handle_event(event)
 
-    async def _update_loop(self, update_interval: int) -> None:
+    def _should_reconnect(self) -> bool:
+        now = datetime.datetime.now()
+        return self._last_recv is not None and self._last_recv < now - datetime.timedelta(
+            seconds=self._update_interval + 30)
+
+    async def _update_loop(self) -> None:
         """Schedule a state update to keep the connection alive"""
-        await asyncio.sleep(update_interval)
+        await asyncio.sleep(self._update_interval)
         while not self._closed:
             _LOGGER.debug("Forcing a keepalive state update")
             await self.update()
-            await asyncio.sleep(update_interval)
+            await asyncio.sleep(self._update_interval)
 
-    async def keepalive(self, update_interval: int = 60) -> None:
+    async def keepalive(self) -> None:
         await asyncio.gather(
             self._recv_loop(),
-            self._update_loop(update_interval=update_interval),
+            self._update_loop(),
         )
 
-    def close(self) -> None:
+    async def close(self) -> None:
         self._closed = True
-        self._connection.close()
+        await self._connection.close()
 
     def on_state_change(self, f: Callable[[ArmingState], None]
                         ) -> Callable[[ArmingState], None]:
