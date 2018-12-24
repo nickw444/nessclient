@@ -85,7 +85,7 @@ class Client:
         await self._connect()
         return await self._connection.write(packet.encode().encode('ascii'))
 
-    async def _recv_loop(self):
+    async def _recv_loop(self) -> None:
         while not self._closed:
             await self._connect()
 
@@ -105,7 +105,7 @@ class Client:
 
                     self.alarm.handle_event(event)
 
-    async def _update_loop(self, update_interval: int):
+    async def _update_loop(self, update_interval: int) -> None:
         """Schedule a state update to keep the connection alive"""
         await asyncio.sleep(update_interval)
         while not self._closed:
