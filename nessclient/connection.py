@@ -61,7 +61,8 @@ class IP232Connection(Connection):
 
         try:
             data = await self._reader.readuntil(b'\n')
-        except (asyncio.IncompleteReadError, TimeoutError) as e:
+        except (asyncio.IncompleteReadError, TimeoutError,
+                ConnectionResetError) as e:
             _LOGGER.info(
                 "Got exception: %s. Most likely the other side has "
                 "disconnected!", e)
