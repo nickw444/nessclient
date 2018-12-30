@@ -53,7 +53,12 @@ class Alarm:
     def _handle_arming_update(self, update: ArmingUpdate) -> None:
         if ArmingUpdate.ArmingStatus.AREA_1_ARMED in update.status:
             return self._update_arming_state(ArmingState.ARMED)
-        else:
+        elif ArmingUpdate.ArmingStatus.ENTRY_DELAY_1_ON in update.status:
+            return self._update_arming_state(ArmingState.ENTRY_DELAY)
+        elif self.arming_state is ArmingState.UNKNOWN:
+            # TODO(NW): Initially update to disarmed when the state is unknown.
+            # In the future, it would be ideal to infer other states by making
+            # calls to other status commands (i.e. zones in delay).
             return self._update_arming_state(ArmingState.DISARMED)
 
     def _handle_zone_input_update(self, update: ZoneUpdate) -> None:

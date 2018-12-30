@@ -132,7 +132,7 @@ class Client:
         await asyncio.sleep(self._update_interval)
         while not self._closed:
             _LOGGER.debug("Forcing a keepalive state update")
-            await self.update()
+            await self.send_command('S00')
             await asyncio.sleep(self._update_interval)
 
     async def keepalive(self) -> None:

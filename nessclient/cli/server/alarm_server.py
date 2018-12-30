@@ -142,10 +142,8 @@ def get_events_for_state_update(
 
 def get_arming_status(state: Alarm.ArmingState) -> List[ArmingUpdate.ArmingStatus]:
     # TODO(NW): Verify these are the correct response values for different alarm states.
-    if state == Alarm.ArmingState.EXIT_DELAY:
+    if state == Alarm.ArmingState.ARMED_AWAY:
         return [ArmingUpdate.ArmingStatus.AREA_1_ARMED]
-    elif state == Alarm.ArmingState.ARMED_AWAY:
-        return [ArmingUpdate.ArmingStatus.AREA_1_FULLY_ARMED]
     elif state == Alarm.ArmingState.ENTRY_DELAY:
         return [ArmingUpdate.ArmingStatus.ENTRY_DELAY_1_ON]
     return []
