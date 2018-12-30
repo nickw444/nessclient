@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Callable, List
 
-from .event import BaseEvent, ZoneUpdate, ArmingUpdate, SystemStatusEvent
+from .event import BaseEvent, ZoneUpdate, SystemStatusEvent
 
 
 class ArmingState(Enum):
@@ -35,26 +35,20 @@ class Alarm:
         triggered: Optional[bool]
 
     def __init__(self) -> None:
-        self.arming_state: ArmingState = ArmingState.UNKNOWN
+        # TODO: Determine the best way to query the alarm initial state. For
+        #  now, we assume the alarm is initially disarmed on connection.
+        self.arming_state: ArmingState = ArmingState.DISARMED
         self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(16)]
 
         self._on_state_change: Optional[Callable[['ArmingState'], None]] = None
         self._on_zone_change: Optional[Callable[[int, bool], None]] = None
 
     def handle_event(self, event: BaseEvent) -> None:
-        if isinstance(event, ArmingUpdate):
-            self._handle_arming_update(event)
-        elif (isinstance(event, ZoneUpdate)
-              and event.request_id == ZoneUpdate.RequestID.ZONE_INPUT_UNSEALED):
+        if (isinstance(event, ZoneUpdate)
+                and event.request_id == ZoneUpdate.RequestID.ZONE_INPUT_UNSEALED):
             self._handle_zone_input_update(event)
         elif isinstance(event, SystemStatusEvent):
             self._handle_system_status_event(event)
-
-    def _handle_arming_update(self, update: ArmingUpdate) -> None:
-        if ArmingUpdate.ArmingStatus.AREA_1_ARMED in update.status:
-            return self._update_arming_state(ArmingState.ARMED)
-        else:
-            return self._update_arming_state(ArmingState.DISARMED)
 
     def _handle_zone_input_update(self, update: ZoneUpdate) -> None:
         for i, zone in enumerate(self.zones):
