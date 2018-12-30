@@ -51,6 +51,12 @@ class Alarm:
             self._handle_system_status_event(event)
 
     def _handle_arming_update(self, update: ArmingUpdate) -> None:
+        """
+        Normal: []
+        Exit Delay: [<ArmingStatus.MANUAL_EXCLUDE_MODE: 256>]
+        Armed: [<ArmingStatus.MANUAL_EXCLUDE_MODE: 256>, <ArmingStatus.DAY_ZONE_SELECT: 1024>]
+        
+        """
         if ArmingUpdate.ArmingStatus.AREA_1_ARMED in update.status:
             return self._update_arming_state(ArmingState.ARMED)
         elif ArmingUpdate.ArmingStatus.ENTRY_DELAY_1_ON in update.status:
