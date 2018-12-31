@@ -146,7 +146,10 @@ def get_arming_status(state: Alarm.ArmingState) -> List[ArmingUpdate.ArmingStatu
             ArmingUpdate.ArmingStatus.MANUAL_EXCLUDE_MODE,
             ArmingUpdate.ArmingStatus.DAY_ZONE_SELECT
         ]
-    return []
+    elif state == Alarm.ArmingState.EXIT_DELAY:
+        return [ArmingUpdate.ArmingStatus.MANUAL_EXCLUDE_MODE]
+    else:
+        return []
 
 
 def toggled_state(state: Zone.State) -> Zone.State:
