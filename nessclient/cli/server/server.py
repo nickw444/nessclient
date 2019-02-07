@@ -54,7 +54,7 @@ class Server:
 
         while True:
             data = conn.recv(1024)
-            if data is None or len(data) is 0:
+            if data is None or len(data) == 0:
                 _LOGGER.info("client %s disconnected", addr)
                 with self._clients_lock:
                     self._clients.remove(conn)
