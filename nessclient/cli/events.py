@@ -25,10 +25,7 @@ def events(host: str, port: int):
     def on_event_received(event: BaseEvent):
         print(event)
 
-    loop.run_until_complete(asyncio.gather(
-        client.keepalive(),
-        client.update(),
-    ))
+    loop.create_task(client.keepalive())
+    loop.create_task(client.update())
 
-    loop.run_until_complete(client.close())
-    loop.close()
+    loop.run_forever()
