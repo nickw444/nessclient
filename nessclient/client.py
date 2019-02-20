@@ -115,8 +115,13 @@ class Client:
 
                 _LOGGER.debug("Decoding data: '%s'", decoded_data)
                 if len(decoded_data) > 0:
-                    pkt = Packet.decode(decoded_data)
-                    event = BaseEvent.decode(pkt)
+                    try:
+                        pkt = Packet.decode(decoded_data)
+                        event = BaseEvent.decode(pkt)
+                    except Exception:
+                        _LOGGER.warning("Failed to decode packet", exc_info=True)
+                        continue
+
                     if self._on_event_received is not None:
                         self._on_event_received(event)
 
