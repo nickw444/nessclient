@@ -107,7 +107,7 @@ class Packet:
         start = data.take_hex()
 
         address = None
-        if has_address(start):
+        if has_address(start, len(_data)):
             address = data.take_hex(half=is_user_interface_req(start))
 
         length = data.take_hex()
@@ -160,8 +160,14 @@ class DataIterator:
         return self._position >= len(self._data)
 
 
-def has_address(start: int) -> bool:
-    return bool(0x01 & start) or start == 0x82
+def has_address(start: int, data_length: int) -> bool:
+    """
+    Determine whether the packet has an "address" encoded into it.
+    There exists an undocumented bug/edge case in the spec - some packets
+    with 0x82 as _start_, still encode the address into the packet, and thus
+    throws off decoding. This edge case is handled explicitly.
+    """
+    return bool(0x01 & start) or (start == 0x82 and data_length == 16)
 
 
 def has_timestamp(start: int) -> bool:
@@ -179,15 +185,3 @@ def is_user_interface_resp(start: int) -> bool:
 def decode_timestamp(data: str) -> datetime.datetime:
     return datetime.datetime.strptime(data, '%y%m%d%H%M%S')
 
-
-def split_string(x: str, n: int) -> Iterable[str]:
-    for i in range(0, len(x), n):
-        yield x[i:i + n]
-
-
-def is_data_valid(data: str) -> bool:
-    sum = 0
-    for byte in split_string(data, 2):
-        sum += int(byte, 16)
-
-    return sum & 0xff == 0
