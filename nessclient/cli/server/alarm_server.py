@@ -143,11 +143,11 @@ def get_events_for_state_update(
 def get_arming_status(state: Alarm.ArmingState) -> List[ArmingUpdate.ArmingStatus]:
     if state == Alarm.ArmingState.ARMED_AWAY:
         return [
-            ArmingUpdate.ArmingStatus.MANUAL_EXCLUDE_MODE,
-            ArmingUpdate.ArmingStatus.DAY_ZONE_SELECT
+            ArmingUpdate.ArmingStatus.AREA_1_ARMED,
+            ArmingUpdate.ArmingStatus.AREA_1_FULLY_ARMED
         ]
     elif state == Alarm.ArmingState.EXIT_DELAY:
-        return [ArmingUpdate.ArmingStatus.MANUAL_EXCLUDE_MODE]
+        return [ArmingUpdate.ArmingStatus.AREA_1_ARMED]
     else:
         return []
 
