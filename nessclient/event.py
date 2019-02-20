@@ -216,19 +216,28 @@ class ZoneUpdate(StatusUpdate):
 
 class MiscellaneousAlarmsUpdate(StatusUpdate):
     class AlarmType(Enum):
-        DURESS = 0x0001
-        PANIC = 0x0002
-        MEDICAL = 0x0004
-        FIRE = 0x0008
-        INSTALL_END = 0x0010
-        EXT_TAMPER = 0x0020
-        PANEL_TAMPER = 0x0040
-        KEYPAD_TAMPER = 0x0080
-        PENDANT_PANIC = 0x0100
-        PANEL_BATTERY_LOW = 0x0200
-        PANEL_BATTERY_LOW2 = 0x0400
-        MAINS_FAIL = 0x0800
-        CBUS_FAIL = 0x1000
+        """
+        Note: The ness provided documentation has the byte endianness
+        incorrectly documented. For this reason, these enum values have
+        reversed byte ordering compared to the ness provided documentation.
+
+        This only applies to some enums, and thus must be applied on a
+        case-by-case basis
+        """
+
+        DURESS = 0x0100
+        PANIC = 0x0200
+        MEDICAL = 0x0400
+        FIRE = 0x0800
+        INSTALL_END = 0x1000
+        EXT_TAMPER = 0x2000
+        PANEL_TAMPER = 0x4000
+        KEYPAD_TAMPER = 0x8000
+        PENDANT_PANIC = 0x0001
+        PANEL_BATTERY_LOW = 0x0002
+        PANEL_BATTERY_LOW2 = 0x0004
+        MAINS_FAIL = 0x0008
+        CBUS_FAIL = 0x0010
 
     def __init__(self, included_alarms: List['MiscellaneousAlarmsUpdate.AlarmType'],
                  address: Optional[int],
@@ -252,17 +261,26 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
 
 class ArmingUpdate(StatusUpdate):
     class ArmingStatus(Enum):
-        AREA_1_ARMED = 0x0001
-        AREA_2_ARMED = 0x0002
-        AREA_1_FULLY_ARMED = 0x0004
-        AREA_2_FULLY_ARMED = 0x0008
-        MONITOR_ARMED = 0x0010
-        DAY_MODE_ARMED = 0x0020
-        ENTRY_DELAY_1_ON = 0x0040
-        ENTRY_DELAY_2_ON = 0x0080
-        MANUAL_EXCLUDE_MODE = 0x0100
-        MEMORY_MODE = 0x0200
-        DAY_ZONE_SELECT = 0x0400
+        """
+        Note: The ness provided documentation has the byte endianness
+        incorrectly documented. For this reason, these enum values have
+        reversed byte ordering compared to the ness provided documentation.
+
+        This only applies to some enums, and thus must be applied on a
+        case-by-case basis
+        """
+
+        AREA_1_ARMED = 0x0100
+        AREA_2_ARMED = 0x0200
+        AREA_1_FULLY_ARMED = 0x0400
+        AREA_2_FULLY_ARMED = 0x0800
+        MONITOR_ARMED = 0x1000
+        DAY_MODE_ARMED = 0x2000
+        ENTRY_DELAY_1_ON = 0x4000
+        ENTRY_DELAY_2_ON = 0x8000
+        MANUAL_EXCLUDE_MODE = 0x0001
+        MEMORY_MODE = 0x0002
+        DAY_ZONE_SELECT = 0x0004
 
     def __init__(self, status: List['ArmingUpdate.ArmingStatus'],
                  address: Optional[int],
@@ -298,22 +316,31 @@ class ArmingUpdate(StatusUpdate):
 
 class OutputsUpdate(StatusUpdate):
     class OutputType(Enum):
-        SIREN_LOUD = 0x0001
-        SIREN_SOFT = 0x0002
-        SIREN_SOFT_MONITOR = 0x0004
-        SIREN_SOFT_FIRE = 0x0008
-        STROBE = 0x0010
-        RESET = 0x0020
-        SONALART = 0x0040
-        KEYPAD_DISPLAY_ENABLE = 0x0080
-        AUX1 = 0x0100
-        AUX2 = 0x0200
-        AUX3 = 0x0400
-        AUX4 = 0x0800
-        MONITOR_OUT = 0x1000
-        POWER_FAIL = 0x2000
-        PANEL_BATT_FAIL = 0x4000
-        TAMPER_XPAND = 0x8000
+        """
+        Note: The ness provided documentation has the byte endianness
+        incorrectly documented. For this reason, these enum values have
+        reversed byte ordering compared to the ness provided documentation.
+
+        This only applies to some enums, and thus must be applied on a
+        case-by-case basis
+        """
+
+        SIREN_LOUD = 0x0100
+        SIREN_SOFT = 0x0200
+        SIREN_SOFT_MONITOR = 0x0400
+        SIREN_SOFT_FIRE = 0x0800
+        STROBE = 0x1000
+        RESET = 0x2000
+        SONALART = 0x4000
+        KEYPAD_DISPLAY_ENABLE = 0x8000
+        AUX1 = 0x0001
+        AUX2 = 0x0002
+        AUX3 = 0x0004
+        AUX4 = 0x0008
+        MONITOR_OUT = 0x0010
+        POWER_FAIL = 0x0020
+        PANEL_BATT_FAIL = 0x0040
+        TAMPER_XPAND = 0x0080
 
     def __init__(self, outputs: List['OutputsUpdate.OutputType'],
                  address: Optional[int], timestamp: Optional[datetime.datetime]):

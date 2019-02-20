@@ -15,7 +15,7 @@ def fixture_path(fixture_name: str):
 class PacketTestCase(unittest.TestCase):
     def testDecodeEncodeIdentity(self):
         cases = [
-            # b'8700036100070018092118370677',
+            # '8700036100070018092118370677',
             '8300c6012345678912EE7'
         ]
 
@@ -23,7 +23,7 @@ class PacketTestCase(unittest.TestCase):
             pkt = Packet.decode(case)
             self.assertEqual(case, pkt.encode())
 
-    def testDecodeAndEncode(self):
+    def testDecode(self):
         with open(fixture_path('sample_output.txt')) as f:
             for line in f.readlines():
                 line = line.strip()
@@ -52,6 +52,37 @@ class PacketTestCase(unittest.TestCase):
         self.assertEqual(pkt.timestamp, datetime.datetime(
             year=2018, month=9, day=21, hour=18, minute=37, second=9))
         # self.assertEqual(pkt.checksum, 0x74)
+
+    def testDecodeWithAddressAndTime(self):
+        pkt = Packet.decode('8709036101050018122709413536')
+        self.assertEqual(pkt.address, 0x09)
+        self.assertEqual(pkt.length, 3)
+        self.assertEqual(pkt.seq, 0x00)
+        self.assertEqual(pkt.command, CommandType.SYSTEM_STATUS)
+        self.assertEqual(pkt.data, '010500')
+        self.assertEqual(pkt.timestamp, datetime.datetime(
+            year=2018, month=12, day=27, hour=9, minute=41, second=35))
+        self.assertFalse(pkt.is_user_interface_resp)
+
+    def testDecodeWithoutAddress(self):
+        pkt = Packet.decode('820361230001f6')
+        self.assertIsNone(pkt.address)
+        self.assertEqual(pkt.length, 3)
+        self.assertEqual(pkt.seq, 0x00)
+        self.assertEqual(pkt.command, CommandType.SYSTEM_STATUS)
+        self.assertEqual(pkt.data, '230001')
+        self.assertIsNone(pkt.timestamp)
+        self.assertFalse(pkt.is_user_interface_resp)
+
+    def testDecodeWithAddress(self):
+        pkt = Packet.decode('820003600000001b')
+        self.assertEqual(pkt.address, 0x00)
+        self.assertEqual(pkt.length, 3)
+        self.assertEqual(pkt.seq, 0x00)
+        self.assertEqual(pkt.command, CommandType.USER_INTERFACE)
+        self.assertEqual(pkt.data, '000000')
+        self.assertIsNone(pkt.timestamp)
+        self.assertTrue(pkt.is_user_interface_resp)
 
     def testEncodeDecode1(self):
         pkt = Packet(

@@ -17,9 +17,8 @@ class ArmingState(Enum):
 
 class Alarm:
     """
-    In-memory representation of the state of the alarm the client is connected to.
-
-    TODO(NW): Handle output state events to determine when alarm is on/off
+    In-memory representation of the state of the alarm the client is connected
+    to.
     """
     ARM_EVENTS = [
         SystemStatusEvent.EventType.ARMED_AWAY,
@@ -51,19 +50,12 @@ class Alarm:
             self._handle_system_status_event(event)
 
     def _handle_arming_update(self, update: ArmingUpdate) -> None:
-        if update.status == [ArmingUpdate.ArmingStatus.MANUAL_EXCLUDE_MODE]:
+        if update.status == [ArmingUpdate.ArmingStatus.AREA_1_ARMED]:
             return self._update_arming_state(ArmingState.EXIT_DELAY)
-        if ArmingUpdate.ArmingStatus.MANUAL_EXCLUDE_MODE in update.status and \
-                ArmingUpdate.ArmingStatus.DAY_ZONE_SELECT:
-            # TODO(NW): This might not be the correct condition for an "armed"
-            #  system, in fact, the same states are shown throughout armed, and
-            #  entry delay. We should determine a better way to query the
-            #  current alarm state.
+        if ArmingUpdate.ArmingStatus.AREA_1_ARMED in update.status and \
+                ArmingUpdate.ArmingStatus.AREA_1_FULLY_ARMED in update.status:
             return self._update_arming_state(ArmingState.ARMED)
-        elif self.arming_state == ArmingState.UNKNOWN:
-            # TODO(NW): Initially update to disarmed when the state is unknown.
-            #  In the future, it would be ideal to infer other states by making
-            #  calls to other status commands (i.e. zones in delay).
+        else:
             return self._update_arming_state(ArmingState.DISARMED)
 
     def _handle_zone_input_update(self, update: ZoneUpdate) -> None:
@@ -92,7 +84,8 @@ class Alarm:
         elif event.type == SystemStatusEvent.EventType.ALARM:
             return self._update_arming_state(ArmingState.TRIGGERED)
         elif event.type == SystemStatusEvent.EventType.ALARM_RESTORE:
-            return self._update_arming_state(ArmingState.ARMED)
+            if self.arming_state != ArmingState.DISARMED:
+                return self._update_arming_state(ArmingState.ARMED)
         elif event.type == SystemStatusEvent.EventType.ENTRY_DELAY_START:
             return self._update_arming_state(ArmingState.ENTRY_DELAY)
         elif event.type == SystemStatusEvent.EventType.ENTRY_DELAY_END:
@@ -103,7 +96,7 @@ class Alarm:
             # Exit delay finished - if we were in the process of arming update
             # state to armed
             if self.arming_state == ArmingState.EXIT_DELAY:
-                self._update_arming_state(ArmingState.ARMED)
+                return self._update_arming_state(ArmingState.ARMED)
         elif event.type in Alarm.ARM_EVENTS:
             return self._update_arming_state(ArmingState.ARMING)
         elif event.type == SystemStatusEvent.EventType.DISARMED:
