@@ -120,3 +120,14 @@ class PacketTestCase(unittest.TestCase):
         self.assertEqual(pkt.data, '070000')
         self.assertIsNone(pkt.timestamp)
         # self.assertEqual(pkt.checksum, 0x14)
+
+    def test_bad_timestamp(self):
+        pkt = Packet.decode('8700036100070019022517600057')
+        self.assertEqual(pkt.start, 0x87)
+        self.assertEqual(pkt.address, 0x00)
+        self.assertEqual(pkt.length, 3)
+        self.assertEqual(pkt.seq, 0x00)
+        self.assertEqual(pkt.command, CommandType.SYSTEM_STATUS)
+        self.assertEqual(pkt.data, '000700')
+        self.assertEqual(pkt.timestamp, datetime.datetime(
+            year=2019, month=2, day=25, hour=18, minute=0, second=0))
