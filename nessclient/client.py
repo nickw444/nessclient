@@ -95,7 +95,9 @@ class Client:
             timestamp=None,
         )
         await self._connect()
-        return await self._connection.write(packet.encode().encode('ascii'))
+        payload = packet.encode() + '\r\n'
+        _LOGGER.debug('Sending payload: %s', repr(payload))
+        return await self._connection.write(payload.encode('ascii'))
 
     async def _recv_loop(self) -> None:
         while not self._closed:
