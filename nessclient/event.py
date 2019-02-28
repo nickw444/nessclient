@@ -96,11 +96,13 @@ class SystemStatusEvent(BaseEvent):
 
     @classmethod
     def decode(cls, packet: Packet) -> 'SystemStatusEvent':
-        data = bytearray.fromhex(packet.data)
+        event_type = int(packet.data[0:2], 16)
+        zone = int(packet.data[2:4])
+        area = int(packet.data[4:6], 16)
         return SystemStatusEvent(
-            type=SystemStatusEvent.EventType(data[0]),
-            zone=data[1],
-            area=data[2],
+            type=SystemStatusEvent.EventType(event_type),
+            zone=zone,
+            area=area,
             timestamp=packet.timestamp,
             address=packet.address,
         )
