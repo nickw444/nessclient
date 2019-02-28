@@ -131,3 +131,14 @@ class PacketTestCase(unittest.TestCase):
         self.assertEqual(pkt.data, '000700')
         self.assertEqual(pkt.timestamp, datetime.datetime(
             year=2019, month=2, day=25, hour=18, minute=0, second=0))
+
+    def test_decode_zone_16(self):
+        pkt = Packet.decode('8700036100160019022823032274')
+        self.assertEqual(pkt.start, 0x87)
+        self.assertEqual(pkt.address, 0x00)
+        self.assertEqual(pkt.length, 3)
+        self.assertEqual(pkt.seq, 0x00)
+        self.assertEqual(pkt.command, CommandType.SYSTEM_STATUS)
+        self.assertEqual(pkt.data, '001600')
+        self.assertEqual(pkt.timestamp, datetime.datetime(
+            year=2019, month=2, day=28, hour=23, minute=3, second=22))

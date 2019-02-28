@@ -3,7 +3,7 @@ import unittest
 from nessclient.event import (
     ZoneUpdate, pack_unsigned_short_data_enum, ArmingUpdate,
     StatusUpdate, ViewStateUpdate, OutputsUpdate, SystemStatusEvent,
-    MiscellaneousAlarmsUpdate)
+    MiscellaneousAlarmsUpdate, BaseEvent)
 from nessclient.packet import Packet, CommandType
 
 
@@ -126,6 +126,20 @@ class SystemStatusEventTestCase(unittest.TestCase):
         self.assertEqual(event.zone, 5)
         self.assertEqual(event.type,
                          SystemStatusEvent.EventType.SEALED)
+
+    def test_zone_unsealed_with_zone_15(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, '001500')
+        event = BaseEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 15)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.UNSEALED)
+
+    def test_zone_unsealed_with_zone_16(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, '001600')
+        event = BaseEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 16)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.UNSEALED)
 
 
 def make_packet(command: CommandType, data: str):
