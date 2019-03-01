@@ -40,7 +40,6 @@ setup(
         'Intended Audience :: Developers',
         'Programming Language :: Python',
     ],
-    test_suite="nessclient_tests",
     install_requires=[
         'justbackoff',
         'dataclasses;python_version<"3.7"'
@@ -50,5 +49,8 @@ setup(
     },
     entry_points={
         'console_scripts': ['ness-cli=nessclient.cli.__main__:cli'],
-    }
+    },
+    test_suite='nessclient_tests',
+    setup_requires=['pytest-runner'],
+    tests_require=['pytest', 'pytest-asyncio', 'asynctest'],
 )

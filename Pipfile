@@ -11,6 +11,9 @@ name = "pypi"
 mypy = "*"
 sphinx = "*"
 "m2r" = "*"
+asynctest = "*"
+pytest = "*"
+pytest-asyncio = "*"
 
 [requires]
 python_version = "3.7"
