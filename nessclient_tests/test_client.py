@@ -55,8 +55,11 @@ async def test_aux_off(connection, client):
 async def test_update(connection, client):
     await client.update()
     assert connection.write.call_count == 2
-    assert get_data(connection.write.call_args_list[0][0][0]) == b'S00'
-    assert get_data(connection.write.call_args_list[1][0][0]) == b'S14'
+    commands = {
+        get_data(connection.write.call_args_list[0][0][0]),
+        get_data(connection.write.call_args_list[1][0][0])
+    }
+    assert commands == {b'S00', b'S14'}
 
 
 @pytest.mark.asyncio
