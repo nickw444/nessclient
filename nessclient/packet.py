@@ -48,7 +48,7 @@ class Packet:
     def checksum(self) -> int:
         bytes = self.encode(with_checksum=False)
         total = sum([ord(x) for x in bytes]) & 0xff
-        return 256 - total
+        return (256 - total) % 256
 
     def encode(self, with_checksum: bool = True) -> str:
         data = ''

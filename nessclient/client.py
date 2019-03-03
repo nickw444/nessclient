@@ -20,14 +20,18 @@ class Client:
                  host: Optional[str] = None,
                  port: Optional[int] = None,
                  loop: Optional[asyncio.AbstractEventLoop] = None,
-                 update_interval: int = 60):
+                 update_interval: int = 60,
+                 alarm: Optional[Alarm] = None):
         if connection is None:
             assert host is not None
             assert port is not None
             assert loop is not None
             connection = IP232Connection(host=host, port=port, loop=loop)
 
-        self.alarm = Alarm()
+        if alarm is None:
+            alarm = Alarm()
+
+        self.alarm = alarm
         self._on_event_received: Optional[Callable[[BaseEvent], None]] = None
         self._connection = connection
         self._closed = False
@@ -154,12 +158,12 @@ class Client:
 
     def on_state_change(self, f: Callable[[ArmingState], None]
                         ) -> Callable[[ArmingState], None]:
-        self.alarm._on_state_change = f
+        self.alarm.on_state_change(f)
         return f
 
     def on_zone_change(self, f: Callable[[int, bool], None]
                        ) -> Callable[[int, bool], None]:
-        self.alarm._on_zone_change = f
+        self.alarm.on_zone_change(f)
         return f
 
     def on_event_received(self, f: Callable[[BaseEvent], None]

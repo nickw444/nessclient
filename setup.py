@@ -1,4 +1,5 @@
 import os
+import sys
 
 from setuptools import setup
 
@@ -24,6 +25,9 @@ try:
 except Exception:
     version = '0.0.0-dev'
 
+needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
+pytest_runner = ['pytest-runner'] if needs_pytest else []
+
 setup(
     name='nessclient',
     version=version,
@@ -40,7 +44,6 @@ setup(
         'Intended Audience :: Developers',
         'Programming Language :: Python',
     ],
-    test_suite="nessclient_tests",
     install_requires=[
         'justbackoff',
         'dataclasses;python_version<"3.7"'
@@ -50,5 +53,8 @@ setup(
     },
     entry_points={
         'console_scripts': ['ness-cli=nessclient.cli.__main__:cli'],
-    }
+    },
+    test_suite='nessclient_tests',
+    setup_requires=[] + pytest_runner,
+    tests_require=['pytest==4.3.0', 'pytest-asyncio', 'asynctest'],
 )

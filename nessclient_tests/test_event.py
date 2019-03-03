@@ -1,9 +1,10 @@
 import unittest
+from typing import cast
 
 from nessclient.event import (
     ZoneUpdate, pack_unsigned_short_data_enum, ArmingUpdate,
     StatusUpdate, ViewStateUpdate, OutputsUpdate, SystemStatusEvent,
-    MiscellaneousAlarmsUpdate)
+    MiscellaneousAlarmsUpdate, BaseEvent)
 from nessclient.packet import Packet, CommandType
 
 
@@ -14,6 +15,53 @@ class UtilsTestCase(unittest.TestCase):
             '0900',
             pack_unsigned_short_data_enum(value),
         )
+
+
+class BaseEventTestCase(unittest.TestCase):
+    def test_decode_system_status_event(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, '000000')
+        event = BaseEvent.decode(pkt)
+        self.assertTrue(isinstance(event, SystemStatusEvent))
+
+    def test_decode_user_interface_event(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '000000')
+        event = BaseEvent.decode(pkt)
+        self.assertTrue(isinstance(event, StatusUpdate))
+
+    def test_decode_unknown_event(self):
+        pkt = make_packet(cast(CommandType, 0x01), '000000')
+        self.assertRaises(ValueError, lambda: BaseEvent.decode(pkt))
+
+
+class StatusUpdateTestCase(unittest.TestCase):
+    def test_decode_zone_update(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '000000')
+        event = StatusUpdate.decode(pkt)
+        self.assertTrue(isinstance(event, ZoneUpdate))
+
+    def test_decode_misc_alarms_update(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '130000')
+        event = StatusUpdate.decode(pkt)
+        self.assertTrue(isinstance(event, MiscellaneousAlarmsUpdate))
+
+    def test_decode_arming_update(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '140000')
+        event = StatusUpdate.decode(pkt)
+        self.assertTrue(isinstance(event, ArmingUpdate))
+
+    def test_decode_outputs_update(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '150000')
+        event = StatusUpdate.decode(pkt)
+        self.assertTrue(isinstance(event, OutputsUpdate))
+
+    def test_decode_view_state_update(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '16f000')
+        event = StatusUpdate.decode(pkt)
+        self.assertTrue(isinstance(event, ViewStateUpdate))
+
+    def test_decode_unknown_update(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '550000')
+        self.assertRaises(ValueError, lambda: StatusUpdate.decode(pkt))
 
 
 class ArmingUpdateTestCase(unittest.TestCase):
