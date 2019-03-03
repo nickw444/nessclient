@@ -105,3 +105,6 @@ venv.bak/
 
 .idea
 
+# This is a package, so no Pipfile should be checked in
+Pipfile
+Pipfile.lock
