@@ -1,7 +1,10 @@
+from unittest.mock import Mock
+
 import pytest
 from asynctest import MagicMock
 
 from nessclient import Client
+from nessclient.alarm import Alarm
 from nessclient.connection import Connection
 
 
@@ -70,11 +73,52 @@ async def test_send_command(connection, client):
 
 
 @pytest.mark.asyncio
+async def test_send_command_has_newlines(connection, client):
+    await client.send_command('A1234E')
+    assert connection.write.call_count == 1
+    assert connection.write.call_args[0][0][-2:] == b'\r\n'
+
+
+@pytest.mark.asyncio
 async def test_send_command_2(connection, client):
     await client.send_command('FOOBARBAZ')
     assert connection.write.call_count == 1
     print(connection.write.call_args[0][0])
     assert get_data(connection.write.call_args[0][0]) == b'FOOBARBAZ'
+
+
+async def test_keepalive_bad_data_does_not_crash():
+    # TODO(NW): Find a way to test this functionality inside the recv loop
+    pass
+
+
+async def test_keepalive_unknown_event_does_not_crash():
+    # TODO(NW): Find a way to test this functionality inside the recv loop
+    pass
+
+
+def test_keepalive_polls_alarm_connection():
+    # TODO(NW): Find a way to test this functionality inside the send loop
+    pass
+
+
+async def test_on_event_received_callback():
+    # TODO(NW): Find a way to test this functionality inside the recv loop
+    pass
+
+
+def test_on_state_change_callback_is_registered(client, alarm):
+    cb = Mock()
+    client.on_state_change(cb)
+    assert alarm.on_state_change.call_count == 1
+    assert alarm.on_state_change.call_args[0][0] == cb
+
+
+def test_on_zone_change_callback_is_registered(client, alarm):
+    cb = Mock()
+    client.on_zone_change(cb)
+    assert alarm.on_zone_change.call_count == 1
+    assert alarm.on_zone_change.call_args[0][0] == cb
 
 
 @pytest.mark.asyncio
@@ -84,10 +128,15 @@ async def test_close(connection, client):
 
 
 @pytest.fixture
-def connection():
+def alarm() -> Alarm:
+    return Mock()
+
+
+@pytest.fixture
+def connection() -> Connection:
     return MagicMock(Connection)
 
 
 @pytest.fixture
-def client(connection):
-    return Client(connection=connection)
+def client(connection, alarm) -> Client:
+    return Client(connection=connection, alarm=alarm)

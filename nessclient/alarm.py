@@ -35,7 +35,8 @@ class Alarm:
 
     def __init__(self) -> None:
         self.arming_state: ArmingState = ArmingState.UNKNOWN
-        self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(16)]
+        self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in
+                                        range(16)]
 
         self._on_state_change: Optional[Callable[['ArmingState'], None]] = None
         self._on_zone_change: Optional[Callable[[int, bool], None]] = None
@@ -114,3 +115,9 @@ class Alarm:
         if self._on_zone_change is not None and zone.triggered != state:
             zone.triggered = state
             self._on_zone_change(zone_id, state)
+
+    def on_state_change(self, f: Callable[[ArmingState], None]) -> None:
+        self._on_state_change = f
+
+    def on_zone_change(self, f: Callable[[int, bool], None]) -> None:
+        self._on_zone_change = f
