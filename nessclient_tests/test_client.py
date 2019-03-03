@@ -87,12 +87,12 @@ async def test_send_command_2(connection, client):
     assert get_data(connection.write.call_args[0][0]) == b'FOOBARBAZ'
 
 
-async def test_keepalive_bad_data_does_not_crash():
+def test_keepalive_bad_data_does_not_crash():
     # TODO(NW): Find a way to test this functionality inside the recv loop
     pass
 
 
-async def test_keepalive_unknown_event_does_not_crash():
+def test_keepalive_unknown_event_does_not_crash():
     # TODO(NW): Find a way to test this functionality inside the recv loop
     pass
 
@@ -102,7 +102,7 @@ def test_keepalive_polls_alarm_connection():
     pass
 
 
-async def test_on_event_received_callback():
+def test_on_event_received_callback():
     # TODO(NW): Find a way to test this functionality inside the recv loop
     pass
 
