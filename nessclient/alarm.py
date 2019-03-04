@@ -106,15 +106,17 @@ class Alarm:
             pass
 
     def _update_arming_state(self, state: 'ArmingState') -> None:
-        if self._on_state_change is not None and self.arming_state != state:
+        if self.arming_state != state:
             self.arming_state = state
-            self._on_state_change(state)
+            if self._on_state_change is not None:
+                self._on_state_change(state)
 
     def _update_zone(self, zone_id: int, state: bool) -> None:
         zone = self.zones[zone_id - 1]
-        if self._on_zone_change is not None and zone.triggered != state:
+        if zone.triggered != state:
             zone.triggered = state
-            self._on_zone_change(zone_id, state)
+            if self._on_zone_change is not None:
+                self._on_zone_change(zone_id, state)
 
     def on_state_change(self, f: Callable[[ArmingState], None]) -> None:
         self._on_state_change = f
