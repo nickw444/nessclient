@@ -3,7 +3,7 @@ python:
   - '3.6'
 
 install:
-  - pip install coveralls flake8 mypy
+  - pip install coveralls codecov flake8 mypy
   - pip install .
 
 script:
