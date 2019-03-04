@@ -3,7 +3,7 @@ python:
   - '3.6'
 
 install:
-  - pip install coveralls flake8 mypy
+  - pip install codecov flake8 mypy
   - pip install .
 
 script:
@@ -11,7 +11,8 @@ script:
   - mypy --strict nessclient
   - coverage run --source=nessclient setup.py test
 
-after_success: coveralls
+after_success:
+  - codecov
 
 before_deploy:
   - git describe --tags > VERSION

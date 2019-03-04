@@ -1,7 +1,7 @@
 # nessclient
 
 [![](https://travis-ci.org/nickw444/nessclient.svg?branch=master)](https://travis-ci.org/nickw444/nessclient)
-[![](https://coveralls.io/repos/nickw444/nessclient/badge.svg)](https://coveralls.io/r/nickw444/nessclient)
+[![codecov](https://codecov.io/gh/nickw444/nessclient/branch/master/graph/badge.svg)](https://codecov.io/gh/nickw444/nessclient)
 [![](https://img.shields.io/pypi/v/nessclient.svg)](https://pypi.python.org/pypi/nessclient/)
 [![](https://readthedocs.org/projects/nessclient/badge/?version=latest&style=flat)](https://nessclient.readthedocs.io/en/latest/)
 
