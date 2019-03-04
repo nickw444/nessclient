@@ -143,6 +143,114 @@ def test_handle_event_system_status_sealed_zone_calls_callback(alarm):
     assert cb.call_args[0] == (1, False)
 
 
+def test_handle_event_system_status_alarm(alarm):
+    event = SystemStatusEvent(address=None, timestamp=None,
+                              type=SystemStatusEvent.EventType.ALARM,
+                              area=0, zone=1)
+    alarm.handle_event(event)
+    assert alarm.arming_state == ArmingState.TRIGGERED
+
+
+def test_handle_event_system_status_alarm_restore_while_disarmed(alarm):
+    alarm.arming_state = ArmingState.DISARMED
+    event = SystemStatusEvent(address=None, timestamp=None,
+                              type=SystemStatusEvent.EventType.ALARM_RESTORE,
+                              area=0, zone=1)
+    alarm.handle_event(event)
+    assert alarm.arming_state == ArmingState.DISARMED
+
+
+def test_handle_event_system_status_alarm_restore_while_triggered(alarm):
+    alarm.arming_state = ArmingState.TRIGGERED
+    event = SystemStatusEvent(address=None, timestamp=None,
+                              type=SystemStatusEvent.EventType.ALARM_RESTORE,
+                              area=0, zone=1)
+    alarm.handle_event(event)
+    assert alarm.arming_state == ArmingState.ARMED
+
+
+def test_handle_event_system_status_entry_delay_start(alarm):
+    event = SystemStatusEvent(
+        address=None, timestamp=None,
+        type=SystemStatusEvent.EventType.ENTRY_DELAY_START,
+        area=0, zone=1)
+    alarm.handle_event(event)
+    assert alarm.arming_state == ArmingState.ENTRY_DELAY
+
+
+def test_handle_event_system_status_entry_delay_end(alarm):
+    """
+    We explicitly ignore entry delay end, since an additional arm event
+    is generated, which is handled instead
+    """
+    alarm.arming_state = ArmingState.ENTRY_DELAY
+    event = SystemStatusEvent(
+        address=None, timestamp=None,
+        type=SystemStatusEvent.EventType.ENTRY_DELAY_END,
+        area=0, zone=1)
+    alarm.handle_event(event)
+    assert alarm.arming_state == ArmingState.ENTRY_DELAY
+
+
+def test_handle_event_system_status_exit_delay_start(alarm):
+    event = SystemStatusEvent(
+        address=None, timestamp=None,
+        type=SystemStatusEvent.EventType.EXIT_DELAY_START,
+        area=0, zone=1)
+    alarm.handle_event(event)
+    assert alarm.arming_state == ArmingState.EXIT_DELAY
+
+
+def test_handle_event_system_status_exit_delay_end_from_exit_delay(alarm):
+    alarm.arming_state = ArmingState.EXIT_DELAY
+    event = SystemStatusEvent(
+        address=None, timestamp=None,
+        type=SystemStatusEvent.EventType.EXIT_DELAY_END,
+        area=0, zone=1)
+    alarm.handle_event(event)
+    assert alarm.arming_state == ArmingState.ARMED
+
+
+def test_handle_event_system_status_exit_delay_end_from_armed(alarm):
+    alarm.arming_state = ArmingState.DISARMED
+    event = SystemStatusEvent(
+        address=None, timestamp=None,
+        type=SystemStatusEvent.EventType.EXIT_DELAY_END,
+        area=0, zone=1)
+    alarm.handle_event(event)
+    assert alarm.arming_state == ArmingState.DISARMED
+
+
+def test_handle_event_system_status_arm_events(alarm):
+    for event_type in Alarm.ARM_EVENTS:
+        alarm.arming_state = ArmingState.DISARMED
+        event = SystemStatusEvent(
+            address=None, timestamp=None,
+            type=event_type,
+            area=0, zone=1)
+        assert alarm.arming_state == ArmingState.DISARMED
+        alarm.handle_event(event)
+        assert alarm.arming_state == ArmingState.ARMING
+
+
+def test_handle_event_system_status_disarmed(alarm):
+    event = SystemStatusEvent(
+        address=None, timestamp=None,
+        type=SystemStatusEvent.EventType.DISARMED,
+        area=0, zone=1)
+    alarm.handle_event(event)
+    assert alarm.arming_state == ArmingState.DISARMED
+
+
+def test_handle_event_system_status_arming_delayed(alarm):
+    event = SystemStatusEvent(
+        address=None, timestamp=None,
+        type=SystemStatusEvent.EventType.ARMING_DELAYED,
+        area=0, zone=1)
+    alarm.handle_event(event)
+    assert alarm.arming_state == ArmingState.UNKNOWN
+
+
 @pytest.fixture
 def alarm():
     return Alarm()
