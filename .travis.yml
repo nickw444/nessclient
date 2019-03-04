@@ -11,7 +11,9 @@ script:
   - mypy --strict nessclient
   - coverage run --source=nessclient setup.py test
 
-after_success: coveralls
+after_success:
+  - coveralls
+  - codecov
 
 before_deploy:
   - git describe --tags > VERSION
