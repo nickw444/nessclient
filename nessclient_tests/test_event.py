@@ -4,7 +4,8 @@ from typing import cast
 from nessclient.event import (
     ZoneUpdate, pack_unsigned_short_data_enum, ArmingUpdate,
     StatusUpdate, ViewStateUpdate, OutputsUpdate, SystemStatusEvent,
-    MiscellaneousAlarmsUpdate, BaseEvent)
+    MiscellaneousAlarmsUpdate, BaseEvent, AuxiliaryOutputsUpdate,
+    PanelVersionUpdate)
 from nessclient.packet import Packet, CommandType
 
 
@@ -58,6 +59,16 @@ class StatusUpdateTestCase(unittest.TestCase):
         pkt = make_packet(CommandType.USER_INTERFACE, '16f000')
         event = StatusUpdate.decode(pkt)
         self.assertTrue(isinstance(event, ViewStateUpdate))
+
+    def test_decode_panel_version_update(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '170000')
+        event = StatusUpdate.decode(pkt)
+        self.assertTrue(isinstance(event, PanelVersionUpdate))
+
+    def test_decode_auxiliary_outputs_update(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '180000')
+        event = StatusUpdate.decode(pkt)
+        self.assertTrue(isinstance(event, AuxiliaryOutputsUpdate))
 
     def test_decode_unknown_update(self):
         pkt = make_packet(CommandType.USER_INTERFACE, '550000')
@@ -188,6 +199,49 @@ class SystemStatusEventTestCase(unittest.TestCase):
         self.assertEqual(event.area, 0)
         self.assertEqual(event.zone, 16)
         self.assertEqual(event.type, SystemStatusEvent.EventType.UNSEALED)
+
+
+class PanelVersionUpdateTestCase(unittest.TestCase):
+    def test_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '160000')
+        event = PanelVersionUpdate.decode(pkt)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D16X)
+
+    def test_3g_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '160400')
+        event = PanelVersionUpdate.decode(pkt)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D16X_3G)
+
+    def test_sw_version(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '160086')
+        event = PanelVersionUpdate.decode(pkt)
+        self.assertEqual(event.major_version, 8)
+        self.assertEqual(event.minor_version, 6)
+        self.assertEqual(event.version, '8.6')
+
+
+class AuxiliaryOutputsUpdateTestCase(unittest.TestCase):
+    def test_aux_output_1(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '170001')
+        event = AuxiliaryOutputsUpdate.decode(pkt)
+        self.assertEqual(event.outputs, [
+            AuxiliaryOutputsUpdate.OutputType.AUX_1,
+        ])
+
+    def test_aux_output_4(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '170008')
+        event = AuxiliaryOutputsUpdate.decode(pkt)
+        self.assertEqual(event.outputs, [
+            AuxiliaryOutputsUpdate.OutputType.AUX_4,
+        ])
+
+    def test_aux_output_multi(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, '170088')
+        event = AuxiliaryOutputsUpdate.decode(pkt)
+        self.assertEqual(event.outputs, [
+            AuxiliaryOutputsUpdate.OutputType.AUX_4,
+            AuxiliaryOutputsUpdate.OutputType.AUX_8,
+        ])
 
 
 def make_packet(command: CommandType, data: str):
