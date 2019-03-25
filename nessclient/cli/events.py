@@ -9,9 +9,13 @@ from ..event import BaseEvent
 @click.command(help='Listen for emitted alarm events')
 @click.option('--host', required=True)
 @click.option('--port', required=True, type=int)
-def events(host: str, port: int):
+@click.option('--update-interval', type=int, default=60)
+@click.option('--infer-arming-state/--no-infer-arming-state')
+def events(host: str, port: int, update_interval: int, infer_arming_state: bool):
     loop = asyncio.get_event_loop()
-    client = Client(host=host, port=port, loop=loop)
+    client = Client(host=host, port=port, loop=loop,
+                    infer_arming_state=infer_arming_state,
+                    update_interval=update_interval)
 
     @client.on_zone_change
     def on_zone_change(zone: int, triggered: bool):

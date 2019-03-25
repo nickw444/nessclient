@@ -21,7 +21,15 @@ class Client:
                  port: Optional[int] = None,
                  loop: Optional[asyncio.AbstractEventLoop] = None,
                  update_interval: int = 60,
+                 infer_arming_state: bool = False,
                  alarm: Optional[Alarm] = None):
+        """
+        :param update_interval: Frequency in seconds to trigger a full state
+        refresh
+        :param infer_arming_state: Infer the DISARMED arming state only via
+        system status events. This works around a bug with some panels (<v5.8)
+        which emit update.status = [] when they are armed.
+        """
         if connection is None:
             assert host is not None
             assert port is not None
@@ -29,7 +37,7 @@ class Client:
             connection = IP232Connection(host=host, port=port, loop=loop)
 
         if alarm is None:
-            alarm = Alarm()
+            alarm = Alarm(infer_arming_state=infer_arming_state)
 
         self.alarm = alarm
         self._on_event_received: Optional[Callable[[BaseEvent], None]] = None
