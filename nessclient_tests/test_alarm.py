@@ -87,6 +87,29 @@ def test_handle_event_arming_update_disarmed(alarm):
     assert alarm.arming_state == ArmingState.DISARMED
 
 
+def test_handle_event_arming_update_infer_arming_state_armed_empty():
+    alarm = Alarm(infer_arming_state=True)
+    alarm.arming_state = ArmingState.ARMED
+    event = ArmingUpdate(status=[], address=None, timestamp=None)
+    alarm.handle_event(event)
+    assert alarm.arming_state == ArmingState.ARMED
+
+
+def test_handle_event_arming_update_without_infer_arming_state_armed_empty():
+    alarm = Alarm(infer_arming_state=False)
+    alarm.arming_state = ArmingState.ARMED
+    event = ArmingUpdate(status=[], address=None, timestamp=None)
+    alarm.handle_event(event)
+    assert alarm.arming_state == ArmingState.DISARMED
+
+
+def test_handle_event_arming_update_infer_arming_state_unknown_empty():
+    alarm = Alarm(infer_arming_state=True)
+    event = ArmingUpdate(status=[], address=None, timestamp=None)
+    alarm.handle_event(event)
+    assert alarm.arming_state == ArmingState.DISARMED
+
+
 def test_handle_event_arming_update_callback(alarm):
     cb = Mock()
     alarm.on_state_change(cb)

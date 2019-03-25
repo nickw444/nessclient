@@ -33,7 +33,8 @@ class Alarm:
     class Zone:
         triggered: Optional[bool]
 
-    def __init__(self) -> None:
+    def __init__(self, infer_arming_state: bool = False) -> None:
+        self._infer_arming_state = infer_arming_state
         self.arming_state: ArmingState = ArmingState.UNKNOWN
         self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in
                                         range(16)]
@@ -57,7 +58,25 @@ class Alarm:
                 ArmingUpdate.ArmingStatus.AREA_1_FULLY_ARMED in update.status:
             return self._update_arming_state(ArmingState.ARMED)
         else:
-            return self._update_arming_state(ArmingState.DISARMED)
+            if self._infer_arming_state:
+                # State inference is enabled. Therefore the arming state can
+                # only be reverted to disarmed via a system status event.
+                # This works around a bug with some panels (<v5.8) which emit
+                # update.status = [] when they are armed.
+                # TODO(NW): It would be ideal to find a better way to
+                #  query this information on-demand, but for now this should
+                #  resolve the issue.
+                if self.arming_state == ArmingState.UNKNOWN:
+                    return self._update_arming_state(ArmingState.DISARMED)
+            else:
+                # State inference is disabled, therefore we can assume the
+                # panel is "disarmed" as it did not have any arming flags set
+                # in the arming update status as per the documentation.
+                # Note: This may not be correct and may not correctly represent
+                # other modes of arming other than ARMED_AWAY.
+                # TODO(NW): Perform some testing to determine how the client
+                #  handles other arming modes.
+                return self._update_arming_state(ArmingState.DISARMED)
 
     def _handle_zone_input_update(self, update: ZoneUpdate) -> None:
         for i, zone in enumerate(self.zones):
