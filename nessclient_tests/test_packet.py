@@ -3,6 +3,7 @@ import logging
 import unittest
 from os import path
 
+from nessclient import BaseEvent
 from nessclient.packet import Packet, CommandType
 
 _LOGGER = logging.getLogger(__name__)
@@ -142,3 +143,9 @@ class PacketTestCase(unittest.TestCase):
         self.assertEqual(pkt.data, '001600')
         self.assertEqual(pkt.timestamp, datetime.datetime(
             year=2019, month=2, day=28, hour=23, minute=3, second=22))
+
+    def test_decode_update(self):
+        pkt = Packet.decode('820003601700867e')
+        event = BaseEvent.decode(pkt)
+        print(pkt)
+        print(event)

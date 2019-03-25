@@ -138,6 +138,8 @@ class StatusUpdate(BaseEvent):
         ARMING = 0x14
         OUTPUTS = 0x15
         VIEW_STATE = 0x16
+        PANEL_VERSION = 0x17
+        AUXILIARY_OUTPUTS = 0x18
 
     def __init__(self, request_id: 'StatusUpdate.RequestID', address: Optional[int],
                  timestamp: Optional[datetime.datetime]) -> None:
@@ -157,6 +159,10 @@ class StatusUpdate(BaseEvent):
             return OutputsUpdate.decode(packet)
         elif request_id == StatusUpdate.RequestID.VIEW_STATE:
             return ViewStateUpdate.decode(packet)
+        elif request_id == StatusUpdate.RequestID.PANEL_VERSION:
+            return PanelVersionUpdate.decode(packet)
+        elif request_id == StatusUpdate.RequestID.AUXILIARY_OUTPUTS:
+            return AuxiliaryOutputsUpdate.decode(packet)
         else:
             raise ValueError("Unhandled request_id case: {}".format(request_id))
 
@@ -383,6 +389,67 @@ class ViewStateUpdate(StatusUpdate):
         state = ViewStateUpdate.State(int(packet.data[2:6], 16))
         return ViewStateUpdate(
             state=state,
+            timestamp=packet.timestamp,
+            address=packet.address,
+        )
+
+
+class PanelVersionUpdate(StatusUpdate):
+    class Model(Enum):
+        D16X = 0x00
+        D16X_3G = 0x04
+
+    def __init__(self, model: Model, major_version: int, minor_version: int,
+                 address: Optional[int],
+                 timestamp: Optional[datetime.datetime]):
+        super(PanelVersionUpdate, self).__init__(
+            request_id=StatusUpdate.RequestID.PANEL_VERSION,
+            address=address, timestamp=timestamp)
+        self.model = model
+        self.major_version = major_version
+        self.minor_version = minor_version
+
+    @property
+    def version(self) -> str:
+        return '{}.{}'.format(self.major_version, self.minor_version)
+
+    @classmethod
+    def decode(cls, packet: Packet) -> 'PanelVersionUpdate':
+        model = PanelVersionUpdate.Model(int(packet.data[2:4], 16))
+        major_version = int(packet.data[4:5], 16)
+        minor_version = int(packet.data[5:6], 16)
+        return PanelVersionUpdate(
+            model=model,
+            minor_version=minor_version,
+            major_version=major_version,
+            timestamp=packet.timestamp,
+            address=packet.address,
+        )
+
+
+class AuxiliaryOutputsUpdate(StatusUpdate):
+    class OutputType(Enum):
+        AUX_1 = 0x0001
+        AUX_2 = 0x0002
+        AUX_3 = 0x0004
+        AUX_4 = 0x0008
+        AUX_5 = 0x0010
+        AUX_6 = 0x0020
+        AUX_7 = 0x0040
+        AUX_8 = 0x0080
+
+    def __init__(self, outputs: List[OutputType], address: Optional[int],
+                 timestamp: Optional[datetime.datetime]):
+        super(AuxiliaryOutputsUpdate, self).__init__(
+            request_id=StatusUpdate.RequestID.AUXILIARY_OUTPUTS,
+            address=address, timestamp=timestamp)
+        self.outputs = outputs
+
+    @classmethod
+    def decode(cls, packet: Packet) -> 'AuxiliaryOutputsUpdate':
+        return AuxiliaryOutputsUpdate(
+            outputs=unpack_unsigned_short_data_enum(
+                packet, AuxiliaryOutputsUpdate.OutputType),
             timestamp=packet.timestamp,
             address=packet.address,
         )
