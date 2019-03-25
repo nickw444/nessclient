@@ -15,6 +15,13 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class Client:
+    """
+    :param update_interval: Frequency (in seconds) to trigger a full state
+        refresh
+    :param infer_arming_state: Infer the `DISARMED` arming state only via
+        system status events. This works around a bug with some panels
+        (`<v5.8`) which emit `update.status = []` when they are armed.
+    """
     def __init__(self,
                  connection: Optional[Connection] = None,
                  host: Optional[str] = None,
@@ -23,13 +30,6 @@ class Client:
                  update_interval: int = 60,
                  infer_arming_state: bool = False,
                  alarm: Optional[Alarm] = None):
-        """
-        :param update_interval: Frequency in seconds to trigger a full state
-        refresh
-        :param infer_arming_state: Infer the DISARMED arming state only via
-        system status events. This works around a bug with some panels (<v5.8)
-        which emit update.status = [] when they are armed.
-        """
         if connection is None:
             assert host is not None
             assert port is not None
