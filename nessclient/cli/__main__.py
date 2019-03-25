@@ -11,6 +11,7 @@ LOG_LEVELS = ['error', 'warning', 'info', 'debug']
 
 _LOGGER = logging.getLogger(__name__)
 
+
 @click.group()
 @click.option('--log-level', type=click.Choice(LOG_LEVELS), default='warning')
 def cli(log_level: str):
@@ -27,6 +28,7 @@ def version():
 
 def get_version():
     return pkg_resources.get_distribution('nessclient').version
+
 
 cli.add_command(events)
 cli.add_command(send_command)
