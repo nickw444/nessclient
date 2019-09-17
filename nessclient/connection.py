@@ -80,11 +80,14 @@ class IP232Connection(Connection):
         return data.strip()
 
     async def write(self, data: bytes) -> None:
+        _LOGGER.debug("Waiting for write_lock to write data: %s", data)
         async with self._write_lock:
+            _LOGGER.debug("Obtained write_lock to write data: %s", data)
             assert self._writer is not None
 
             self._writer.write(data)
             await self._writer.drain()
+            _LOGGER.debug("Data was written: %s", data)
 
     async def close(self) -> None:
         if self.connected and self._writer is not None:
