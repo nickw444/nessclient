@@ -38,6 +38,7 @@ class IP232Connection(Connection):
                  loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()):
         super().__init__()
 
+        self._write_lock = asyncio.Lock(loop=loop)
         self._host = host
         self._port = port
         self._loop = loop
@@ -79,10 +80,14 @@ class IP232Connection(Connection):
         return data.strip()
 
     async def write(self, data: bytes) -> None:
-        assert self._writer is not None
+        _LOGGER.debug("Waiting for write_lock to write data: %s", data)
+        async with self._write_lock:
+            _LOGGER.debug("Obtained write_lock to write data: %s", data)
+            assert self._writer is not None
 
-        self._writer.write(data)
-        await self._writer.drain()
+            self._writer.write(data)
+            await self._writer.drain()
+            _LOGGER.debug("Data was written: %s", data)
 
     async def close(self) -> None:
         if self.connected and self._writer is not None:
