@@ -93,6 +93,6 @@ class IP232Connection(Connection):
         if self.connected and self._writer is not None:
             self._writer.close()
             if hasattr(self._writer, 'wait_closed'):
-                await self._writer.wait_closed()  # type: ignore
+                await self._writer.wait_closed()
             self._writer = None
             self._reader = None
