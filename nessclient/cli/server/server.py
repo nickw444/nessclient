@@ -1,7 +1,7 @@
 import logging
 import socket
 import threading
-from typing import List, Callable
+from typing import List, Callable, Any
 
 from .zone import Zone
 from ...event import BaseEvent, SystemStatusEvent
@@ -17,10 +17,10 @@ class Server:
         self._clients_lock: threading.Lock = threading.Lock()
         self._clients: List[socket.socket] = []
 
-    def start(self, host, port):
+    def start(self, host: str, port: int) -> None:
         threading.Thread(target=self._loop, args=(host, port)).start()
 
-    def _loop(self, host, port):
+    def _loop(self, host: str, port: int) -> None:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind((host, port))
@@ -32,11 +32,11 @@ class Server:
                 threading.Thread(
                     target=self._on_client_connected, args=(conn, addr)).start()
 
-    def write_event(self, event: BaseEvent):
+    def write_event(self, event: BaseEvent) -> None:
         pkt = event.encode()
         self._write_to_all_clients(pkt.encode())
 
-    def on_zone_state_change(self, zone_id: int, state: Zone.State):
+    def on_zone_state_change(self, zone_id: int, state: Zone.State) -> None:
         event = SystemStatusEvent(
             type=get_zone_state_event_type(state),
             zone=zone_id,
@@ -47,7 +47,7 @@ class Server:
         pkt = event.encode()
         self._write_to_all_clients(pkt.encode())
 
-    def _on_client_connected(self, conn: socket.socket, addr):
+    def _on_client_connected(self, conn: socket.socket, addr: Any) -> None:
         _LOGGER.info("Client connected from: %s", addr)
         with self._clients_lock:
             self._clients.append(conn)
@@ -63,13 +63,13 @@ class Server:
 
             self._handle_incoming_data(data)
 
-    def _write_to_all_clients(self, data: str):
+    def _write_to_all_clients(self, data: str) -> None:
         _LOGGER.debug("Writing message '%s' to all clients", data)
         with self._clients_lock:
             for conn in self._clients:
                 conn.send(data.encode('utf-8') + b'\r\n')
 
-    def _handle_incoming_data(self, data: bytes):
+    def _handle_incoming_data(self, data: bytes) -> None:
         _LOGGER.debug("Received incoming data: %s", data)
         pkt = Packet.decode(data.strip().decode('utf-8'))
         _LOGGER.debug("Packet is: %s", pkt)

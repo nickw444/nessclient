@@ -2,7 +2,7 @@ import logging
 import random
 import threading
 import time
-from typing import List
+from typing import List, Iterator
 
 from .alarm import Alarm
 from .server import Server, get_zone_state_event_type
@@ -24,7 +24,7 @@ class AlarmServer():
         self._port = port
         self._simulation_running = False
 
-    def start(self):
+    def start(self) -> None:
         self._server.start(host=self._host, port=self._port)
         self._start_simulation()
 
@@ -44,7 +44,7 @@ class AlarmServer():
             print(command)
 
     def _alarm_state_changed(self, previous_state: Alarm.ArmingState,
-                             state: Alarm.ArmingState):
+                             state: Alarm.ArmingState) -> None:
         if state != Alarm.ArmingState.DISARMED:
             self._stop_simulation()
 
@@ -58,7 +58,7 @@ class AlarmServer():
             )
             self._server.write_event(event)
 
-    def _zone_state_changed(self, zone_id: int, state: Zone.State):
+    def _zone_state_changed(self, zone_id: int, state: Zone.State) -> None:
         event = SystemStatusEvent(
             type=get_zone_state_event_type(state),
             zone=zone_id,
@@ -68,7 +68,7 @@ class AlarmServer():
         )
         self._server.write_event(event)
 
-    def _handle_command(self, command: str):
+    def _handle_command(self, command: str) -> None:
         _LOGGER.info("Incoming User Command: {}".format(command))
         if command == 'AE' or command == 'A1234E':
             self._alarm.arm()
@@ -79,7 +79,7 @@ class AlarmServer():
         elif command == 'S14':
             self._handle_arming_status_update_request()
 
-    def _handle_arming_status_update_request(self):
+    def _handle_arming_status_update_request(self) -> None:
         event = ArmingUpdate(
             status=get_arming_status(self._alarm.state),
             address=0x00,
@@ -87,7 +87,7 @@ class AlarmServer():
         )
         self._server.write_event(event)
 
-    def _handle_zone_input_unsealed_status_update_request(self):
+    def _handle_zone_input_unsealed_status_update_request(self) -> None:
         event = ZoneUpdate(
             request_id=StatusUpdate.RequestID.ZONE_INPUT_UNSEALED,
             included_zones=[
@@ -98,17 +98,17 @@ class AlarmServer():
         )
         self._server.write_event(event)
 
-    def _simulate_zone_events(self):
+    def _simulate_zone_events(self) -> None:
         while self._simulation_running:
             zone: Zone = random.choice(self._alarm.zones)
             self._alarm.update_zone(zone.id, toggled_state(zone.state))
             _LOGGER.info("Toggled zone: %s", zone)
             time.sleep(random.randint(1, 5))
 
-    def _stop_simulation(self):
+    def _stop_simulation(self) -> None:
         self._simulation_running = False
 
-    def _start_simulation(self):
+    def _start_simulation(self) -> None:
         if not self._simulation_running:
             self._simulation_running = True
             threading.Thread(target=self._simulate_zone_events).start()
@@ -116,7 +116,7 @@ class AlarmServer():
 
 def get_events_for_state_update(
         previous_state: Alarm.ArmingState,
-        state: Alarm.ArmingState) -> List[SystemStatusEvent.EventType]:
+        state: Alarm.ArmingState) -> Iterator[SystemStatusEvent.EventType]:
 
     if state == Alarm.ArmingState.DISARMED:
         yield SystemStatusEvent.EventType.DISARMED

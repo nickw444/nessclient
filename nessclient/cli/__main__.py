@@ -14,19 +14,19 @@ _LOGGER = logging.getLogger(__name__)
 
 @click.group()
 @click.option('--log-level', type=click.Choice(LOG_LEVELS), default='warning')
-def cli(log_level: str):
+def cli(log_level: str) -> None:
     level = getattr(logging, log_level.upper())
     logging.basicConfig(level=level)
     _LOGGER.debug('nessclient version: %s', get_version())
 
 
 @cli.command()
-def version():
+def version() -> None:
     """Print installed package version."""
     print(get_version())
 
 
-def get_version():
+def get_version() -> str:
     return pkg_resources.get_distribution('nessclient').version
 
 
