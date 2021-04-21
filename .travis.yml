@@ -4,7 +4,8 @@ python:
   - '3.8'
 
 install:
-  - pip install codecov flake8 mypy
+  - pip install pipenv
+  - pipenv install --system --dev
   - pip install .
 
 script:
