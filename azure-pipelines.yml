@@ -63,4 +63,3 @@ steps:
   - script: |
       python setup.py bdist_wheel
       python -m twine upload -r 'nessclient' --config-file $(PYPIRC_PATH) dist/*.whl
-    condition: 
