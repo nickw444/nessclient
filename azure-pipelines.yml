@@ -55,11 +55,12 @@ steps:
     bash <(curl -s https://codecov.io/bash)
   displayName: 'Upload to codecov.io'
 
-- task: TwineAuthenticate@1
-  inputs:
-    pythonUploadServiceConnection: 'nessclient'
+- ${{ if and(succeeded(), eq(variables['python.version'], '3.x'), startsWith(variables['Build.SourceBranch'], 'refs/tags/')) }}: 
+  - task: TwineAuthenticate@1
+    inputs:
+      pythonUploadServiceConnection: 'nessclient'
 
-- script: |
-    python setup.py bdist_wheel
-    python -m twine upload -r 'nessclient' --config-file $(PYPIRC_PATH) dist/*.whl
-  condition: and(succeeded(), eq(variables['python.version'], '3.x'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+  - script: |
+      python setup.py bdist_wheel
+      python -m twine upload -r 'nessclient' --config-file $(PYPIRC_PATH) dist/*.whl
+    condition: 
