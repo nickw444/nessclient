@@ -3,17 +3,6 @@ import sys
 
 from setuptools import setup
 
-
-def get_version():
-    version_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        'VERSION')
-    v = open(version_path).read()
-    if type(v) == str:
-        return v.strip()
-    return v.decode('UTF-8').strip()
-
-
 readme_path = os.path.join(os.path.dirname(
     os.path.abspath(__file__)),
     'README.md',
@@ -30,7 +19,6 @@ pytest_runner = ['pytest-runner'] if needs_pytest else []
 
 setup(
     name='nessclient',
-    version=version,
     packages=['nessclient', 'nessclient.cli', 'nessclient.cli.server'],
     author="Nick Whyte",
     author_email='nick@nickwhyte.com',
