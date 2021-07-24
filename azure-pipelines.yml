@@ -55,7 +55,7 @@ steps:
     bash <(curl -s https://codecov.io/bash)
   displayName: 'Upload to codecov.io'
 
-- ${{ if and(succeeded(), eq(variables['python.version'], '3.x'), startsWith(variables['Build.SourceBranch'], 'refs/tags/')) }}: 
+- ${{ if and(eq(variables['python.version'], '3.x'), startsWith(variables['Build.SourceBranch'], 'refs/tags/')) }}: 
   - task: TwineAuthenticate@1
     inputs:
       pythonUploadServiceConnection: 'nessclient'
