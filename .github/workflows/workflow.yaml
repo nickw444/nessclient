@@ -45,7 +45,7 @@ jobs:
         run: |
           coverage run --source=nessclient setup.py test
       - uses: codecov/codecov-action@v2
-        if: ${{ matrix.python-version == '3.9' }}
+        if: ${{ matrix.python-version == '3.x' }}
 
       - name: "Build"
         run: |
