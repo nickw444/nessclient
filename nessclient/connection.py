@@ -53,7 +53,6 @@ class IP232Connection(Connection):
         self._reader, self._writer = await asyncio.open_connection(
             host=self._host,
             port=self._port,
-            loop=self._loop,
         )
         return True
 
