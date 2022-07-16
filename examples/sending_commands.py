@@ -5,7 +5,7 @@ from nessclient import Client
 loop = asyncio.get_event_loop()
 host = '127.0.0.1'
 port = 65432
-client = Client(host=host, port=port, loop=loop)
+client = Client(host=host, port=port)
 
 # Send arming command via library abstraction
 loop.run_until_complete(client.arm_away('1234'))

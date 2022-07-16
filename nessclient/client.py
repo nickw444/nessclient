@@ -26,15 +26,13 @@ class Client:
                  connection: Optional[Connection] = None,
                  host: Optional[str] = None,
                  port: Optional[int] = None,
-                 loop: Optional[asyncio.AbstractEventLoop] = None,
                  update_interval: int = 60,
                  infer_arming_state: bool = False,
                  alarm: Optional[Alarm] = None):
         if connection is None:
             assert host is not None
             assert port is not None
-            assert loop is not None
-            connection = IP232Connection(host=host, port=port, loop=loop)
+            connection = IP232Connection(host=host, port=port)
 
         if alarm is None:
             alarm = Alarm(infer_arming_state=infer_arming_state)
