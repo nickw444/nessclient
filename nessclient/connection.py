@@ -34,14 +34,12 @@ class Connection(ABC):
 class IP232Connection(Connection):
     """A connection via IP232 with a Ness D8X/D16X server"""
 
-    def __init__(self, host: str, port: int,
-                 loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()):
+    def __init__(self, host: str, port: int):
         super().__init__()
 
-        self._write_lock = asyncio.Lock(loop=loop)
+        self._write_lock = asyncio.Lock()
         self._host = host
         self._port = port
-        self._loop = loop
         self._reader: Optional[asyncio.StreamReader] = None
         self._writer: Optional[asyncio.StreamWriter] = None
 

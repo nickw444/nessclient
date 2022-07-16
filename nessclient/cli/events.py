@@ -13,7 +13,7 @@ from ..event import BaseEvent
 @click.option('--infer-arming-state/--no-infer-arming-state')
 def events(host: str, port: int, update_interval: int, infer_arming_state: bool) -> None:
     loop = asyncio.get_event_loop()
-    client = Client(host=host, port=port, loop=loop,
+    client = Client(host=host, port=port,
                     infer_arming_state=infer_arming_state,
                     update_interval=update_interval)
 
