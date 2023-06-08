@@ -1,7 +1,6 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, AsyncMock
 
 import pytest
-from asynctest import MagicMock
 
 from nessclient import Client
 from nessclient.alarm import Alarm
@@ -134,7 +133,7 @@ def alarm() -> Alarm:
 
 @pytest.fixture
 def connection() -> Connection:
-    return MagicMock(Connection)
+    return AsyncMock(Connection)
 
 
 @pytest.fixture

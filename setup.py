@@ -44,5 +44,5 @@ setup(
     },
     test_suite='nessclient_tests',
     setup_requires=[] + pytest_runner,
-    tests_require=['pytest', 'pytest-asyncio', 'asynctest'],
+    tests_require=['pytest', 'pytest-asyncio'],
 )
