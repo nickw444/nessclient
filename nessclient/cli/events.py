@@ -4,11 +4,12 @@ import click
 from ..client import Client
 from ..alarm import ArmingState
 from ..event import BaseEvent
+from .server import DEFAULT_PORT
 
 
 @click.command(help='Listen for emitted alarm events')
-@click.option('--host', required=True)
-@click.option('--port', required=True, type=int)
+@click.option('--host', default='localhost')
+@click.option('--port', type=int, default=DEFAULT_PORT)
 @click.option('--update-interval', type=int, default=60)
 @click.option('--infer-arming-state/--no-infer-arming-state')
 def events(host: str, port: int, update_interval: int, infer_arming_state: bool) -> None:
