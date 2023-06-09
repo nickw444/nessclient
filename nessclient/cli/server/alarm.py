@@ -115,7 +115,9 @@ class Alarm:
     ArmingModeMissing = object()
 
     def _update_state(
-            self, state: ArmingState, arming_mode: ArmingMode | object | None = ArmingModeMissing
+        self,
+        state: ArmingState,
+        arming_mode: ArmingMode | object | None = ArmingModeMissing,
     ) -> None:
         if self._alarm_state_changed is not None:
             self._alarm_state_changed(
@@ -128,4 +130,4 @@ class Alarm:
 
         self.state = state
         if arming_mode is not Alarm.ArmingModeMissing:
-            self._arming_mode = arming_mode # type: ignore
+            self._arming_mode = arming_mode  # type: ignore
