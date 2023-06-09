@@ -119,6 +119,8 @@ def test_handle_event_arming_update_infer_arming_state_unknown_empty():
 
 
 def test_handle_event_arming_update_callback(alarm):
+    # emit a SystemStatusEvent for an arming mode to test that it is emitted
+    # during EXIT_DELAY state change.
     alarm.handle_event(
         SystemStatusEvent(
             address=None,
