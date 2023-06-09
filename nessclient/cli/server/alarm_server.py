@@ -126,7 +126,7 @@ class AlarmServer:
             threading.Thread(target=self._simulate_zone_events).start()
 
 
-def mode_to_event(mode: Alarm.ArmingMode) -> SystemStatusEvent.EventType:
+def mode_to_event(mode: Alarm.ArmingMode | None) -> SystemStatusEvent.EventType:
     if mode == Alarm.ArmingMode.ARMED_AWAY:
         return SystemStatusEvent.EventType.ARMED_AWAY
     elif mode == Alarm.ArmingMode.ARMED_HOME:
