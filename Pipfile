@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+nessclient = {editable = true, extras = ["cli"], path = "."}
 
 [dev-packages]
 codecov = "*"
