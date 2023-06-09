@@ -36,20 +36,33 @@ class AlarmServer:
             command = command.upper().strip()
             if command == "D":
                 self._alarm.disarm()
-            elif command == "A":
-                self._alarm.arm()
+            elif command == "A" or command == "AA":
+                self._alarm.arm(Alarm.ArmingMode.ARMED_AWAY)
+            elif command == "AH":
+                self._alarm.arm(Alarm.ArmingMode.ARMED_HOME)
+            elif command == "AD":
+                self._alarm.arm(Alarm.ArmingMode.ARMED_DAY)
+            elif command == "AN":
+                self._alarm.arm(Alarm.ArmingMode.ARMED_NIGHT)
+            elif command == "AV":
+                self._alarm.arm(Alarm.ArmingMode.ARMED_VACATION)
             elif command == "T":
                 self._alarm.trip()
 
             print(command)
 
     def _alarm_state_changed(
-        self, previous_state: Alarm.ArmingState, state: Alarm.ArmingState
+        self,
+        previous_state: Alarm.ArmingState,
+        state: Alarm.ArmingState,
+        arming_mode: Alarm.ArmingMode | None,
     ) -> None:
         if state != Alarm.ArmingState.DISARMED:
             self._stop_simulation()
 
-        for event_type in get_events_for_state_update(previous_state, state):
+        for event_type in get_events_for_state_update(
+            previous_state, state, arming_mode
+        ):
             event = SystemStatusEvent(
                 type=event_type, zone=0x00, area=0x00, timestamp=None, address=0
             )
@@ -113,13 +126,30 @@ class AlarmServer:
             threading.Thread(target=self._simulate_zone_events).start()
 
 
+def mode_to_event(mode: Alarm.ArmingMode | None) -> SystemStatusEvent.EventType:
+    if mode == Alarm.ArmingMode.ARMED_AWAY:
+        return SystemStatusEvent.EventType.ARMED_AWAY
+    elif mode == Alarm.ArmingMode.ARMED_HOME:
+        return SystemStatusEvent.EventType.ARMED_HOME
+    elif mode == Alarm.ArmingMode.ARMED_DAY:
+        return SystemStatusEvent.EventType.ARMED_DAY
+    elif mode == Alarm.ArmingMode.ARMED_NIGHT:
+        return SystemStatusEvent.EventType.ARMED_NIGHT
+    elif mode == Alarm.ArmingMode.ARMED_VACATION:
+        return SystemStatusEvent.EventType.ARMED_VACATION
+    else:
+        raise AssertionError("Unknown alarm mode")
+
+
 def get_events_for_state_update(
-    previous_state: Alarm.ArmingState, state: Alarm.ArmingState
+    previous_state: Alarm.ArmingState,
+    state: Alarm.ArmingState,
+    arming_mode: Alarm.ArmingMode | None,
 ) -> Iterator[SystemStatusEvent.EventType]:
     if state == Alarm.ArmingState.DISARMED:
         yield SystemStatusEvent.EventType.DISARMED
     if state == Alarm.ArmingState.EXIT_DELAY:
-        yield SystemStatusEvent.EventType.ARMED_AWAY
+        yield mode_to_event(arming_mode)
         yield SystemStatusEvent.EventType.EXIT_DELAY_START
 
     if state == Alarm.ArmingState.TRIPPED:
@@ -129,7 +159,7 @@ def get_events_for_state_update(
     if (
         previous_state == Alarm.ArmingState.EXIT_DELAY
         and state != previous_state
-        or state == Alarm.ArmingState.ARMED_AWAY
+        or state == Alarm.ArmingState.ARMED
     ):
         yield SystemStatusEvent.EventType.EXIT_DELAY_END
 
@@ -142,7 +172,7 @@ def get_events_for_state_update(
 
 
 def get_arming_status(state: Alarm.ArmingState) -> List[ArmingUpdate.ArmingStatus]:
-    if state == Alarm.ArmingState.ARMED_AWAY:
+    if state == Alarm.ArmingState.ARMED:
         return [
             ArmingUpdate.ArmingStatus.AREA_1_ARMED,
             ArmingUpdate.ArmingStatus.AREA_1_FULLY_ARMED,

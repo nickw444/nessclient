@@ -21,19 +21,27 @@ class Alarm:
     class ArmingState(Enum):
         DISARMED = "DISARMED"
         EXIT_DELAY = "EXIT_DELAY"
-        ARMED_AWAY = "ARMED_AWAY"
+        ARMED = "ARMED"
         ENTRY_DELAY = "ENTRY_DELAY"
         TRIPPED = "TRIPPED"
+
+    class ArmingMode(Enum):
+        ARMED_AWAY = "ARMED_AWAY"
+        ARMED_HOME = "ARMED_HOME"
+        ARMED_DAY = "ARMED_DAY"
+        ARMED_NIGHT = "ARMED_NIGHT"
+        ARMED_VACATION = "ARMED_VACATION"
 
     def __init__(
         self,
         state: ArmingState,
         zones: List[Zone],
-        _alarm_state_changed: Callable[[ArmingState, ArmingState], None],
+        _alarm_state_changed: Callable[[ArmingState, ArmingState, ArmingMode], None],
         _zone_state_changed: Callable[[int, Zone.State], None],
     ):
         self.state = state
         self.zones = zones
+        self._arming_mode: Alarm.ArmingMode | None = None
         self._alarm_state_changed = _alarm_state_changed
         self._zone_state_changed = _zone_state_changed
         self._pending_event: Optional[str] = None
@@ -41,7 +49,7 @@ class Alarm:
     @staticmethod
     def create(
         num_zones: int,
-        alarm_state_changed: Callable[[ArmingState, ArmingState], None],
+        alarm_state_changed: Callable[[ArmingState, ArmingState, ArmingMode], None],
         zone_state_changed: Callable[[int, Zone.State], None],
     ) -> "Alarm":
         return Alarm(
@@ -58,13 +66,13 @@ class Alarm:
             rv.append(Zone(id=i + 1, state=Zone.State.SEALED))
         return rv
 
-    def arm(self) -> None:
-        self._update_state(Alarm.ArmingState.EXIT_DELAY)
+    def arm(self, mode: ArmingMode = ArmingMode.ARMED_AWAY) -> None:
+        self._update_state(Alarm.ArmingState.EXIT_DELAY, mode)
         self._schedule(EXIT_DELAY, self._arm_complete)
 
     def disarm(self) -> None:
         self._cancel_pending_update()
-        self._update_state(Alarm.ArmingState.DISARMED)
+        self._update_state(Alarm.ArmingState.DISARMED, None)
 
     def trip(self) -> None:
         self._update_state(Alarm.ArmingState.ENTRY_DELAY)
@@ -76,12 +84,12 @@ class Alarm:
         if self._zone_state_changed is not None:
             self._zone_state_changed(zone_id, state)
 
-        if self.state == Alarm.ArmingState.ARMED_AWAY:
+        if self.state == Alarm.ArmingState.ARMED:
             self.trip()
 
     def _arm_complete(self) -> None:
         _LOGGER.debug("Arm completed")
-        self._update_state(Alarm.ArmingState.ARMED_AWAY)
+        self._update_state(Alarm.ArmingState.ARMED)
 
     def _trip_complete(self) -> None:
         _LOGGER.debug("Trip completed")
@@ -103,8 +111,23 @@ class Alarm:
 
         threading.Thread(target=_run).start()
 
-    def _update_state(self, state: ArmingState) -> None:
+    # Sentinel value
+    ArmingModeMissing = object()
+
+    def _update_state(
+        self,
+        state: ArmingState,
+        arming_mode: ArmingMode | object | None = ArmingModeMissing,
+    ) -> None:
         if self._alarm_state_changed is not None:
-            self._alarm_state_changed(self.state, state)
+            self._alarm_state_changed(
+                self.state,
+                state,
+                self._arming_mode
+                if arming_mode is Alarm.ArmingModeMissing
+                else arming_mode,  # type: ignore
+            )
 
         self.state = state
+        if arming_mode is not Alarm.ArmingModeMissing:
+            self._arming_mode = arming_mode  # type: ignore
