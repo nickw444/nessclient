@@ -15,20 +15,29 @@ class ArmingState(Enum):
     TRIGGERED = "TRIGGERED"
 
 
+class ArmingMode(Enum):
+    ARMED_AWAY = "ARMED_AWAY"
+    ARMED_HOME = "ARMED_HOME"
+    ARMED_DAY = "ARMED_DAY"
+    ARMED_NIGHT = "ARMED_NIGHT"
+    ARMED_VACATION = "ARMED_VACATION"
+    ARMED_HIGHEST = "ARMED_HIGHEST"
+
+
 class Alarm:
     """
     In-memory representation of the state of the alarm the client is connected
     to.
     """
 
-    ARM_EVENTS = [
-        SystemStatusEvent.EventType.ARMED_AWAY,
-        SystemStatusEvent.EventType.ARMED_HOME,
-        SystemStatusEvent.EventType.ARMED_DAY,
-        SystemStatusEvent.EventType.ARMED_NIGHT,
-        SystemStatusEvent.EventType.ARMED_VACATION,
-        SystemStatusEvent.EventType.ARMED_HIGHEST,
-    ]
+    ARM_EVENTS_MAP = {
+        SystemStatusEvent.EventType.ARMED_AWAY: ArmingMode.ARMED_AWAY,
+        SystemStatusEvent.EventType.ARMED_HOME: ArmingMode.ARMED_HOME,
+        SystemStatusEvent.EventType.ARMED_DAY: ArmingMode.ARMED_DAY,
+        SystemStatusEvent.EventType.ARMED_NIGHT: ArmingMode.ARMED_NIGHT,
+        SystemStatusEvent.EventType.ARMED_VACATION: ArmingMode.ARMED_VACATION,
+        SystemStatusEvent.EventType.ARMED_HIGHEST: ArmingMode.ARMED_HIGHEST,
+    }
 
     @dataclass
     class Zone:
@@ -39,7 +48,11 @@ class Alarm:
         self.arming_state: ArmingState = ArmingState.UNKNOWN
         self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(16)]
 
-        self._on_state_change: Optional[Callable[["ArmingState"], None]] = None
+        self._arming_mode: ArmingMode | None = None
+
+        self._on_state_change: Optional[
+            Callable[[ArmingState, ArmingMode | None], None]
+        ] = None
         self._on_zone_change: Optional[Callable[[int, bool], None]] = None
 
     def handle_event(self, event: BaseEvent) -> None:
@@ -121,18 +134,20 @@ class Alarm:
             # state to armed
             if self.arming_state == ArmingState.EXIT_DELAY:
                 return self._update_arming_state(ArmingState.ARMED)
-        elif event.type in Alarm.ARM_EVENTS:
+        elif event.type in Alarm.ARM_EVENTS_MAP.keys():
+            self._arming_mode = Alarm.ARM_EVENTS_MAP[event.type]
             return self._update_arming_state(ArmingState.ARMING)
         elif event.type == SystemStatusEvent.EventType.DISARMED:
+            self._arming_mode = None  # Restore arming mode on disarmed.
             return self._update_arming_state(ArmingState.DISARMED)
         elif event.type == SystemStatusEvent.EventType.ARMING_DELAYED:
             pass
 
-    def _update_arming_state(self, state: "ArmingState") -> None:
+    def _update_arming_state(self, state: ArmingState) -> None:
         if self.arming_state != state:
             self.arming_state = state
             if self._on_state_change is not None:
-                self._on_state_change(state)
+                self._on_state_change(state, self._arming_mode)
 
     def _update_zone(self, zone_id: int, state: bool) -> None:
         zone = self.zones[zone_id - 1]
@@ -141,7 +156,9 @@ class Alarm:
             if self._on_zone_change is not None:
                 self._on_zone_change(zone_id, state)
 
-    def on_state_change(self, f: Callable[[ArmingState], None]) -> None:
+    def on_state_change(
+        self, f: Callable[[ArmingState, ArmingMode | None], None]
+    ) -> None:
         self._on_state_change = f
 
     def on_zone_change(self, f: Callable[[int, bool], None]) -> None:

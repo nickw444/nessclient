@@ -2,7 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from nessclient.alarm import Alarm, ArmingState
+from nessclient.alarm import Alarm, ArmingState, ArmingMode
 from nessclient.event import ArmingUpdate, ZoneUpdate, SystemStatusEvent
 
 
@@ -119,14 +119,27 @@ def test_handle_event_arming_update_infer_arming_state_unknown_empty():
 
 
 def test_handle_event_arming_update_callback(alarm):
+    # emit a SystemStatusEvent for an arming mode to test that it is emitted
+    # during EXIT_DELAY state change.
+    alarm.handle_event(
+        SystemStatusEvent(
+            address=None,
+            timestamp=None,
+            type=SystemStatusEvent.EventType.ARMED_AWAY,
+            area=0,
+            zone=1,
+        )
+    )
+
     cb = Mock()
     alarm.on_state_change(cb)
+
     event = ArmingUpdate(
         status=[ArmingUpdate.ArmingStatus.AREA_1_ARMED], address=None, timestamp=None
     )
     alarm.handle_event(event)
     assert cb.call_count == 1
-    assert cb.call_args[0] == (ArmingState.EXIT_DELAY,)
+    assert cb.call_args[0] == (ArmingState.EXIT_DELAY, ArmingMode.ARMED_AWAY)
 
 
 def test_handle_event_system_status_unsealed_zone(alarm):
@@ -297,7 +310,7 @@ def test_handle_event_system_status_exit_delay_end_from_armed(alarm):
 
 
 def test_handle_event_system_status_arm_events(alarm):
-    for event_type in Alarm.ARM_EVENTS:
+    for event_type in Alarm.ARM_EVENTS_MAP.keys():
         alarm.arming_state = ArmingState.DISARMED
         event = SystemStatusEvent(
             address=None, timestamp=None, type=event_type, area=0, zone=1

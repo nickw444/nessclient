@@ -6,7 +6,7 @@ from typing import Optional, Callable
 
 from justbackoff import Backoff
 
-from .alarm import ArmingState, Alarm
+from .alarm import ArmingState, Alarm, ArmingMode
 from .connection import Connection, IP232Connection
 from .event import BaseEvent
 from .packet import CommandType, Packet
@@ -167,8 +167,8 @@ class Client:
         await self._connection.close()
 
     def on_state_change(
-        self, f: Callable[[ArmingState], None]
-    ) -> Callable[[ArmingState], None]:
+        self, f: Callable[[ArmingState, ArmingMode | None], None]
+    ) -> Callable[[ArmingState, ArmingMode | None], None]:
         self.alarm.on_state_change(f)
         return f
 
