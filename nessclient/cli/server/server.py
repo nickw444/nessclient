@@ -30,7 +30,8 @@ class Server:
             while True:
                 conn, addr = s.accept()
                 threading.Thread(
-                    target=self._on_client_connected, args=(conn, addr)).start()
+                    target=self._on_client_connected, args=(conn, addr)
+                ).start()
 
     def write_event(self, event: BaseEvent) -> None:
         pkt = event.encode()
@@ -42,7 +43,7 @@ class Server:
             zone=zone_id,
             area=0,
             timestamp=None,
-            address=0
+            address=0,
         )
         pkt = event.encode()
         self._write_to_all_clients(pkt.encode())
@@ -67,11 +68,11 @@ class Server:
         _LOGGER.debug("Writing message '%s' to all clients", data)
         with self._clients_lock:
             for conn in self._clients:
-                conn.send(data.encode('utf-8') + b'\r\n')
+                conn.send(data.encode("utf-8") + b"\r\n")
 
     def _handle_incoming_data(self, data: bytes) -> None:
         _LOGGER.debug("Received incoming data: %s", data)
-        pkt = Packet.decode(data.strip().decode('utf-8'))
+        pkt = Packet.decode(data.strip().decode("utf-8"))
         _LOGGER.debug("Packet is: %s", pkt)
         # Handle Incoming Command:
         if pkt.command == CommandType.USER_INTERFACE and not pkt.is_user_interface_resp:

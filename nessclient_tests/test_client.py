@@ -13,44 +13,44 @@ def get_data(pkt: bytes) -> bytes:
 
 @pytest.mark.asyncio
 async def test_arm_away(connection, client):
-    await client.arm_away('1234')
+    await client.arm_away("1234")
     assert connection.write.call_count == 1
-    assert get_data(connection.write.call_args[0][0]) == b'A1234E'
+    assert get_data(connection.write.call_args[0][0]) == b"A1234E"
 
 
 @pytest.mark.asyncio
 async def test_arm_home(connection, client):
-    await client.arm_home('1234')
+    await client.arm_home("1234")
     assert connection.write.call_count == 1
-    assert get_data(connection.write.call_args[0][0]) == b'H1234E'
+    assert get_data(connection.write.call_args[0][0]) == b"H1234E"
 
 
 @pytest.mark.asyncio
 async def test_disarm(connection, client):
-    await client.disarm('1234')
+    await client.disarm("1234")
     assert connection.write.call_count == 1
-    assert get_data(connection.write.call_args[0][0]) == b'1234E'
+    assert get_data(connection.write.call_args[0][0]) == b"1234E"
 
 
 @pytest.mark.asyncio
 async def test_panic(connection, client):
-    await client.panic('1234')
+    await client.panic("1234")
     assert connection.write.call_count == 1
-    assert get_data(connection.write.call_args[0][0]) == b'*1234#'
+    assert get_data(connection.write.call_args[0][0]) == b"*1234#"
 
 
 @pytest.mark.asyncio
 async def test_aux_on(connection, client):
     await client.aux(1, True)
     assert connection.write.call_count == 1
-    assert get_data(connection.write.call_args[0][0]) == b'11*'
+    assert get_data(connection.write.call_args[0][0]) == b"11*"
 
 
 @pytest.mark.asyncio
 async def test_aux_off(connection, client):
     await client.aux(1, False)
     assert connection.write.call_count == 1
-    assert get_data(connection.write.call_args[0][0]) == b'11#'
+    assert get_data(connection.write.call_args[0][0]) == b"11#"
 
 
 @pytest.mark.asyncio
@@ -59,31 +59,31 @@ async def test_update(connection, client):
     assert connection.write.call_count == 2
     commands = {
         get_data(connection.write.call_args_list[0][0][0]),
-        get_data(connection.write.call_args_list[1][0][0])
+        get_data(connection.write.call_args_list[1][0][0]),
     }
-    assert commands == {b'S00', b'S14'}
+    assert commands == {b"S00", b"S14"}
 
 
 @pytest.mark.asyncio
 async def test_send_command(connection, client):
-    await client.send_command('ABCDEFGHI')
+    await client.send_command("ABCDEFGHI")
     assert connection.write.call_count == 1
-    assert get_data(connection.write.call_args[0][0]) == b'ABCDEFGHI'
+    assert get_data(connection.write.call_args[0][0]) == b"ABCDEFGHI"
 
 
 @pytest.mark.asyncio
 async def test_send_command_has_newlines(connection, client):
-    await client.send_command('A1234E')
+    await client.send_command("A1234E")
     assert connection.write.call_count == 1
-    assert connection.write.call_args[0][0][-2:] == b'\r\n'
+    assert connection.write.call_args[0][0][-2:] == b"\r\n"
 
 
 @pytest.mark.asyncio
 async def test_send_command_2(connection, client):
-    await client.send_command('FOOBARBAZ')
+    await client.send_command("FOOBARBAZ")
     assert connection.write.call_count == 1
     print(connection.write.call_args[0][0])
-    assert get_data(connection.write.call_args[0][0]) == b'FOOBARBAZ'
+    assert get_data(connection.write.call_args[0][0]) == b"FOOBARBAZ"
 
 
 def test_keepalive_bad_data_does_not_crash():

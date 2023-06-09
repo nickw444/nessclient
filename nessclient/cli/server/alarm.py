@@ -19,18 +19,19 @@ class Alarm:
     """
 
     class ArmingState(Enum):
-        DISARMED = 'DISARMED'
-        EXIT_DELAY = 'EXIT_DELAY'
-        ARMED_AWAY = 'ARMED_AWAY'
-        ENTRY_DELAY = 'ENTRY_DELAY'
-        TRIPPED = 'TRIPPED'
+        DISARMED = "DISARMED"
+        EXIT_DELAY = "EXIT_DELAY"
+        ARMED_AWAY = "ARMED_AWAY"
+        ENTRY_DELAY = "ENTRY_DELAY"
+        TRIPPED = "TRIPPED"
 
     def __init__(
-            self,
-            state: ArmingState,
-            zones: List[Zone],
-            _alarm_state_changed: Callable[[ArmingState, ArmingState], None],
-            _zone_state_changed: Callable[[int, Zone.State], None]):
+        self,
+        state: ArmingState,
+        zones: List[Zone],
+        _alarm_state_changed: Callable[[ArmingState, ArmingState], None],
+        _zone_state_changed: Callable[[int, Zone.State], None],
+    ):
         self.state = state
         self.zones = zones
         self._alarm_state_changed = _alarm_state_changed
@@ -38,9 +39,11 @@ class Alarm:
         self._pending_event: Optional[str] = None
 
     @staticmethod
-    def create(num_zones: int,
-               alarm_state_changed: Callable[[ArmingState, ArmingState], None],
-               zone_state_changed: Callable[[int, Zone.State], None]) -> 'Alarm':
+    def create(
+        num_zones: int,
+        alarm_state_changed: Callable[[ArmingState, ArmingState], None],
+        zone_state_changed: Callable[[int, Zone.State], None],
+    ) -> "Alarm":
         return Alarm(
             state=Alarm.ArmingState.DISARMED,
             zones=Alarm._generate_zones(num_zones),
