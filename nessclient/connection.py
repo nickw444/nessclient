@@ -58,12 +58,11 @@ class IP232Connection(Connection):
         assert self._reader is not None
 
         try:
-            data = await self._reader.readuntil(b'\n')
-        except (asyncio.IncompleteReadError, TimeoutError,
-                ConnectionResetError) as e:
+            data = await self._reader.readuntil(b"\n")
+        except (asyncio.IncompleteReadError, TimeoutError, ConnectionResetError) as e:
             _LOGGER.info(
-                "Got exception: %s. Most likely the other side has "
-                "disconnected!", e)
+                "Got exception: %s. Most likely the other side has " "disconnected!", e
+            )
             self._writer = None
             self._reader = None
             return None
@@ -89,7 +88,7 @@ class IP232Connection(Connection):
     async def close(self) -> None:
         if self.connected and self._writer is not None:
             self._writer.close()
-            if hasattr(self._writer, 'wait_closed'):
+            if hasattr(self._writer, "wait_closed"):
                 await self._writer.wait_closed()
             self._writer = None
             self._reader = None

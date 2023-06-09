@@ -47,32 +47,32 @@ class Packet:
     @property
     def checksum(self) -> int:
         bytes = self.encode(with_checksum=False)
-        total = sum([ord(x) for x in bytes]) & 0xff
+        total = sum([ord(x) for x in bytes]) & 0xFF
         return (256 - total) % 256
 
     def encode(self, with_checksum: bool = True) -> str:
-        data = ''
-        data += '{:02x}'.format(self.start)
+        data = ""
+        data += "{:02x}".format(self.start)
 
         if self.address is not None:
             if is_user_interface_req(self.start):
-                data += '{:01x}'.format(self.address)
+                data += "{:01x}".format(self.address)
             else:
-                data += '{:02x}'.format(self.address)
+                data += "{:02x}".format(self.address)
 
-        data += '{:02x}'.format(self.length_field)
-        data += '{:02x}'.format(self.command.value)
+        data += "{:02x}".format(self.length_field)
+        data += "{:02x}".format(self.command.value)
         data += self.data
         if self.timestamp is not None:
-            data += self.timestamp.strftime('%y%m%d%H%M%S')
+            data += self.timestamp.strftime("%y%m%d%H%M%S")
 
         if with_checksum:
-            data += '{:02x}'.format(self.checksum).upper()
+            data += "{:02x}".format(self.checksum).upper()
 
         return data
 
     @classmethod
-    def decode(cls, _data: str) -> 'Packet':
+    def decode(cls, _data: str) -> "Packet":
         """
         Packets are ASCII encoded data. Packet layout is as follows:
 
@@ -111,11 +111,10 @@ class Packet:
             address = data.take_hex(half=is_user_interface_req(start))
 
         length = data.take_hex()
-        data_length = length & 0x7f
+        data_length = length & 0x7F
         seq = length >> 7
         command = CommandType(data.take_hex())
-        msg_data = data.take_bytes(data_length,
-                                   half=is_user_interface_req(start))
+        msg_data = data.take_bytes(data_length, half=is_user_interface_req(start))
         timestamp = None
         if has_timestamp(start):
             timestamp = decode_timestamp(data.take_bytes(6))
@@ -124,11 +123,12 @@ class Packet:
         checksum = data.take_hex()  # noqa
 
         if not data.is_consumed():
-            raise ValueError('Unable to consume all data')
+            raise ValueError("Unable to consume all data")
 
         return Packet(
-            is_user_interface_resp=(is_user_interface_resp(start) and
-                                    command == CommandType.USER_INTERFACE),
+            is_user_interface_resp=(
+                is_user_interface_resp(start) and command == CommandType.USER_INTERFACE
+            ),
             address=address,
             seq=seq,
             command=command,
@@ -149,7 +149,7 @@ class DataIterator:
         if self._position > len(self._data):
             raise ValueError("Unable to take more data than exists")
 
-        return self._data[position:self._position]
+        return self._data[position : self._position]
 
     def take_hex(self, half: bool = False) -> int:
         return int(self.take_bytes(1, half), 16)
@@ -201,5 +201,6 @@ def decode_timestamp(data: str) -> datetime.datetime:
         minute = 0
         hour += 1
 
-    return datetime.datetime(year=year, month=month, day=day, hour=hour,
-                             minute=minute, second=second)
+    return datetime.datetime(
+        year=year, month=month, day=day, hour=hour, minute=minute, second=second
+    )

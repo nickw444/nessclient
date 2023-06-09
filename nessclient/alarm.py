@@ -6,13 +6,13 @@ from .event import BaseEvent, ZoneUpdate, ArmingUpdate, SystemStatusEvent
 
 
 class ArmingState(Enum):
-    UNKNOWN = 'UNKNOWN'
-    DISARMED = 'DISARMED'
-    ARMING = 'ARMING'
-    EXIT_DELAY = 'EXIT_DELAY'
-    ARMED = 'ARMED'
-    ENTRY_DELAY = 'ENTRY_DELAY'
-    TRIGGERED = 'TRIGGERED'
+    UNKNOWN = "UNKNOWN"
+    DISARMED = "DISARMED"
+    ARMING = "ARMING"
+    EXIT_DELAY = "EXIT_DELAY"
+    ARMED = "ARMED"
+    ENTRY_DELAY = "ENTRY_DELAY"
+    TRIGGERED = "TRIGGERED"
 
 
 class Alarm:
@@ -20,13 +20,14 @@ class Alarm:
     In-memory representation of the state of the alarm the client is connected
     to.
     """
+
     ARM_EVENTS = [
         SystemStatusEvent.EventType.ARMED_AWAY,
         SystemStatusEvent.EventType.ARMED_HOME,
         SystemStatusEvent.EventType.ARMED_DAY,
         SystemStatusEvent.EventType.ARMED_NIGHT,
         SystemStatusEvent.EventType.ARMED_VACATION,
-        SystemStatusEvent.EventType.ARMED_HIGHEST
+        SystemStatusEvent.EventType.ARMED_HIGHEST,
     ]
 
     @dataclass
@@ -36,17 +37,18 @@ class Alarm:
     def __init__(self, infer_arming_state: bool = False) -> None:
         self._infer_arming_state = infer_arming_state
         self.arming_state: ArmingState = ArmingState.UNKNOWN
-        self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in
-                                        range(16)]
+        self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(16)]
 
-        self._on_state_change: Optional[Callable[['ArmingState'], None]] = None
+        self._on_state_change: Optional[Callable[["ArmingState"], None]] = None
         self._on_zone_change: Optional[Callable[[int, bool], None]] = None
 
     def handle_event(self, event: BaseEvent) -> None:
         if isinstance(event, ArmingUpdate):
             self._handle_arming_update(event)
-        elif (isinstance(event, ZoneUpdate)
-              and event.request_id == ZoneUpdate.RequestID.ZONE_INPUT_UNSEALED):
+        elif (
+            isinstance(event, ZoneUpdate)
+            and event.request_id == ZoneUpdate.RequestID.ZONE_INPUT_UNSEALED
+        ):
             self._handle_zone_input_update(event)
         elif isinstance(event, SystemStatusEvent):
             self._handle_system_status_event(event)
@@ -54,8 +56,10 @@ class Alarm:
     def _handle_arming_update(self, update: ArmingUpdate) -> None:
         if update.status == [ArmingUpdate.ArmingStatus.AREA_1_ARMED]:
             return self._update_arming_state(ArmingState.EXIT_DELAY)
-        if ArmingUpdate.ArmingStatus.AREA_1_ARMED in update.status and \
-                ArmingUpdate.ArmingStatus.AREA_1_FULLY_ARMED in update.status:
+        if (
+            ArmingUpdate.ArmingStatus.AREA_1_ARMED in update.status
+            and ArmingUpdate.ArmingStatus.AREA_1_FULLY_ARMED in update.status
+        ):
             return self._update_arming_state(ArmingState.ARMED)
         else:
             if self._infer_arming_state:
@@ -81,7 +85,7 @@ class Alarm:
     def _handle_zone_input_update(self, update: ZoneUpdate) -> None:
         for i, zone in enumerate(self.zones):
             zone_id = i + 1
-            name = 'ZONE_{}'.format(zone_id)
+            name = "ZONE_{}".format(zone_id)
             if ZoneUpdate.Zone[name] in update.included_zones:
                 self._update_zone(zone_id, True)
             else:
@@ -124,7 +128,7 @@ class Alarm:
         elif event.type == SystemStatusEvent.EventType.ARMING_DELAYED:
             pass
 
-    def _update_arming_state(self, state: 'ArmingState') -> None:
+    def _update_arming_state(self, state: "ArmingState") -> None:
         if self.arming_state != state:
             self.arming_state = state
             if self._on_state_change is not None:

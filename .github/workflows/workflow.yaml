@@ -19,6 +19,8 @@ jobs:
           pipenv install --system --dev
       - name: 'Check Formatting (flake8)'
         run: flake8 nessclient nessclient_tests
+      - name: 'Check Formatting (black)'
+        run: black --check nessclient nessclient_tests
       - name: 'Check Types'
         run: python3 -m mypy --strict nessclient
   build:
