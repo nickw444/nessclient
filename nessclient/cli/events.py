@@ -2,7 +2,7 @@ import asyncio
 import click
 
 from ..client import Client
-from ..alarm import ArmingState
+from ..alarm import ArmingState, ArmingMode
 from ..event import BaseEvent
 from .server import DEFAULT_PORT
 
@@ -25,11 +25,11 @@ def events(
 
     @client.on_zone_change
     def on_zone_change(zone: int, triggered: bool) -> None:
-        print("Zone {} changed to {}".format(zone, triggered))
+        print(f"Zone {zone} changed to {triggered}")
 
     @client.on_state_change
-    def on_state_change(state: ArmingState) -> None:
-        print("Alarm state changed to {}".format(state))
+    def on_state_change(state: ArmingState, arming_mode: ArmingMode | None) -> None:
+        print(f"Alarm state changed to {state} (mode: {arming_mode})")
 
     @client.on_event_received
     def on_event_received(event: BaseEvent) -> None:
