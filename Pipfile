@@ -9,6 +9,7 @@ name = "pypi"
 codecov = "*"
 flake8 = "*"
 mypy = "*"
+types-setuptools = "*"
 
 [requires]
 python_version = "3.8"
