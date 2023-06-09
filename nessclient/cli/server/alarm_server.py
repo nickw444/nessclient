@@ -12,7 +12,7 @@ from ...event import SystemStatusEvent, ArmingUpdate, ZoneUpdate, StatusUpdate
 _LOGGER = logging.getLogger(__name__)
 
 
-class AlarmServer():
+class AlarmServer:
     def __init__(self, host: str, port: int):
         self._alarm = Alarm.create(
             num_zones=8,
@@ -51,19 +51,20 @@ class AlarmServer():
 
             print(command)
 
-    def _alarm_state_changed(self, previous_state: Alarm.ArmingState,
-                             state: Alarm.ArmingState,
-                             arming_mode: Alarm.ArmingMode | None) -> None:
+    def _alarm_state_changed(
+        self,
+        previous_state: Alarm.ArmingState,
+        state: Alarm.ArmingState,
+        arming_mode: Alarm.ArmingMode | None,
+    ) -> None:
         if state != Alarm.ArmingState.DISARMED:
             self._stop_simulation()
 
-        for event_type in get_events_for_state_update(previous_state, state, arming_mode):
+        for event_type in get_events_for_state_update(
+            previous_state, state, arming_mode
+        ):
             event = SystemStatusEvent(
-                type=event_type,
-                zone=0x00,
-                area=0x00,
-                timestamp=None,
-                address=0
+                type=event_type, zone=0x00, area=0x00, timestamp=None, address=0
             )
             self._server.write_event(event)
 
@@ -73,19 +74,19 @@ class AlarmServer():
             zone=zone_id,
             area=0,
             timestamp=None,
-            address=0
+            address=0,
         )
         self._server.write_event(event)
 
     def _handle_command(self, command: str) -> None:
         _LOGGER.info("Incoming User Command: {}".format(command))
-        if command == 'AE' or command == 'A1234E':
+        if command == "AE" or command == "A1234E":
             self._alarm.arm()
-        elif command == '1234E':
+        elif command == "1234E":
             self._alarm.disarm()
-        elif command == 'S00':
+        elif command == "S00":
             self._handle_zone_input_unsealed_status_update_request()
-        elif command == 'S14':
+        elif command == "S14":
             self._handle_arming_status_update_request()
 
     def _handle_arming_status_update_request(self) -> None:
@@ -100,8 +101,10 @@ class AlarmServer():
         event = ZoneUpdate(
             request_id=StatusUpdate.RequestID.ZONE_INPUT_UNSEALED,
             included_zones=[
-                get_zone_for_id(z.id) for z in
-                self._alarm.zones if z.state == Zone.State.UNSEALED],
+                get_zone_for_id(z.id)
+                for z in self._alarm.zones
+                if z.state == Zone.State.UNSEALED
+            ],
             address=0x00,
             timestamp=None,
         )
@@ -140,8 +143,9 @@ def mode_to_event(mode: Alarm.ArmingMode) -> SystemStatusEvent.EventType:
 
 def get_events_for_state_update(
     previous_state: Alarm.ArmingState,
-    state: Alarm.ArmingState, arming_mode: Alarm.ArmingMode | None) -> Iterator[
-    SystemStatusEvent.EventType]:
+    state: Alarm.ArmingState,
+    arming_mode: Alarm.ArmingMode | None,
+) -> Iterator[SystemStatusEvent.EventType]:
     if state == Alarm.ArmingState.DISARMED:
         yield SystemStatusEvent.EventType.DISARMED
     if state == Alarm.ArmingState.EXIT_DELAY:
@@ -152,8 +156,11 @@ def get_events_for_state_update(
         yield SystemStatusEvent.EventType.ALARM
 
     # When state transitions from EXIT_DELAY, trigger EXIT_DELAY_END.
-    if (previous_state == Alarm.ArmingState.EXIT_DELAY and state != previous_state or
-        state == Alarm.ArmingState.ARMED):
+    if (
+        previous_state == Alarm.ArmingState.EXIT_DELAY
+        and state != previous_state
+        or state == Alarm.ArmingState.ARMED
+    ):
         yield SystemStatusEvent.EventType.EXIT_DELAY_END
 
     if state == Alarm.ArmingState.ENTRY_DELAY:
@@ -168,7 +175,7 @@ def get_arming_status(state: Alarm.ArmingState) -> List[ArmingUpdate.ArmingStatu
     if state == Alarm.ArmingState.ARMED:
         return [
             ArmingUpdate.ArmingStatus.AREA_1_ARMED,
-            ArmingUpdate.ArmingStatus.AREA_1_FULLY_ARMED
+            ArmingUpdate.ArmingStatus.AREA_1_FULLY_ARMED,
         ]
     elif state == Alarm.ArmingState.EXIT_DELAY:
         return [ArmingUpdate.ArmingStatus.AREA_1_ARMED]
@@ -184,5 +191,5 @@ def toggled_state(state: Zone.State) -> Zone.State:
 
 
 def get_zone_for_id(zone_id: int) -> ZoneUpdate.Zone:
-    key = 'ZONE_{}'.format(zone_id)
+    key = "ZONE_{}".format(zone_id)
     return ZoneUpdate.Zone[key]

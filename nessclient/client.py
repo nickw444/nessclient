@@ -22,13 +22,16 @@ class Client:
         system status events. This works around a bug with some panels
         (`<v5.8`) which emit `update.status = []` when they are armed.
     """
-    def __init__(self,
-                 connection: Optional[Connection] = None,
-                 host: Optional[str] = None,
-                 port: Optional[int] = None,
-                 update_interval: int = 60,
-                 infer_arming_state: bool = False,
-                 alarm: Optional[Alarm] = None):
+
+    def __init__(
+        self,
+        connection: Optional[Connection] = None,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        update_interval: int = 60,
+        infer_arming_state: bool = False,
+        alarm: Optional[Alarm] = None,
+    ):
         if connection is None:
             assert host is not None
             assert port is not None
@@ -47,25 +50,23 @@ class Client:
         self._update_interval = update_interval
 
     async def arm_away(self, code: Optional[str] = None) -> None:
-        command = 'A{}E'.format(code if code else '')
+        command = "A{}E".format(code if code else "")
         return await self.send_command(command)
 
     async def arm_home(self, code: Optional[str] = None) -> None:
-        command = 'H{}E'.format(code if code else '')
+        command = "H{}E".format(code if code else "")
         return await self.send_command(command)
 
     async def disarm(self, code: str) -> None:
-        command = '{}E'.format(code)
+        command = "{}E".format(code)
         return await self.send_command(command)
 
     async def panic(self, code: str) -> None:
-        command = '*{}#'.format(code)
+        command = "*{}#".format(code)
         return await self.send_command(command)
 
     async def aux(self, output_id: int, state: bool = True) -> None:
-        command = '{}{}{}'.format(
-            output_id, output_id,
-            '*' if state else '#')
+        command = "{}{}{}".format(output_id, output_id, "*" if state else "#")
         return await self.send_command(command)
 
     async def update(self) -> None:
@@ -73,23 +74,23 @@ class Client:
         _LOGGER.debug("Requesting state update from server (S00, S14)")
         await asyncio.gather(
             # List unsealed Zones
-            self.send_command('S00'),
+            self.send_command("S00"),
             # Arming status update
-            self.send_command('S14'),
+            self.send_command("S14"),
         )
 
     async def _connect(self) -> None:
         async with self._connect_lock:
             if self._should_reconnect():
-                _LOGGER.debug('Closing stale connection and reconnecting')
+                _LOGGER.debug("Closing stale connection and reconnecting")
                 await self._connection.close()
 
             while not self._connection.connected:
-                _LOGGER.debug('Attempting to connect')
+                _LOGGER.debug("Attempting to connect")
                 try:
                     await self._connection.connect()
                 except (ConnectionRefusedError, OSError) as e:
-                    _LOGGER.warning('Failed to connect: %s', e)
+                    _LOGGER.warning("Failed to connect: %s", e)
                     await sleep(self._backoff.duration())
 
                 self._last_recv = datetime.datetime.now()
@@ -105,9 +106,9 @@ class Client:
             timestamp=None,
         )
         await self._connect()
-        payload = packet.encode() + '\r\n'
-        _LOGGER.debug('Sending payload: %s', repr(payload))
-        return await self._connection.write(payload.encode('ascii'))
+        payload = packet.encode() + "\r\n"
+        _LOGGER.debug("Sending payload: %s", repr(payload))
+        return await self._connection.write(payload.encode("ascii"))
 
     async def _recv_loop(self) -> None:
         while not self._closed:
@@ -121,7 +122,7 @@ class Client:
 
                 self._last_recv = datetime.datetime.now()
                 try:
-                    decoded_data = data.decode('utf-8').strip()
+                    decoded_data = data.decode("utf-8").strip()
                 except UnicodeDecodeError:
                     _LOGGER.warning("Failed to decode data", exc_info=True)
                     continue
@@ -142,8 +143,11 @@ class Client:
 
     def _should_reconnect(self) -> bool:
         now = datetime.datetime.now()
-        return self._last_recv is not None and self._last_recv < now - datetime.timedelta(
-            seconds=self._update_interval + 30)
+        return (
+            self._last_recv is not None
+            and self._last_recv
+            < now - datetime.timedelta(seconds=self._update_interval + 30)
+        )
 
     async def _update_loop(self) -> None:
         """Schedule a state update to keep the connection alive"""
@@ -162,17 +166,20 @@ class Client:
         self._closed = True
         await self._connection.close()
 
-    def on_state_change(self, f: Callable[[ArmingState], None]
-                        ) -> Callable[[ArmingState], None]:
+    def on_state_change(
+        self, f: Callable[[ArmingState], None]
+    ) -> Callable[[ArmingState], None]:
         self.alarm.on_state_change(f)
         return f
 
-    def on_zone_change(self, f: Callable[[int, bool], None]
-                       ) -> Callable[[int, bool], None]:
+    def on_zone_change(
+        self, f: Callable[[int, bool], None]
+    ) -> Callable[[int, bool], None]:
         self.alarm.on_zone_change(f)
         return f
 
-    def on_event_received(self, f: Callable[[BaseEvent], None]
-                          ) -> Callable[[BaseEvent], None]:
+    def on_event_received(
+        self, f: Callable[[BaseEvent], None]
+    ) -> Callable[[BaseEvent], None]:
         self._on_event_received = f
         return f

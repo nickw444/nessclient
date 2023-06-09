@@ -19,25 +19,26 @@ class Alarm:
     """
 
     class ArmingState(Enum):
-        DISARMED = 'DISARMED'
-        EXIT_DELAY = 'EXIT_DELAY'
-        ARMED = 'ARMED'
-        ENTRY_DELAY = 'ENTRY_DELAY'
-        TRIPPED = 'TRIPPED'
+        DISARMED = "DISARMED"
+        EXIT_DELAY = "EXIT_DELAY"
+        ARMED = "ARMED"
+        ENTRY_DELAY = "ENTRY_DELAY"
+        TRIPPED = "TRIPPED"
 
     class ArmingMode(Enum):
-        ARMED_AWAY = 'ARMED_AWAY'
-        ARMED_HOME = 'ARMED_HOME'
-        ARMED_DAY = 'ARMED_DAY'
-        ARMED_NIGHT = 'ARMED_NIGHT'
-        ARMED_VACATION = 'ARMED_VACATION'
+        ARMED_AWAY = "ARMED_AWAY"
+        ARMED_HOME = "ARMED_HOME"
+        ARMED_DAY = "ARMED_DAY"
+        ARMED_NIGHT = "ARMED_NIGHT"
+        ARMED_VACATION = "ARMED_VACATION"
 
     def __init__(
         self,
         state: ArmingState,
         zones: List[Zone],
         _alarm_state_changed: Callable[[ArmingState, ArmingState, ArmingMode], None],
-        _zone_state_changed: Callable[[int, Zone.State], None]):
+        _zone_state_changed: Callable[[int, Zone.State], None],
+    ):
         self.state = state
         self.zones = zones
         self._arming_mode: Alarm.ArmingMode = None
@@ -46,9 +47,11 @@ class Alarm:
         self._pending_event: Optional[str] = None
 
     @staticmethod
-    def create(num_zones: int,
-               alarm_state_changed: Callable[[ArmingState, ArmingState, ArmingMode], None],
-               zone_state_changed: Callable[[int, Zone.State], None]) -> 'Alarm':
+    def create(
+        num_zones: int,
+        alarm_state_changed: Callable[[ArmingState, ArmingState, ArmingMode], None],
+        zone_state_changed: Callable[[int, Zone.State], None],
+    ) -> "Alarm":
         return Alarm(
             state=Alarm.ArmingState.DISARMED,
             zones=Alarm._generate_zones(num_zones),
@@ -112,15 +115,15 @@ class Alarm:
     ArmingModeMissing = object()
 
     def _update_state(
-        self,
-        state: ArmingState,
-        arming_mode: ArmingMode = ArmingModeMissing
+        self, state: ArmingState, arming_mode: ArmingMode = ArmingModeMissing
     ) -> None:
         if self._alarm_state_changed is not None:
             self._alarm_state_changed(
                 self.state,
                 state,
-                self._arming_mode if arming_mode is Alarm.ArmingModeMissing else arming_mode
+                self._arming_mode
+                if arming_mode is Alarm.ArmingModeMissing
+                else arming_mode,
             )
 
         self.state = state
