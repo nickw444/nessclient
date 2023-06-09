@@ -21,7 +21,7 @@ jobs:
       - name: 'Check Formatting (flake8)'
         run: flake8 nessclient nessclient_tests
       - name: 'Check Types'
-        run: python -m mypy --strict nessclient
+        run: python3 -m mypy --strict nessclient
   build:
     name: "Build and Test"
     runs-on: ubuntu-latest
