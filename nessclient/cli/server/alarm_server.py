@@ -82,6 +82,8 @@ class AlarmServer:
         _LOGGER.info("Incoming User Command: {}".format(command))
         if command == "AE" or command == "A1234E":
             self._alarm.arm()
+        elif command == "HE" or command == "H1234E":
+            self._alarm.arm(Alarm.ArmingMode.ARMED_HOME)
         elif command == "1234E":
             self._alarm.disarm()
         elif command == "S00":
