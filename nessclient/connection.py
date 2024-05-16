@@ -2,6 +2,8 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from typing import Optional
+import serial
+from serial_asyncio import SerialTransport, create_serial_connection
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -100,3 +102,42 @@ class IP232Connection(AsyncIoConnection):
             port=self._port,
         )
         return True
+
+
+class Serial232Connection(AsyncIoConnection):
+    """A connection via Serial RS232 with a Ness D8X/D16X device or server"""
+
+    def __init__(self, tty_path: str):
+        super().__init__()
+
+        self._tty_path = tty_path
+        self._serial_connection: Optional[serial.Serial] = None
+
+    @property
+    def connected(self) -> bool:
+        return (
+            super().connected
+            and self._serial_connection is not None
+            and self._serial_connection.isOpen()
+        )
+
+    async def connect(self) -> bool:
+        loop = asyncio.get_event_loop()
+        self._reader = asyncio.StreamReader(loop=loop)
+        protocol_in = asyncio.StreamReaderProtocol(self._reader, loop=loop)
+        transport: SerialTransport
+
+        # Open the serial connection - always 9600 baud N-8-1
+        transport, protocol = await create_serial_connection(
+            loop,
+            lambda: protocol_in,
+            self._tty_path,
+            baudrate=9600,
+            parity=serial.PARITY_NONE,
+            bytesize=serial.EIGHTBITS,
+            stopbits=serial.STOPBITS_ONE,
+        )
+        self._serial_connection = transport.serial
+        self._writer = asyncio.StreamWriter(transport, protocol, self._reader, loop)
+
+        return self._serial_connection.isOpen()
