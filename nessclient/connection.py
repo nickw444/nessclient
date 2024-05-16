@@ -31,28 +31,19 @@ class Connection(ABC):
         raise NotImplementedError()
 
 
-class IP232Connection(Connection):
+class AsyncIoConnection(Connection):
     """A connection via IP232 with a Ness D8X/D16X server"""
 
-    def __init__(self, host: str, port: int):
+    def __init__(self) -> None:
         super().__init__()
 
         self._write_lock = asyncio.Lock()
-        self._host = host
-        self._port = port
         self._reader: Optional[asyncio.StreamReader] = None
         self._writer: Optional[asyncio.StreamWriter] = None
 
     @property
     def connected(self) -> bool:
         return self._reader is not None and self._writer is not None
-
-    async def connect(self) -> bool:
-        self._reader, self._writer = await asyncio.open_connection(
-            host=self._host,
-            port=self._port,
-        )
-        return True
 
     async def read(self) -> Optional[bytes]:
         assert self._reader is not None
@@ -92,3 +83,20 @@ class IP232Connection(Connection):
                 await self._writer.wait_closed()
             self._writer = None
             self._reader = None
+
+
+class IP232Connection(AsyncIoConnection):
+    """A connection via IP232 with a Ness D8X/D16X server"""
+
+    def __init__(self, host: str, port: int) -> None:
+        super().__init__()
+
+        self._host = host
+        self._port = port
+
+    async def connect(self) -> bool:
+        self._reader, self._writer = await asyncio.open_connection(
+            host=self._host,
+            port=self._port,
+        )
+        return True
