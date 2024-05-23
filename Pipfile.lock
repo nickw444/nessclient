@@ -36,6 +36,20 @@
                 "cli"
             ],
             "version": "==0.0.1"
+        },
+        "pyserial": {
+            "hashes": [
+                "sha256:3c77e014170dfffbd816e6ffc205e9842efb10be9f58ec16d3e8675b4925cddb",
+                "sha256:c4451db6ba391ca6ca299fb3ec7bae67a5c55dde170964c7a14ceefec02f2cf0"
+            ],
+            "version": "==3.5"
+        },
+        "pyserial-asyncio": {
+            "hashes": [
+                "sha256:b6032923e05e9d75ec17a5af9a98429c46d2839adfaf80604d52e0faacd7a32f",
+                "sha256:de9337922619421b62b9b1a84048634b3ac520e1d690a674ed246a2af7ce1fc5"
+            ],
+            "version": "==0.6"
         }
     },
     "develop": {

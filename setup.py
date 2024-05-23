@@ -34,7 +34,8 @@ setup(
     ],
     install_requires=[
         'justbackoff',
-        'dataclasses;python_version<"3.7"'
+        'dataclasses;python_version<"3.7"',
+        'pyserial_asyncio'
     ],
     extras_require={
         'cli': ['click']
