@@ -36,7 +36,9 @@ class Alarm:
         self,
         state: ArmingState,
         zones: List[Zone],
-        _alarm_state_changed: Callable[[ArmingState, ArmingState, ArmingMode], None],
+        _alarm_state_changed: Callable[
+            [ArmingState, ArmingState, ArmingMode | None], None
+        ],
         _zone_state_changed: Callable[[int, Zone.State], None],
     ):
         self.state = state
@@ -49,7 +51,9 @@ class Alarm:
     @staticmethod
     def create(
         num_zones: int,
-        alarm_state_changed: Callable[[ArmingState, ArmingState, ArmingMode], None],
+        alarm_state_changed: Callable[
+            [ArmingState, ArmingState, ArmingMode | None], None
+        ],
         zone_state_changed: Callable[[int, Zone.State], None],
     ) -> "Alarm":
         return Alarm(
@@ -75,7 +79,7 @@ class Alarm:
         self._update_state(Alarm.ArmingState.DISARMED, None)
 
     def trip(self) -> None:
-        self._update_state(Alarm.ArmingState.ENTRY_DELAY)
+        self._update_state_no_mode(Alarm.ArmingState.ENTRY_DELAY)
         self._schedule(ENTRY_DELAY, self._trip_complete)
 
     def update_zone(self, zone_id: int, state: Zone.State) -> None:
@@ -89,11 +93,11 @@ class Alarm:
 
     def _arm_complete(self) -> None:
         _LOGGER.debug("Arm completed")
-        self._update_state(Alarm.ArmingState.ARMED)
+        self._update_state_no_mode(Alarm.ArmingState.ARMED)
 
     def _trip_complete(self) -> None:
         _LOGGER.debug("Trip completed")
-        self._update_state(Alarm.ArmingState.TRIPPED)
+        self._update_state_no_mode(Alarm.ArmingState.TRIPPED)
 
     def _cancel_pending_update(self) -> None:
         if self._pending_event is not None:
@@ -111,23 +115,22 @@ class Alarm:
 
         threading.Thread(target=_run).start()
 
-    # Sentinel value
-    ArmingModeMissing = object()
-
     def _update_state(
         self,
         state: ArmingState,
-        arming_mode: ArmingMode | object | None = ArmingModeMissing,
+        arming_mode: ArmingMode | None,
     ) -> None:
         if self._alarm_state_changed is not None:
-            self._alarm_state_changed(
-                self.state,
-                state,
-                self._arming_mode
-                if arming_mode is Alarm.ArmingModeMissing
-                else arming_mode,  # type: ignore
-            )
+            self._alarm_state_changed(self.state, state, arming_mode)
 
         self.state = state
-        if arming_mode is not Alarm.ArmingModeMissing:
-            self._arming_mode = arming_mode  # type: ignore
+        self._arming_mode = arming_mode
+
+    def _update_state_no_mode(
+        self,
+        state: ArmingState,
+    ) -> None:
+        if self._alarm_state_changed is not None:
+            self._alarm_state_changed(self.state, state, self._arming_mode)
+
+        self.state = state

@@ -14,6 +14,7 @@ pipenv run python setup.py test
 ## Linting
 
 ```sh
+pipenv run black nessclient nessclient_tests
 pipenv run flake8 nessclient nessclient_tests
 ```
 
