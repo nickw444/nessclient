@@ -234,6 +234,11 @@ class PanelVersionUpdateTestCase(unittest.TestCase):
         event = PanelVersionUpdate.decode(pkt)
         self.assertEqual(event.model, PanelVersionUpdate.Model.D16X_3G)
 
+    def test_4g_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "161400")
+        event = PanelVersionUpdate.decode(pkt)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D16XCEL)
+
     def test_sw_version(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "160086")
         event = PanelVersionUpdate.decode(pkt)
