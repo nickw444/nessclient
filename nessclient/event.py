@@ -431,6 +431,7 @@ class PanelVersionUpdate(StatusUpdate):
     class Model(Enum):
         D16X = 0x00
         D16X_3G = 0x04
+        D16XCEL = 0x14
 
     def __init__(
         self,
