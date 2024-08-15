@@ -5,8 +5,6 @@ name = "pypi"
 
 [packages]
 nessclient = {editable = true, extras = ["cli"], path = "."}
-pytest = "*"
-pytest-asyncio = "*"
 
 [dev-packages]
 codecov = "*"
@@ -14,6 +12,8 @@ flake8 = "*"
 mypy = "*"
 types-setuptools = "*"
 black = "*"
+pytest = "*"
+pytest-asyncio = "*"
 
 [requires]
 python_version = "3.11"
