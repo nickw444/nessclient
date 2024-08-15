@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 nessclient = {editable = true, extras = ["cli"], path = "."}
+pytest = "*"
+pytest-asyncio = "*"
 
 [dev-packages]
 codecov = "*"

@@ -43,7 +43,7 @@ jobs:
 
       - name: 'Run Tests (with coverage)'
         run: |
-          coverage run --source=nessclient setup.py test
+          coverage run --source=nessclient pytest
       - uses: codecov/codecov-action@v2
         if: ${{ matrix.python-version == '3.12' }}
 
