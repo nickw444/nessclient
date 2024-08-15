@@ -7,7 +7,7 @@ from typing import Optional, Callable
 from justbackoff import Backoff
 
 from .alarm import ArmingState, Alarm, ArmingMode
-from .connection import Connection, IP232Connection
+from .connection import Connection, IP232Connection, Serial232Connection
 from .event import BaseEvent
 from .packet import CommandType, Packet
 
@@ -28,14 +28,20 @@ class Client:
         connection: Optional[Connection] = None,
         host: Optional[str] = None,
         port: Optional[int] = None,
+        serial_tty: Optional[str] = None,
         update_interval: int = 60,
         infer_arming_state: bool = False,
         alarm: Optional[Alarm] = None,
     ):
         if connection is None:
-            assert host is not None
-            assert port is not None
-            connection = IP232Connection(host=host, port=port)
+            if host is not None and port is not None:
+                connection = IP232Connection(host=host, port=port)
+            elif serial_tty is not None:
+                connection = Serial232Connection(tty_path=serial_tty)
+            else:
+                raise ValueError(
+                    "Must provide host+port or serial_tty or connection object"
+                )
 
         if alarm is None:
             alarm = Alarm(infer_arming_state=infer_arming_state)

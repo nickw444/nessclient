@@ -2,6 +2,8 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from typing import Optional
+import serial
+from serial_asyncio import SerialTransport, create_serial_connection
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,28 +33,19 @@ class Connection(ABC):
         raise NotImplementedError()
 
 
-class IP232Connection(Connection):
+class AsyncIoConnection(Connection, ABC):
     """A connection via IP232 with a Ness D8X/D16X server"""
 
-    def __init__(self, host: str, port: int):
+    def __init__(self) -> None:
         super().__init__()
 
         self._write_lock = asyncio.Lock()
-        self._host = host
-        self._port = port
         self._reader: Optional[asyncio.StreamReader] = None
         self._writer: Optional[asyncio.StreamWriter] = None
 
     @property
     def connected(self) -> bool:
         return self._reader is not None and self._writer is not None
-
-    async def connect(self) -> bool:
-        self._reader, self._writer = await asyncio.open_connection(
-            host=self._host,
-            port=self._port,
-        )
-        return True
 
     async def read(self) -> Optional[bytes]:
         assert self._reader is not None
@@ -92,3 +85,59 @@ class IP232Connection(Connection):
                 await self._writer.wait_closed()
             self._writer = None
             self._reader = None
+
+
+class IP232Connection(AsyncIoConnection):
+    """A connection via IP232 with a Ness D8X/D16X server"""
+
+    def __init__(self, host: str, port: int) -> None:
+        super().__init__()
+
+        self._host = host
+        self._port = port
+
+    async def connect(self) -> bool:
+        self._reader, self._writer = await asyncio.open_connection(
+            host=self._host,
+            port=self._port,
+        )
+        return True
+
+
+class Serial232Connection(AsyncIoConnection):
+    """A connection via Serial RS232 with a Ness D8X/D16X device or server"""
+
+    def __init__(self, tty_path: str):
+        super().__init__()
+
+        self._tty_path = tty_path
+        self._serial_connection: Optional[serial.Serial] = None
+
+    @property
+    def connected(self) -> bool:
+        return (
+            super().connected
+            and self._serial_connection is not None
+            and self._serial_connection.isOpen()
+        )
+
+    async def connect(self) -> bool:
+        loop = asyncio.get_event_loop()
+        self._reader = asyncio.StreamReader(loop=loop)
+        protocol_in = asyncio.StreamReaderProtocol(self._reader, loop=loop)
+        transport: SerialTransport
+
+        # Open the serial connection - always 9600 baud N-8-1
+        transport, protocol = await create_serial_connection(
+            loop,
+            lambda: protocol_in,
+            self._tty_path,
+            baudrate=9600,
+            parity=serial.PARITY_NONE,
+            bytesize=serial.EIGHTBITS,
+            stopbits=serial.STOPBITS_ONE,
+        )
+        self._serial_connection = transport.serial
+        self._writer = asyncio.StreamWriter(transport, protocol, self._reader, loop)
+
+        return self._serial_connection.isOpen()
