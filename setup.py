@@ -14,9 +14,6 @@ try:
 except Exception:
     version = '0.0.0-dev'
 
-needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
-pytest_runner = ['pytest-runner'] if needs_pytest else []
-
 setup(
     name='nessclient',
     packages=['nessclient', 'nessclient.cli', 'nessclient.cli.server'],
@@ -43,7 +40,5 @@ setup(
     entry_points={
         'console_scripts': ['ness-cli=nessclient.cli.__main__:cli'],
     },
-    test_suite='nessclient_tests',
-    setup_requires=[] + pytest_runner,
-    tests_require=['pytest', 'pytest-asyncio'],
+    setup_requires=[],
 )
