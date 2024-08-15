@@ -10,15 +10,21 @@ from .server import DEFAULT_PORT
 @click.command(help="Listen for emitted alarm events")
 @click.option("--host", default="localhost")
 @click.option("--port", type=int, default=DEFAULT_PORT)
+@click.option("--serial-tty")
 @click.option("--update-interval", type=int, default=60)
 @click.option("--infer-arming-state/--no-infer-arming-state")
 def events(
-    host: str, port: int, update_interval: int, infer_arming_state: bool
+    host: str,
+    port: int,
+    update_interval: int,
+    infer_arming_state: bool,
+    serial_tty: str,
 ) -> None:
     loop = asyncio.get_event_loop()
     client = Client(
-        host=host,
-        port=port,
+        host=host if serial_tty is None else None,
+        port=port if serial_tty is None else None,
+        serial_tty=serial_tty,
         infer_arming_state=infer_arming_state,
         update_interval=update_interval,
     )
