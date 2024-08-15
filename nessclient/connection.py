@@ -33,7 +33,7 @@ class Connection(ABC):
         raise NotImplementedError()
 
 
-class AsyncIoConnection(Connection):
+class AsyncIoConnection(Connection, ABC):
     """A connection via IP232 with a Ness D8X/D16X server"""
 
     def __init__(self) -> None:
