@@ -146,6 +146,7 @@ class StatusUpdate(BaseEvent):
         VIEW_STATE = 0x16
         PANEL_VERSION = 0x17
         AUXILIARY_OUTPUTS = 0x18
+        UNKNOWN = 0x30
 
     def __init__(
         self,
@@ -173,6 +174,8 @@ class StatusUpdate(BaseEvent):
             return PanelVersionUpdate.decode(packet)
         elif request_id == StatusUpdate.RequestID.AUXILIARY_OUTPUTS:
             return AuxiliaryOutputsUpdate.decode(packet)
+        elif request_id == StatusUpdate.RequestID.UNKNOWN:
+            return None
         else:
             raise ValueError("Unhandled request_id case: {}".format(request_id))
 
