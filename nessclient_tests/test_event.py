@@ -82,6 +82,13 @@ class StatusUpdateTestCase(unittest.TestCase):
         pkt = make_packet(CommandType.USER_INTERFACE, "550000")
         self.assertRaises(ValueError, lambda: StatusUpdate.decode(pkt))
 
+    def test_decode_undocumented_event(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "300000")
+        event = StatusUpdate.decode(pkt)
+        self.assertIsNone(event)
+
+
+
 
 class ArmingUpdateTestCase(unittest.TestCase):
     def test_encode(self):

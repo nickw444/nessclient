@@ -28,7 +28,6 @@ class Client:
         connection: Optional[Connection] = None,
         host: Optional[str] = None,
         port: Optional[int] = None,
-        name: Optional[str] = "Alarm Panel",
         serial_tty: Optional[str] = None,
         update_interval: int = 60,
         infer_arming_state: bool = False,
@@ -48,7 +47,6 @@ class Client:
             alarm = Alarm(infer_arming_state=infer_arming_state)
 
         self.alarm = alarm
-        self.name = name
         self._on_event_received: Optional[Callable[[BaseEvent], None]] = None
         self._connection = connection
         self._closed = False
