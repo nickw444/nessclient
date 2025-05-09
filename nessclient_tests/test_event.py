@@ -87,9 +87,6 @@ class StatusUpdateTestCase(unittest.TestCase):
         event = StatusUpdate.decode(pkt)
         self.assertIsNone(event)
 
-
-
-
 class ArmingUpdateTestCase(unittest.TestCase):
     def test_encode(self):
         event = ArmingUpdate(
