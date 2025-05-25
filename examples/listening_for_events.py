@@ -2,9 +2,8 @@ import asyncio
 
 from nessclient import Client, ArmingState, BaseEvent
 
-loop = asyncio.get_event_loop()
-host = '127.0.0.1'
-port = 65432
+host = '172.0.0.1'
+port = 4999
 client = Client(host=host, port=port)
 
 
@@ -23,10 +22,13 @@ def on_event_received(event: BaseEvent):
     print('Event received:', event)
 
 
-loop.run_until_complete(asyncio.gather(
-    client.keepalive(),
-    client.update(),
-))
+async def main():
+    await asyncio.gather(
+        client.keepalive(),
+        client.update(),
+    )
+    await client.close()
 
-client.close()
-loop.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())
