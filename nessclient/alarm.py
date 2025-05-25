@@ -147,7 +147,7 @@ class Alarm:
         if self.arming_state != state:
             self.arming_state = state
             if self._on_state_change is not None:
-                self._on_state_change(state, self._arming_mode)
+                self._on_state_change(state)
 
     def _update_zone(self, zone_id: int, state: bool) -> None:
         zone = self.zones[zone_id - 1]
