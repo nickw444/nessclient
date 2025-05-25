@@ -65,7 +65,7 @@ class SystemStatusEvent(BaseEvent):
         BATTERY_NORMAL = 0x13
         REPORT_FAILURE = 0x14
         REPORT_NORMAL = 0x15
-        SUPERVISION_FAILURE = 0x16
+        SUPERVISION_FAILURE = 0x32
         SUPERVISION_NORMAL = 0x17
         REAL_TIME_CLOCK = 0x19
 
@@ -195,6 +195,23 @@ class ZoneUpdate(StatusUpdate):
         ZONE_14 = 0x0020
         ZONE_15 = 0x0040
         ZONE_16 = 0x0080
+        ZONE_17 = 0x0100
+        ZONE_18 = 0x0200
+        ZONE_19 = 0x0400
+        ZONE_20 = 0x0800
+        ZONE_21 = 0x1000
+        ZONE_22 = 0x2000
+        ZONE_23 = 0x4000
+        ZONE_24 = 0x8000
+        ZONE_25 = 0x0001
+        ZONE_26 = 0x0002
+        ZONE_27 = 0x0004
+        ZONE_28 = 0x0008
+        ZONE_29 = 0x0010
+        ZONE_30 = 0x0020
+        ZONE_31 = 0x0040
+        ZONE_32 = 0x0080
+
 
     def __init__(
         self,
