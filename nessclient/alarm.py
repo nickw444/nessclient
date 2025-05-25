@@ -123,10 +123,11 @@ class Alarm:
         elif event.type == SystemStatusEvent.EventType.ALARM_RESTORE:
             if self.arming_state != ArmingState.DISARMED:
                 return self._update_arming_state(ArmingState.ARMED)
+            return None
         elif event.type == SystemStatusEvent.EventType.ENTRY_DELAY_START:
             return self._update_arming_state(ArmingState.ENTRY_DELAY)
         elif event.type == SystemStatusEvent.EventType.ENTRY_DELAY_END:
-            pass
+            return None
         elif event.type == SystemStatusEvent.EventType.EXIT_DELAY_START:
             return self._update_arming_state(ArmingState.EXIT_DELAY)
         elif event.type == SystemStatusEvent.EventType.EXIT_DELAY_END:
@@ -134,6 +135,7 @@ class Alarm:
             # state to armed
             if self.arming_state == ArmingState.EXIT_DELAY:
                 return self._update_arming_state(ArmingState.ARMED)
+            return None
         elif event.type in Alarm.ARM_EVENTS_MAP.keys():
             self._arming_mode = Alarm.ARM_EVENTS_MAP[event.type]
             return self._update_arming_state(ArmingState.ARMING)
@@ -141,7 +143,8 @@ class Alarm:
             self._arming_mode = None  # Restore arming mode on disarmed.
             return self._update_arming_state(ArmingState.DISARMED)
         elif event.type == SystemStatusEvent.EventType.ARMING_DELAYED:
-            pass
+            return None
+        return None
 
     def _update_arming_state(self, state: ArmingState) -> None:
         if self.arming_state != state:
