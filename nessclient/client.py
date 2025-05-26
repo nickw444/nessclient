@@ -24,14 +24,14 @@ class Client:
     """
 
     def __init__(
-        self,
-        connection: Optional[Connection] = None,
-        host: Optional[str] = None,
-        port: Optional[int] = None,
-        serial_tty: Optional[str] = None,
-        update_interval: int = 60,
-        infer_arming_state: bool = False,
-        alarm: Optional[Alarm] = None,
+            self,
+            connection: Optional[Connection] = None,
+            host: Optional[str] = None,
+            port: Optional[int] = None,
+            serial_tty: Optional[str] = None,
+            update_interval: int = 60,
+            infer_arming_state: bool = False,
+            alarm: Optional[Alarm] = None,
     ):
         if connection is None:
             if host is not None and port is not None:
@@ -150,9 +150,9 @@ class Client:
     def _should_reconnect(self) -> bool:
         now = datetime.datetime.now()
         return (
-            self._last_recv is not None
-            and self._last_recv
-            < now - datetime.timedelta(seconds=self._update_interval + 30)
+                self._last_recv is not None
+                and self._last_recv
+                < now - datetime.timedelta(seconds=self._update_interval + 30)
         )
 
     async def _update_loop(self) -> None:
@@ -173,19 +173,19 @@ class Client:
         await self._connection.close()
 
     def on_state_change(
-        self, f: Callable[[ArmingState, ArmingMode | None], None]
+            self, f: Callable[[ArmingState, ArmingMode | None], None]
     ) -> Callable[[ArmingState, ArmingMode | None], None]:
         self.alarm.on_state_change(f)
         return f
 
     def on_zone_change(
-        self, f: Callable[[int, bool], None]
+            self, f: Callable[[int, bool], None]
     ) -> Callable[[int, bool], None]:
         self.alarm.on_zone_change(f)
         return f
 
     def on_event_received(
-        self, f: Callable[[BaseEvent], None]
+            self, f: Callable[[BaseEvent], None]
     ) -> Callable[[BaseEvent], None]:
         self._on_event_received = f
         return f
