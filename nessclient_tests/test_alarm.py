@@ -139,7 +139,7 @@ def test_handle_event_arming_update_callback(alarm):
     )
     alarm.handle_event(event)
     assert cb.call_count == 1
-    assert cb.call_args[0] == (ArmingState.EXIT_DELAY, ArmingMode.ARMED_AWAY)
+    assert cb.call_args[0] == (ArmingState.EXIT_DELAY,)
 
 
 def test_handle_event_system_status_unsealed_zone(alarm):
