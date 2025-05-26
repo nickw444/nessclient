@@ -273,6 +273,16 @@ class AuxiliaryOutputsUpdateTestCase(unittest.TestCase):
             ],
         )
 
+    def test_aux_output_6(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "170020")
+        event = AuxiliaryOutputsUpdate.decode(pkt)
+        self.assertEqual(
+            event.outputs,
+            [
+                AuxiliaryOutputsUpdate.OutputType.AUX_6,
+            ],
+        )
+
     def test_aux_output_multi(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "170088")
         event = AuxiliaryOutputsUpdate.decode(pkt)
