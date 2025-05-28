@@ -3,7 +3,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 import serial
-from serial_asyncio import SerialTransport, create_serial_connection
+from serial_asyncio_fast import SerialTransport, create_serial_connection
 
 _LOGGER = logging.getLogger(__name__)
 

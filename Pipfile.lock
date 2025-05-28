@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "fa976bc8fc97bda8e3d3fce38d6e00c4560f4bf5795148708300a62b3d01e7a1"
+            "sha256": "821264d9602942cb5b92a402cfa238bd81c9e86765b5410365e389ba44e95e0c"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -45,12 +45,14 @@
             ],
             "version": "==3.5"
         },
-        "pyserial-asyncio": {
+        "pyserial-asyncio-fast": {
             "hashes": [
-                "sha256:b6032923e05e9d75ec17a5af9a98429c46d2839adfaf80604d52e0faacd7a32f",
-                "sha256:de9337922619421b62b9b1a84048634b3ac520e1d690a674ed246a2af7ce1fc5"
+                "sha256:88939d94e341a04c0c8bc3c1ed4e874439cb5a1e21ccfb0fd7315a8e45df1687",
+                "sha256:fd52643380406739d777014b0aea0873d756b542eb62f7556567239cec007115"
             ],
-            "version": "==0.6"
+            "index": "pypi",
+            "markers": "python_version >= '3.9'",
+            "version": "==0.16"
         }
     },
     "develop": {
