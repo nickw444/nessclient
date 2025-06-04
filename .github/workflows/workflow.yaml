@@ -51,7 +51,7 @@ jobs:
         run: |
           sed -i "s/0.0.0-dev/$(git describe --tags --exact-match)/" nessclient/__init__.py
           python setup.py sdist bdist_wheel
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         # Only publish artifacts from Python latest build.
         if: ${{ matrix.python-version == '3.12' }}
         with:

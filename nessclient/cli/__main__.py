@@ -1,7 +1,7 @@
 import logging
 
 import click
-import pkg_resources
+from importlib.metadata import version as importlib_version
 
 from .events import events
 from .send_command import send_command
@@ -27,7 +27,7 @@ def version() -> None:
 
 
 def get_version() -> str:
-    return pkg_resources.get_distribution("nessclient").version
+    return importlib_version("nessclient")
 
 
 cli.add_command(events)
