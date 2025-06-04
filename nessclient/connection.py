@@ -140,4 +140,4 @@ class Serial232Connection(AsyncIoConnection):
         self._serial_connection = transport.serial
         self._writer = asyncio.StreamWriter(transport, protocol, self._reader, loop)
 
-        return self._serial_connection.isOpen()
+        return self._serial_connection is not None and self._serial_connection.isOpen()
