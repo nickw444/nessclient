@@ -146,6 +146,21 @@ class StatusUpdate(BaseEvent):
         VIEW_STATE = 0x16
         PANEL_VERSION = 0x17
         AUXILIARY_OUTPUTS = 0x18
+        ZONE_1_16_EXCLUDED_AUTO = 0x19
+        ZONE_17_32_INPUT_UNSEALED = 0x20
+        ZONE_17_32_RADIO_UNSEALED = 0x21
+        ZONE_17_32_CBUS_UNSEALED = 0x22
+        ZONE_17_32_IN_DELAY = 0x23
+        ZONE_17_32_IN_DOUBLE_TRIGGER = 0x24
+        ZONE_17_32_IN_ALARM = 0x25
+        ZONE_17_32_EXCLUDED = 0x26
+        ZONE_17_32_AUTO_EXCLUDED = 0x27
+        ZONE_17_32_SUPERVISION_FAIL_PENDING = 0x28
+        ZONE_17_32_SUPERVISION_FAIL = 0x29
+        ZONE_17_32_DOORS_OPEN = 0x30
+        ZONE_17_32_DETECTOR_LOW_BATTERY = 0x31
+        ZONE_17_32_DETECTOR_TAMPER = 0x32
+        ZONE_17_32_EXCLUDED_AUTO = 0x33
 
     def __init__(
         self,
@@ -195,6 +210,22 @@ class ZoneUpdate(StatusUpdate):
         ZONE_14 = 0x0020
         ZONE_15 = 0x0040
         ZONE_16 = 0x0080
+        ZONE_17 = 0x0100
+        ZONE_18 = 0x0200
+        ZONE_19 = 0x0400
+        ZONE_20 = 0x0800
+        ZONE_21 = 0x1000
+        ZONE_22 = 0x2000
+        ZONE_23 = 0x4000
+        ZONE_24 = 0x8000
+        ZONE_25 = 0x0001
+        ZONE_26 = 0x0002
+        ZONE_27 = 0x0004
+        ZONE_28 = 0x0008
+        ZONE_29 = 0x0010
+        ZONE_30 = 0x0020
+        ZONE_31 = 0x0040
+        ZONE_32 = 0x0080
 
     def __init__(
         self,
@@ -432,6 +463,7 @@ class PanelVersionUpdate(StatusUpdate):
         D16X = 0x00
         D16X_3G = 0x04
         D16XCEL = 0x14
+        DPLUS8 = 0X16
 
     def __init__(
         self,
