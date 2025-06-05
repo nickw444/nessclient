@@ -14,7 +14,7 @@ def on_zone_change(zone: int, triggered: bool):
 
 
 @client.on_state_change
-def on_state_change(state: ArmingState):
+def on_state_change(state: ArmingState, arming_mode):
     print('Alarm state changed to {}'.format(state))
 
 
