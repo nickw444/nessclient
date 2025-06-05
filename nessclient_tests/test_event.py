@@ -222,6 +222,20 @@ class SystemStatusEventTestCase(unittest.TestCase):
         self.assertEqual(event.zone, 16)
         self.assertEqual(event.type, SystemStatusEvent.EventType.UNSEALED)
 
+    def test_zone_unsealed_with_zone_17(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "001700")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 17)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.UNSEALED)
+
+    def test_zone_unsealed_with_zone_32(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "003200")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 32)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.UNSEALED)
+
 
 class PanelVersionUpdateTestCase(unittest.TestCase):
     def test_model(self):
