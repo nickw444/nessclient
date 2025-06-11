@@ -15,8 +15,9 @@ def test_zones_are_initially_unknown(alarm):
         assert zone.triggered is None
 
 
-def test_16_zones_are_created(alarm):
-    assert len(alarm.zones) == 16
+def test_32_zones_are_created(alarm):
+    assert len(alarm.zones) == 32
+
 
 
 def test_handle_event_zone_update(alarm):
@@ -62,7 +63,7 @@ def test_handle_event_zone_update_callback(alarm):
         request_id=ZoneUpdate.RequestID.ZONE_INPUT_UNSEALED,
     )
     alarm.handle_event(event)
-    assert cb.call_count == 3
+    assert cb.call_count == 5
     assert cb.call_args_list[0][0] == (1, True)
     assert cb.call_args_list[1][0] == (3, True)
     assert cb.call_args_list[2][0] == (4, False)

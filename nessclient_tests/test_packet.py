@@ -155,6 +155,19 @@ class PacketTestCase(unittest.TestCase):
             datetime.datetime(year=2019, month=2, day=28, hour=23, minute=3, second=22),
         )
 
+    def test_decode_zone_36_sealed(self):
+        pkt = Packet.decode("87008361012400240101014311f5")
+        self.assertEqual(pkt.start, 0x87)
+        self.assertEqual(pkt.address, 0x00)
+        self.assertEqual(pkt.length, 3)
+        self.assertEqual(pkt.seq, 0x01)
+        self.assertEqual(pkt.command, CommandType.SYSTEM_STATUS)
+        self.assertEqual(pkt.data, "012400")
+        self.assertEqual(
+            pkt.timestamp,
+            datetime.datetime(year=2024, month=1, day=1, hour=1, minute=43, second=11),
+        )
+
     def test_decode_update(self):
         pkt = Packet.decode("820003601700867e")
         event = BaseEvent.decode(pkt)
