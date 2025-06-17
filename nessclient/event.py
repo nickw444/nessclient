@@ -37,6 +37,8 @@ class BaseEvent(object):
             return SystemStatusEvent.decode(packet)
         elif packet.command == CommandType.USER_INTERFACE:
             return StatusUpdate.decode(packet)
+        elif packet.command == CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL:
+            return CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL
         else:
             raise ValueError("Unknown command: {}".format(packet.command))
 
