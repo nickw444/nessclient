@@ -24,16 +24,11 @@ def pack_unsigned_short_data_enum(items: List[T]) -> str:
 
 
 class BaseEvent(object):
-    _is_mezzo = False
 
     def __init__(self, address: Optional[int], timestamp: Optional[datetime.datetime]):
         self.address = address
         self.timestamp = timestamp
 
-
-    @classmethod
-    def set_mezzo_mode(cls, is_mezzo: bool):
-        cls._is_mezzo = is_mezzo
 
     def __repr__(self) -> str:
         return "<{} {}>".format(self.__class__.__name__, self.__dict__)
@@ -41,14 +36,12 @@ class BaseEvent(object):
     @classmethod
     def decode(cls, packet: Packet) -> "BaseEvent":
         if packet.command == CommandType.SYSTEM_STATUS:
-            return SystemStatusEvent.decode(packet, cls._is_mezzo)
+            return SystemStatusEvent.decode(packet)
         elif packet.command == CommandType.USER_INTERFACE:
             return StatusUpdate.decode(packet)
         elif packet.command == CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x66:
-            cls._is_mezzo = True
             return CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x66
         elif packet.command == CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x96:
-            cls._is_mezzo = True
             return CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x96
         else:
             raise ValueError("Unknown command: {}".format(packet.command))
@@ -114,12 +107,12 @@ class SystemStatusEvent(BaseEvent):
         self.area = area
 
     @classmethod
-    def decode(cls, packet: Packet, is_mezzo=False) -> "SystemStatusEvent":
+    def decode(cls, packet: Packet) -> "SystemStatusEvent":
         event_type = int(packet.data[0:2], 16)
-        if is_mezzo:
-            zone = int(packet.data[2:4], 16)
-        else:
+        try:
             zone = int(packet.data[2:4])
+        except ValueError:
+            zone = int(packet.data[2:4], 16)
         area = int(packet.data[4:6], 16)
         return SystemStatusEvent(
             type=SystemStatusEvent.EventType(event_type),
