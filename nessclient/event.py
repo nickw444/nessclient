@@ -105,7 +105,7 @@ class SystemStatusEvent(BaseEvent):
     @classmethod
     def decode(cls, packet: Packet) -> "SystemStatusEvent":
         event_type = int(packet.data[0:2], 16)
-        zone = int(packet.data[2:4])
+        zone = int(packet.data[2:4], 16)
         area = int(packet.data[4:6], 16)
         return SystemStatusEvent(
             type=SystemStatusEvent.EventType(event_type),
