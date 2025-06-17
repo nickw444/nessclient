@@ -10,7 +10,8 @@ _LOGGER = logging.getLogger(__name__)
 class CommandType(Enum):
     SYSTEM_STATUS = 0x61
     USER_INTERFACE = 0x60
-    UNKNOWN_MEZZO_CONTROLLER_CALL = 0X66
+    UNKNOWN_MEZZO_CONTROLLER_CALL_0x66 = 0X66
+    UNKNOWN_MEZZO_CONTROLLER_CALL_0x96 = 0x96
 
 
 @dataclass
@@ -120,8 +121,8 @@ class Packet:
         if has_timestamp(start):
             timestamp = decode_timestamp(data.take_bytes(6))
 
-        if command is CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL:
-            return Packet(address, seq, command, msg_data, timestamp, True )
+        if command is CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x66 or command is CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x96:
+            return Packet(address, seq, command, msg_data, timestamp, True)
 
 
         # TODO(NW): Figure out checksum validation
