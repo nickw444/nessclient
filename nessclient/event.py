@@ -49,6 +49,8 @@ class BaseEvent(object):
         elif packet.command == CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x96:
             cls._is_mezzo = True
             return CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x96
+        elif packet.command == CommandType.TEST_ASCII_STRING:
+            return CommandType.TEST_ASCII_STRING
         else:
             raise ValueError("Unknown command: {}".format(packet.command))
 

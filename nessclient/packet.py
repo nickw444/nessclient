@@ -12,6 +12,15 @@ class CommandType(Enum):
     USER_INTERFACE = 0x60
     UNKNOWN_MEZZO_CONTROLLER_CALL_0x66 = 0X66
     UNKNOWN_MEZZO_CONTROLLER_CALL_0x96 = 0x96
+    TEST_ASCII_STRING = 0X36
+
+    @property
+    def requires_special_handling(self) -> bool:
+        return self in [
+            CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x66,
+            CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x96,
+            CommandType.TEST_ASCII_STRING
+        ]
 
 
 @dataclass
@@ -121,7 +130,7 @@ class Packet:
         if has_timestamp(start):
             timestamp = decode_timestamp(data.take_bytes(6))
 
-        if command is CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x66 or command is CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x96:
+        if command.requires_special_handling:
             return Packet(address, seq, command, msg_data, timestamp, True)
 
 
