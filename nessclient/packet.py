@@ -111,6 +111,7 @@ class Packet:
         # TODO(NW): Figure out checksum validation
         # if not is_data_valid(_data.decode('ascii')):
         #     raise ValueError("Unable to decode: checksum verification failed")
+        _data = _data.lstrip("+")
 
         data = DataIterator(_data)
         _LOGGER.debug("Decoding bytes: '%s'", _data)
