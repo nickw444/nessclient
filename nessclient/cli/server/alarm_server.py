@@ -15,7 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 class AlarmServer:
     def __init__(self, host: str, port: int):
         self._alarm = Alarm.create(
-            num_zones=8,
+            num_zones=32,
             alarm_state_changed=self._alarm_state_changed,
             zone_state_changed=self._zone_state_changed,
         )
