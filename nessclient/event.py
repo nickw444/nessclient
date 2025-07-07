@@ -24,31 +24,20 @@ def pack_unsigned_short_data_enum(items: List[T]) -> str:
 
 
 class BaseEvent(object):
-    _is_mezzo = False
+
     def __init__(self, address: Optional[int], timestamp: Optional[datetime.datetime]):
         self.address = address
         self.timestamp = timestamp
-
 
     def __repr__(self) -> str:
         return "<{} {}>".format(self.__class__.__name__, self.__dict__)
 
     @classmethod
-    def set_mezzo_mode(cls, is_mezzo: bool):
-        cls._is_mezzo = is_mezzo
-
-    @classmethod
     def decode(cls, packet: Packet) -> "BaseEvent":
         if packet.command == CommandType.SYSTEM_STATUS:
-            return SystemStatusEvent.decode(packet, cls._is_mezzo)
+            return SystemStatusEvent.decode(packet)
         elif packet.command == CommandType.USER_INTERFACE:
             return StatusUpdate.decode(packet)
-        elif packet.command == CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x66:
-            cls._is_mezzo = True
-            return CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x66
-        elif packet.command == CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x96:
-            cls._is_mezzo = True
-            return CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x96
         elif packet.command == CommandType.TEST_ASCII_STRING:
             return CommandType.TEST_ASCII_STRING
         else:
@@ -102,12 +91,12 @@ class SystemStatusEvent(BaseEvent):
         OUTPUT_OFF = 0x32
 
     def __init__(
-        self,
-        type: "SystemStatusEvent.EventType",
-        zone: int,
-        area: int,
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+            self,
+            type: "SystemStatusEvent.EventType",
+            zone: int,
+            area: int,
+            address: Optional[int],
+            timestamp: Optional[datetime.datetime],
     ) -> None:
         super(SystemStatusEvent, self).__init__(address=address, timestamp=timestamp)
         self.type = type
@@ -115,7 +104,7 @@ class SystemStatusEvent(BaseEvent):
         self.area = area
 
     @classmethod
-    def decode(cls, packet: Packet, is_mezzo=False) -> "SystemStatusEvent":
+    def decode(cls, packet: Packet, is_mezzo: bool = False) -> "SystemStatusEvent":
         event_type = int(packet.data[0:2], 16)
         if not is_mezzo:
             zone = int(packet.data[2:4])
@@ -180,10 +169,10 @@ class StatusUpdate(BaseEvent):
         ZONE_17_32_EXCLUDED_AUTO = 0x33
 
     def __init__(
-        self,
-        request_id: "StatusUpdate.RequestID",
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+            self,
+            request_id: "StatusUpdate.RequestID",
+            address: Optional[int],
+            timestamp: Optional[datetime.datetime],
     ) -> None:
         super(StatusUpdate, self).__init__(address=address, timestamp=timestamp)
         self.request_id = request_id
@@ -245,11 +234,11 @@ class ZoneUpdate(StatusUpdate):
         ZONE_32 = 0x0080
 
     def __init__(
-        self,
-        included_zones: List["ZoneUpdate.Zone"],
-        request_id: "StatusUpdate.RequestID",
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+            self,
+            included_zones: List["ZoneUpdate.Zone"],
+            request_id: "StatusUpdate.RequestID",
+            address: Optional[int],
+            timestamp: Optional[datetime.datetime],
     ) -> None:
         super(ZoneUpdate, self).__init__(
             request_id=request_id, address=address, timestamp=timestamp
@@ -307,10 +296,10 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
         CBUS_FAIL = 0x0010
 
     def __init__(
-        self,
-        included_alarms: List["MiscellaneousAlarmsUpdate.AlarmType"],
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+            self,
+            included_alarms: List["MiscellaneousAlarmsUpdate.AlarmType"],
+            address: Optional[int],
+            timestamp: Optional[datetime.datetime],
     ):
         super(MiscellaneousAlarmsUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.MISCELLANEOUS_ALARMS,
@@ -355,10 +344,10 @@ class ArmingUpdate(StatusUpdate):
         DAY_ZONE_SELECT = 0x0004
 
     def __init__(
-        self,
-        status: List["ArmingUpdate.ArmingStatus"],
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+            self,
+            status: List["ArmingUpdate.ArmingStatus"],
+            address: Optional[int],
+            timestamp: Optional[datetime.datetime],
     ):
         super(ArmingUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.ARMING,
@@ -420,10 +409,10 @@ class OutputsUpdate(StatusUpdate):
         TAMPER_XPAND = 0x0080
 
     def __init__(
-        self,
-        outputs: List["OutputsUpdate.OutputType"],
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+            self,
+            outputs: List["OutputsUpdate.OutputType"],
+            address: Optional[int],
+            timestamp: Optional[datetime.datetime],
     ):
         super(OutputsUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.OUTPUTS,
@@ -453,10 +442,10 @@ class ViewStateUpdate(StatusUpdate):
         INSTALLER_PROGRAM = 0x8000
 
     def __init__(
-        self,
-        state: "ViewStateUpdate.State",
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+            self,
+            state: "ViewStateUpdate.State",
+            address: Optional[int],
+            timestamp: Optional[datetime.datetime],
     ):
         super(ViewStateUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.VIEW_STATE,
@@ -483,12 +472,12 @@ class PanelVersionUpdate(StatusUpdate):
         DPLUS8 = 0X16
 
     def __init__(
-        self,
-        model: Model,
-        major_version: int,
-        minor_version: int,
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+            self,
+            model: Model,
+            major_version: int,
+            minor_version: int,
+            address: Optional[int],
+            timestamp: Optional[datetime.datetime],
     ):
         super(PanelVersionUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.PANEL_VERSION,
@@ -529,10 +518,10 @@ class AuxiliaryOutputsUpdate(StatusUpdate):
         AUX_8 = 0x0080
 
     def __init__(
-        self,
-        outputs: List[OutputType],
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+            self,
+            outputs: List[OutputType],
+            address: Optional[int],
+            timestamp: Optional[datetime.datetime],
     ):
         super(AuxiliaryOutputsUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.AUXILIARY_OUTPUTS,

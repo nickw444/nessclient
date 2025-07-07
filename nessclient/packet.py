@@ -10,15 +10,12 @@ _LOGGER = logging.getLogger(__name__)
 class CommandType(Enum):
     SYSTEM_STATUS = 0x61
     USER_INTERFACE = 0x60
-    UNKNOWN_MEZZO_CONTROLLER_CALL_0x66 = 0X66
-    UNKNOWN_MEZZO_CONTROLLER_CALL_0x96 = 0x96
     TEST_ASCII_STRING = 0X36
 
+    # This is a special command that is used to validate a "Test ASCII String" which may not be standard/documented but still contain 0x36.
     @property
     def requires_special_handling(self) -> bool:
         return self in [
-            CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x66,
-            CommandType.UNKNOWN_MEZZO_CONTROLLER_CALL_0x96,
             CommandType.TEST_ASCII_STRING
         ]
 
@@ -111,7 +108,6 @@ class Packet:
         # TODO(NW): Figure out checksum validation
         # if not is_data_valid(_data.decode('ascii')):
         #     raise ValueError("Unable to decode: checksum verification failed")
-        _data = _data.lstrip("+")
 
         data = DataIterator(_data)
         _LOGGER.debug("Decoding bytes: '%s'", _data)
@@ -134,7 +130,6 @@ class Packet:
         if command.requires_special_handling:
             return Packet(address, seq, command, msg_data, timestamp, True)
 
-
         # TODO(NW): Figure out checksum validation
         checksum = data.take_hex()  # noqa
 
@@ -143,7 +138,7 @@ class Packet:
 
         return Packet(
             is_user_interface_resp=(
-                is_user_interface_resp(start) and command == CommandType.USER_INTERFACE
+                    is_user_interface_resp(start) and command == CommandType.USER_INTERFACE
             ),
             address=address,
             seq=seq,
@@ -165,7 +160,7 @@ class DataIterator:
         if self._position > len(self._data):
             raise ValueError("Unable to take more data than exists")
 
-        return self._data[position : self._position]
+        return self._data[position: self._position]
 
     def take_hex(self, half: bool = False) -> int:
         return int(self.take_bytes(1, half), 16)
