@@ -1,7 +1,7 @@
 import datetime
 import struct
 from enum import Enum
-from typing import List, Optional, TypeVar, Type
+from typing import List, Optional, TypeVar, Type, Union
 
 from .packet import CommandType, Packet
 
@@ -33,7 +33,7 @@ class BaseEvent(object):
         return "<{} {}>".format(self.__class__.__name__, self.__dict__)
 
     @classmethod
-    def decode(cls, packet: Packet) -> "BaseEvent":
+    def decode(cls, packet: Packet) -> Union["BaseEvent", CommandType]:
         if packet.command == CommandType.SYSTEM_STATUS:
             return SystemStatusEvent.decode(packet)
         elif packet.command == CommandType.USER_INTERFACE:
