@@ -1,3 +1,5 @@
+"""Module file for a test alarm emulator with an interactive CLI UI."""
+
 import click
 
 from .alarm_server import AlarmServer

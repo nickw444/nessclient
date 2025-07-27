@@ -1,3 +1,5 @@
+"""Test encode/decode of various asyncronous events and UI-responses."""
+
 import unittest
 from typing import cast
 
@@ -18,7 +20,10 @@ from nessclient.packet import Packet, CommandType
 
 
 class UtilsTestCase(unittest.TestCase):
-    def test_pack_unsigned_short_data_enum(self):
+    """Test utility functions."""
+
+    def test_pack_unsigned_short_data_enum(self) -> None:
+        """Test that an enum list gets paccked correctly."""
         value = [ZoneUpdate.Zone.ZONE_1, ZoneUpdate.Zone.ZONE_4]
         self.assertEqual(
             "0900",
@@ -27,64 +32,82 @@ class UtilsTestCase(unittest.TestCase):
 
 
 class BaseEventTestCase(unittest.TestCase):
-    def test_decode_system_status_event(self):
+    """Test encode/decode via BaseEvent class."""
+
+    def test_decode_system_status_event(self) -> None:
+        """Test that Asynchronous System Status packets can be decoded."""
         pkt = make_packet(CommandType.SYSTEM_STATUS, "000000")
         event = BaseEvent.decode(pkt)
         self.assertTrue(isinstance(event, SystemStatusEvent))
 
-    def test_decode_user_interface_event(self):
+    def test_decode_user_interface_event(self) -> None:
+        """Test that Status Update UI responses can be decoded."""
         pkt = make_packet(CommandType.USER_INTERFACE, "000000")
         event = BaseEvent.decode(pkt)
         self.assertTrue(isinstance(event, StatusUpdate))
 
-    def test_decode_unknown_event(self):
+    def test_decode_unknown_event(self) -> None:
+        """Test Packet constructor raises an exception for an invalid command."""
         pkt = make_packet(cast(CommandType, 0x01), "000000")
         self.assertRaises(ValueError, lambda: BaseEvent.decode(pkt))
 
 
 class StatusUpdateTestCase(unittest.TestCase):
-    def test_decode_zone_update(self):
+    """Test encode/decode usng StatusUpdate class."""
+
+    def test_decode_zone_update(self) -> None:
+        """Test that Zone Update UI responses can be decoded."""
         pkt = make_packet(CommandType.USER_INTERFACE, "000000")
         event = StatusUpdate.decode(pkt)
         self.assertTrue(isinstance(event, ZoneUpdate))
 
-    def test_decode_misc_alarms_update(self):
+    def test_decode_misc_alarms_update(self) -> None:
+        """Test that Miscellaneous Alarms Update UI responses can be decoded."""
         pkt = make_packet(CommandType.USER_INTERFACE, "130000")
         event = StatusUpdate.decode(pkt)
         self.assertTrue(isinstance(event, MiscellaneousAlarmsUpdate))
 
-    def test_decode_arming_update(self):
+    def test_decode_arming_update(self) -> None:
+        """Test that Arming Update UI responses can be decoded."""
         pkt = make_packet(CommandType.USER_INTERFACE, "140000")
         event = StatusUpdate.decode(pkt)
         self.assertTrue(isinstance(event, ArmingUpdate))
 
-    def test_decode_outputs_update(self):
+    def test_decode_outputs_update(self) -> None:
+        """Test that Output Update UI responses can be decoded."""
         pkt = make_packet(CommandType.USER_INTERFACE, "150000")
         event = StatusUpdate.decode(pkt)
         self.assertTrue(isinstance(event, OutputsUpdate))
 
-    def test_decode_view_state_update(self):
+    def test_decode_view_state_update(self) -> None:
+        """Test that View-State Update UI responses can be decoded."""
         pkt = make_packet(CommandType.USER_INTERFACE, "16f000")
         event = StatusUpdate.decode(pkt)
         self.assertTrue(isinstance(event, ViewStateUpdate))
 
-    def test_decode_panel_version_update(self):
+    def test_decode_panel_version_update(self) -> None:
+        """Test that Panel-Version Update UI responses can be decoded."""
         pkt = make_packet(CommandType.USER_INTERFACE, "170000")
         event = StatusUpdate.decode(pkt)
         self.assertTrue(isinstance(event, PanelVersionUpdate))
 
-    def test_decode_auxiliary_outputs_update(self):
+    def test_decode_auxiliary_outputs_update(self) -> None:
+        """Test that Auxiliary-Outputs Update UI responses can be decoded."""
         pkt = make_packet(CommandType.USER_INTERFACE, "180000")
         event = StatusUpdate.decode(pkt)
         self.assertTrue(isinstance(event, AuxiliaryOutputsUpdate))
 
-    def test_decode_unknown_update(self):
-        pkt = make_packet(CommandType.USER_INTERFACE, "550000")
+    def test_decode_unknown_update(self) -> None:
+        """Test Status Update decoding raises an exception for an invalid request_id."""
+        pkt = make_packet(CommandType.USER_INTERFACE, "550000")  # 55 is an invalid ID
         self.assertRaises(ValueError, lambda: StatusUpdate.decode(pkt))
 
 
 class ArmingUpdateTestCase(unittest.TestCase):
-    def test_encode(self):
+    """Test encode/decode of ArmingUpdate."""
+
+    def test_encode(self) -> None:
+        """Test that Arming Update UI responses can be encoded with areas."""
         event = ArmingUpdate(
             status=[ArmingUpdate.ArmingStatus.AREA_1_FULLY_ARMED],
             timestamp=None,
@@ -95,7 +118,8 @@ class ArmingUpdateTestCase(unittest.TestCase):
         self.assertEqual(pkt.data, "140400")
         self.assertTrue(pkt.is_user_interface_resp)
 
-    def test_area1_armed(self):
+    def test_area1_armed(self) -> None:
+        """Test that Arming Update UI responses can be decoded with areas."""
         pkt = make_packet(CommandType.USER_INTERFACE, "140500")
         event = ArmingUpdate.decode(pkt)
         self.assertEqual(
@@ -108,7 +132,10 @@ class ArmingUpdateTestCase(unittest.TestCase):
 
 
 class ZoneUpdateTestCase(unittest.TestCase):
-    def test_encode(self):
+    """Test encode/decode of ZoneUpdate."""
+
+    def test_encode(self) -> None:
+        """Test that Zone Unsealed UI responses can be encoded with zones."""
         event = ZoneUpdate(
             included_zones=[ZoneUpdate.Zone.ZONE_1, ZoneUpdate.Zone.ZONE_3],
             request_id=StatusUpdate.RequestID.ZONE_INPUT_UNSEALED,
@@ -120,13 +147,15 @@ class ZoneUpdateTestCase(unittest.TestCase):
         self.assertEqual(pkt.data, "000500")
         self.assertTrue(pkt.is_user_interface_resp)
 
-    def test_zone_in_delay_no_zones(self):
+    def test_zone_in_delay_no_zones(self) -> None:
+        """Test that Zone In-Delay UI responses can be decoded with no zones."""
         pkt = make_packet(CommandType.USER_INTERFACE, "030000")
         event = ZoneUpdate.decode(pkt)
         self.assertEqual(event.request_id, ZoneUpdate.RequestID.ZONE_IN_DELAY)
         self.assertEqual(event.included_zones, [])
 
-    def test_zone_in_delay_with_zones(self):
+    def test_zone_in_delay_with_zones(self) -> None:
+        """Test that Zone In-Delay UI responses can be decoded with zones."""
         pkt = make_packet(CommandType.USER_INTERFACE, "030500")
         event = ZoneUpdate.decode(pkt)
         self.assertEqual(event.request_id, ZoneUpdate.RequestID.ZONE_IN_DELAY)
@@ -134,7 +163,8 @@ class ZoneUpdateTestCase(unittest.TestCase):
             event.included_zones, [ZoneUpdate.Zone.ZONE_1, ZoneUpdate.Zone.ZONE_3]
         )
 
-    def test_zone_in_alarm_with_zones(self):
+    def test_zone_in_alarm_with_zones(self) -> None:
+        """Test that Zone In-Alarm UI responses can be decoded with zones."""
         pkt = make_packet(CommandType.USER_INTERFACE, "051400")
         event = ZoneUpdate.decode(pkt)
         self.assertEqual(event.request_id, ZoneUpdate.RequestID.ZONE_IN_ALARM)
@@ -144,14 +174,20 @@ class ZoneUpdateTestCase(unittest.TestCase):
 
 
 class ViewStateUpdateTestCase(unittest.TestCase):
-    def test_normal_state(self):
+    """Test encode/decode of ViewStateUpdate."""
+
+    def test_normal_state(self) -> None:
+        """Test that View-State UI responses can be decoded when Normal."""
         pkt = make_packet(CommandType.USER_INTERFACE, "16f000")
         event = ViewStateUpdate.decode(pkt)
         self.assertEqual(event.state, ViewStateUpdate.State.NORMAL)
 
 
 class OutputsUpdateTestCase(unittest.TestCase):
-    def test_panic_outputs(self):
+    """Test encode/decode of OutputsUpdate."""
+
+    def test_panic_outputs(self) -> None:
+        """Test that Outputs-State UI responses can be decoded with a few outputs."""
         pkt = make_packet(CommandType.USER_INTERFACE, "157100")
         event = OutputsUpdate.decode(pkt)
         self.assertEqual(
@@ -166,21 +202,26 @@ class OutputsUpdateTestCase(unittest.TestCase):
 
 
 class MiscellaneousAlarmsUpdateTestCase(unittest.TestCase):
-    def test_misc_alarms_install_end(self):
+    """Test encode/decode of MiscellaneousAlarmsUpdate."""
+
+    def test_misc_alarms_install_end(self) -> None:
+        """Test that Misc-Alarms UI responses can be decoded with Install-End."""
         pkt = make_packet(CommandType.USER_INTERFACE, "131000")
         event = MiscellaneousAlarmsUpdate.decode(pkt)
         self.assertEqual(
             event.included_alarms, [MiscellaneousAlarmsUpdate.AlarmType.INSTALL_END]
         )
 
-    def test_misc_alarms_panic(self):
+    def test_misc_alarms_panic(self) -> None:
+        """Test that Misc-Alarms UI responses can be decoded with Panic."""
         pkt = make_packet(CommandType.USER_INTERFACE, "130200")
         event = MiscellaneousAlarmsUpdate.decode(pkt)
         self.assertEqual(
             event.included_alarms, [MiscellaneousAlarmsUpdate.AlarmType.PANIC]
         )
 
-    def test_misc_alarms_multi(self):
+    def test_misc_alarms_multi(self) -> None:
+        """Test that Misc-Alarms UI responses can be decoded with several items."""
         pkt = make_packet(CommandType.USER_INTERFACE, "131500")
         event = MiscellaneousAlarmsUpdate.decode(pkt)
         self.assertEqual(
@@ -194,28 +235,34 @@ class MiscellaneousAlarmsUpdateTestCase(unittest.TestCase):
 
 
 class SystemStatusEventTestCase(unittest.TestCase):
-    def test_exit_delay_end(self):
+    """Test encode/decode of async SystemStatusEvent packets."""
+
+    def test_exit_delay_end(self) -> None:
+        """Test that Exit-Delay-End events can be decoded for area+zone."""
         pkt = make_packet(CommandType.SYSTEM_STATUS, "230001")
         event = SystemStatusEvent.decode(pkt)
         self.assertEqual(event.area, 1)
         self.assertEqual(event.zone, 0)
         self.assertEqual(event.type, SystemStatusEvent.EventType.EXIT_DELAY_END)
 
-    def test_zone_sealed(self):
+    def test_zone_sealed(self) -> None:
+        """Test that Zone-Sealed events can be decoded for zone."""
         pkt = make_packet(CommandType.SYSTEM_STATUS, "010500")
         event = SystemStatusEvent.decode(pkt)
         self.assertEqual(event.area, 0)
         self.assertEqual(event.zone, 5)
         self.assertEqual(event.type, SystemStatusEvent.EventType.SEALED)
 
-    def test_zone_unsealed_with_zone_15(self):
+    def test_zone_unsealed_with_zone_15(self) -> None:
+        """Test that Zone-Unsealed events can be decoded for high zone."""
         pkt = make_packet(CommandType.SYSTEM_STATUS, "001500")
         event = SystemStatusEvent.decode(pkt)
         self.assertEqual(event.area, 0)
         self.assertEqual(event.zone, 15)
         self.assertEqual(event.type, SystemStatusEvent.EventType.UNSEALED)
 
-    def test_zone_unsealed_with_zone_16(self):
+    def test_zone_unsealed_with_zone_16(self) -> None:
+        """Test that Zone-Unsealed events can be decoded for last zone."""
         pkt = make_packet(CommandType.SYSTEM_STATUS, "001600")
         event = SystemStatusEvent.decode(pkt)
         self.assertEqual(event.area, 0)
@@ -224,22 +271,28 @@ class SystemStatusEventTestCase(unittest.TestCase):
 
 
 class PanelVersionUpdateTestCase(unittest.TestCase):
-    def test_model(self):
+    """Test encode/decode of PanelVersionUpdate class."""
+
+    def test_model(self) -> None:
+        """Test that Panel-Version response can be decoded for D16X."""
         pkt = make_packet(CommandType.USER_INTERFACE, "160000")
         event = PanelVersionUpdate.decode(pkt)
         self.assertEqual(event.model, PanelVersionUpdate.Model.D16X)
 
-    def test_3g_model(self):
+    def test_3g_model(self) -> None:
+        """Test that Panel-Version response can be decoded for D16X-3G."""
         pkt = make_packet(CommandType.USER_INTERFACE, "160400")
         event = PanelVersionUpdate.decode(pkt)
         self.assertEqual(event.model, PanelVersionUpdate.Model.D16X_3G)
 
-    def test_4g_model(self):
+    def test_4g_model(self) -> None:
+        """Test that Panel-Version response can be decoded for D16XCEL."""
         pkt = make_packet(CommandType.USER_INTERFACE, "161400")
         event = PanelVersionUpdate.decode(pkt)
         self.assertEqual(event.model, PanelVersionUpdate.Model.D16XCEL)
 
-    def test_sw_version(self):
+    def test_sw_version(self) -> None:
+        """Test that Panel-Version response can be decoded for particular version."""
         pkt = make_packet(CommandType.USER_INTERFACE, "160086")
         event = PanelVersionUpdate.decode(pkt)
         self.assertEqual(event.major_version, 8)
@@ -248,7 +301,10 @@ class PanelVersionUpdateTestCase(unittest.TestCase):
 
 
 class AuxiliaryOutputsUpdateTestCase(unittest.TestCase):
-    def test_aux_output_1(self):
+    """Test encode/decode of async AuxiliaryOutputsUpdate packets."""
+
+    def test_aux_output_1(self) -> None:
+        """Test that Aux-Outputs events can be decoded with one output."""
         pkt = make_packet(CommandType.USER_INTERFACE, "170001")
         event = AuxiliaryOutputsUpdate.decode(pkt)
         self.assertEqual(
@@ -258,7 +314,8 @@ class AuxiliaryOutputsUpdateTestCase(unittest.TestCase):
             ],
         )
 
-    def test_aux_output_4(self):
+    def test_aux_output_4(self) -> None:
+        """Test that Aux-Outputs events can be decoded with a different output."""
         pkt = make_packet(CommandType.USER_INTERFACE, "170008")
         event = AuxiliaryOutputsUpdate.decode(pkt)
         self.assertEqual(
@@ -268,7 +325,8 @@ class AuxiliaryOutputsUpdateTestCase(unittest.TestCase):
             ],
         )
 
-    def test_aux_output_multi(self):
+    def test_aux_output_multi(self) -> None:
+        """Test that Aux-Outputs events can be decoded with two outputs."""
         pkt = make_packet(CommandType.USER_INTERFACE, "170088")
         event = AuxiliaryOutputsUpdate.decode(pkt)
         self.assertEqual(
@@ -280,7 +338,8 @@ class AuxiliaryOutputsUpdateTestCase(unittest.TestCase):
         )
 
 
-def make_packet(command: CommandType, data: str):
+def make_packet(command: CommandType, data: str) -> Packet:
+    """Make a test packet - convenience function."""
     return Packet(
         address=0,
         command=command,

@@ -1,7 +1,8 @@
+"""Provides classes for connections between a nessclient and a Ness alarm device."""
+
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
 import serial
 from serial_asyncio_fast import SerialTransport, create_serial_connection
 
@@ -9,52 +10,93 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class Connection(ABC):
-    """Represents a connection to a Ness D8X/D16X server"""
+    """Represents an abstract asynchronous connection to a Ness D8X/D16X server."""
 
     @abstractmethod
-    async def read(self) -> Optional[bytes]:
+    async def read(self) -> bytes | None:
+        r"""
+        Read bytes from the connection until a newline '\n' is received.
+
+        :return: The bytes received - or None if an error occurred
+        """
         raise NotImplementedError()
 
     @abstractmethod
     async def write(self, data: bytes) -> None:
+        """
+        Write bytes to the connection.
+
+        :param data: The bytes to be written
+        """
         raise NotImplementedError()
 
     @abstractmethod
     async def close(self) -> None:
+        """Close the connection."""
         raise NotImplementedError()
 
     @abstractmethod
     async def connect(self) -> bool:
+        """
+        Establish the conection.
+
+        :return: True if the connection was successfully established
+        """
         raise NotImplementedError()
 
     @property
     @abstractmethod
     def connected(self) -> bool:
+        """
+        Indicates whether the conection is currently connected.
+
+        :return: True if the connection is connected
+        """
         raise NotImplementedError()
 
 
 class AsyncIoConnection(Connection, ABC):
-    """A connection via IP232 with a Ness D8X/D16X server"""
+    """
+    Abstract connection based on asyncio.
+
+    An abstract connection via asyncio with an :py:class:`asyncio.StreamReader`
+    and :py:class:`asyncio.StreamReader` with a Ness D8X/D16X server
+
+    Note: Subclasses must override:
+          1) The constructor to capture the appropriate details of the connection
+          2) The connect method
+    """
 
     def __init__(self) -> None:
+        """Construct a AsyncIoConnection object."""
         super().__init__()
 
         self._write_lock = asyncio.Lock()
-        self._reader: Optional[asyncio.StreamReader] = None
-        self._writer: Optional[asyncio.StreamWriter] = None
+        self._reader: asyncio.StreamReader | None = None
+        self._writer: asyncio.StreamWriter | None = None
 
     @property
     def connected(self) -> bool:
+        """
+        Indicate whether the conection is currently connected.
+
+        :return: True if the connection is connected
+        """
         return self._reader is not None and self._writer is not None
 
-    async def read(self) -> Optional[bytes]:
+    async def read(self) -> bytes | None:
+        r"""
+        Read bytes from the connection until a newline '\n' is received.
+
+        :return: The bytes received - or None if an error occurred
+        """
         assert self._reader is not None
 
         try:
             data = await self._reader.readuntil(b"\n")
         except (asyncio.IncompleteReadError, TimeoutError, ConnectionResetError) as e:
             _LOGGER.info(
-                "Got exception: %s. Most likely the other side has " "disconnected!", e
+                "Got exception: %s. Most likely the other side has disconnected!", e
             )
             self._writer = None
             self._reader = None
@@ -69,6 +111,11 @@ class AsyncIoConnection(Connection, ABC):
         return data.strip()
 
     async def write(self, data: bytes) -> None:
+        """
+        Write bytes to the connection.
+
+        :param data: The bytes to be written
+        """
         _LOGGER.debug("Waiting for write_lock to write data: %s", data)
         async with self._write_lock:
             _LOGGER.debug("Obtained write_lock to write data: %s", data)
@@ -79,6 +126,7 @@ class AsyncIoConnection(Connection, ABC):
             _LOGGER.debug("Data was written: %s", data)
 
     async def close(self) -> None:
+        """Close the connection."""
         if self.connected and self._writer is not None:
             self._writer.close()
             if hasattr(self._writer, "wait_closed"):
@@ -88,15 +136,33 @@ class AsyncIoConnection(Connection, ABC):
 
 
 class IP232Connection(AsyncIoConnection):
-    """A connection via IP232 with a Ness D8X/D16X server"""
+    """
+    A TCP asyncio connection.
+
+    A TCP connection to a host & port - e.g. via a IP232 with
+    a Ness D8X/D16X alarm device or simulated-device-server
+    """
 
     def __init__(self, host: str, port: int) -> None:
+        """
+        Construct and initialises the IP232Connection object.
+
+        :param host: The TCP host name of the Ness D8X/D16X alarm
+                     device or simulated-device-server
+        :param port: The TCP port number of the Ness D8X/D16X alarm
+                     device or simulated-device-server
+        """
         super().__init__()
 
         self._host = host
         self._port = port
 
     async def connect(self) -> bool:
+        """
+        Establish the conection.
+
+        :return: True if the connection was successfully established
+        """
         self._reader, self._writer = await asyncio.open_connection(
             host=self._host,
             port=self._port,
@@ -105,16 +171,31 @@ class IP232Connection(AsyncIoConnection):
 
 
 class Serial232Connection(AsyncIoConnection):
-    """A connection via Serial RS232 with a Ness D8X/D16X device or server"""
+    """
+    A serial connection.
 
-    def __init__(self, tty_path: str):
+    A connection via Serial RS232 with a Ness D8X/D16X alarm
+    device or simulated-device-server
+    """
+
+    def __init__(self, tty_path: str) -> None:
+        """
+        Construct and initialises the Serial232Connection object.
+
+        :param tty_path: The path to the serial port to be used
+        """
         super().__init__()
 
         self._tty_path = tty_path
-        self._serial_connection: Optional[serial.Serial] = None
+        self._serial_connection: serial.Serial | None = None
 
     @property
     def connected(self) -> bool:
+        """
+        Indicate whether the serial conection is currently connected.
+
+        :return: True if the connection is connected
+        """
         return (
             super().connected
             and self._serial_connection is not None
@@ -122,6 +203,13 @@ class Serial232Connection(AsyncIoConnection):
         )
 
     async def connect(self) -> bool:
+        """
+        Establish the serial conection.
+
+        Note: Ness serial port is always set to 9600 baud and N-8-1
+
+        :return: True if the connection was successfully established
+        """
         loop = asyncio.get_event_loop()
         self._reader = asyncio.StreamReader(loop=loop)
         protocol_in = asyncio.StreamReaderProtocol(self._reader, loop=loop)
