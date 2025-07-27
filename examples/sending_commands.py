@@ -1,3 +1,5 @@
+"""Example of using nessclient to send commands to a NESS alarm device."""
+
 import asyncio
 
 from nessclient import Client

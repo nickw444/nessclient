@@ -1,3 +1,5 @@
+"""Provide the 'events' nessclient CLI command."""
+
 import asyncio
 import click
 
@@ -20,6 +22,7 @@ def events(
     infer_arming_state: bool,
     serial_tty: str,
 ) -> None:
+    """Add the 'events' CLI command which prints received events until cancelled."""
     loop = asyncio.get_event_loop()
     client = Client(
         host=host if serial_tty is None else None,

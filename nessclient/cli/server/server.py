@@ -1,3 +1,5 @@
+"""Provides a TCP server based transport for the test alarm emulator."""
+
 import logging
 import socket
 import threading
@@ -11,16 +13,25 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class Server:
-    def __init__(self, handle_command: Callable[[str], None]):
+    """Represents a TCP server based transport for the test alarm emulator."""
+
+    def __init__(self, handle_command: Callable[[str], None]) -> None:
+        """Create a server."""
         self._handle_command = handle_command
         self._handle_event_lock: threading.Lock = threading.Lock()
         self._clients_lock: threading.Lock = threading.Lock()
         self._clients: List[socket.socket] = []
 
     def start(self, host: str, port: int) -> None:
+        """Start the server loop listening on the specified host+port."""
         threading.Thread(target=self._loop, args=(host, port)).start()
 
     def _loop(self, host: str, port: int) -> None:
+        """
+        Server accept loop.
+
+        In a loop: waits for a socket connection, then starts a thread to service it.
+        """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind((host, port))
@@ -34,6 +45,7 @@ class Server:
                 ).start()
 
     def write_event(self, event: BaseEvent) -> None:
+        """Write an outgoing packet to all clients."""
         pkt = event.encode()
         self._write_to_all_clients(pkt.encode())
 
@@ -49,6 +61,13 @@ class Server:
         self._write_to_all_clients(pkt.encode())
 
     def _on_client_connected(self, conn: socket.socket, addr: Any) -> None:
+        """
+        Service a client connection.
+
+        In a loop:
+        * Wait for packet data and read it from the socket
+        * Call _handle_incoming_data() to process it
+        """
         _LOGGER.info("Client connected from: %s", addr)
         with self._clients_lock:
             self._clients.append(conn)
@@ -65,12 +84,14 @@ class Server:
             self._handle_incoming_data(data)
 
     def _write_to_all_clients(self, data: str) -> None:
+        """Send data to all connected clients."""
         _LOGGER.debug("Writing message '%s' to all clients", data)
         with self._clients_lock:
             for conn in self._clients:
                 conn.send(data.encode("utf-8") + b"\r\n")
 
     def _handle_incoming_data(self, data: bytes) -> None:
+        """Decode and handle packet data from a client."""
         _LOGGER.debug("Received incoming data: %s", data)
         pkt = Packet.decode(data.strip().decode("utf-8"))
         _LOGGER.debug("Packet is: %s", pkt)

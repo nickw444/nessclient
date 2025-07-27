@@ -1,3 +1,56 @@
+r"""
+Encode / Decode NESS Serial ASCII protocol packets.
+
+Packets are ASCII encoded data.
+    Packet layouts are similar but with important differences:
+
+Input (to Ness) User-Interface Packet
+Either a Keypad String or Status Request:
+* Start:    2 upper case hex characters - must be "83"
+* Address:  1 upper case hex character  - "0" to "F"
+* Length:   2 upper case hex characters - must be "01" to "1E"
+              - Note: it appears that values between 0xA-0xF do not work properly
+* Command:  2 upper case hex characters - must be "60"
+* Data:     N ascii characters - where N = Data Length field
+              - must be from the set: "AHEXFVPDM*#0123456789S"
+* Checksum: 2 upper case hex characters - hex( 0x100
+              - (sum(ordinal of each hex character of previous fields) & 0xff))
+* Finish:   2 characters "\r\n" (Carriage Return, Line Feed - CRLF)
+
+Output (from Ness) Asynchronous Event Data Packet: (see SystemStatusEvent class)
+* Start:    2 lower case hex characters - must be "82", "83", "86", "87"
+* Address:  2 lower case hex characters - "00" to "0F"
+              - only present in start mode "83" or "87"
+* Length:   2 lower case hex characters - must be "03" or "83"
+              - upper bit is alternating "Sequence"
+* Command:  2 lower case hex characters - must be "61"
+* Data:     6 lower case hex characters
+              (double the length specified in the Length field)
+* Timestamp: 12 ascii digit characters
+              - "YYMMDDHHmmSS" - only present in start mode "86" or "87"
+* Checksum: 2 lower case hex characters
+              - sets the sum the integers that each hex pair
+                represent to zero (excluding finish CRLF)
+* Finish:   2 characters "\r\n" (Carriage Return, Line Feed - CRLF)
+
+Output (from Ness) Status Update Packet:
+    (Response to a User-Interface Status Request Packet) (see StatusUpdate class)
+* Start:    2 lower case hex characters - must be "82"
+* Address:  2 lower case hex characters - "00" to "0F"
+              - Note: Address always present despite 0x82 start
+                value that would normally indicate no-address.
+* Length:   2 lower case hex characters - must be "03"
+* Command:  2 lower case hex characters - must be "60"
+* Data:     6 lower case hex characters
+              (double the length specified in the Length field)
+              - Note: Values have different meanings to Event Data Packet
+* Checksum: 2 lower case hex characters
+              - sets the sum the integers that each
+                hex pair represent to zero (excluding finish CRLF)
+* Finish:   2 characters "\r\n" (Carriage Return, Line Feed - CRLF)
+
+"""
+
 import datetime
 import logging
 from dataclasses import dataclass
@@ -8,12 +61,16 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class CommandType(Enum):
+    """Ness Serial ASCII Protocol Command byte values."""
+
     SYSTEM_STATUS = 0x61
     USER_INTERFACE = 0x60
 
 
 @dataclass
 class Packet:
+    """Represents a generic Ness Serial protocol packet."""
+
     address: Optional[int]
     seq: int
     command: CommandType
@@ -25,6 +82,16 @@ class Packet:
 
     @property
     def start(self) -> int:
+        """
+        Return START-byte for this packet.
+
+        The start byte is:
+            * Input-to-Ness UI Request - Always 0x83
+            * Output-from-Ness UI Response - Always 0x82
+            * Output-from-Ness Asynchronous Event Data -
+                        0x82, 0x83, 0x86, 0x87 according to table in specification
+        """
+        # Basic-Header and ASCII-Format are always present
         rv = 0x02 | 0x80
         if self.address is not None and not self.is_user_interface_resp:
             rv |= 0x01
@@ -35,10 +102,21 @@ class Packet:
 
     @property
     def length_field(self) -> int:
+        """
+        Return LENGTH-byte for this packet.
+
+        The length byte is:
+            * Input-to-Ness UI Request - 1 to 30 (0x01 to 0x1e) inclusive
+            * Output-from-Ness UI Response - Always 0x03
+            * Output-from-Ness Asynchronous Event Data -
+                The length byte a combination of the sequence bit and the packet length
+                Always 0x03 or 0x83
+        """
         return int(self.length) | (self.seq << 7)
 
     @property
     def length(self) -> int:
+        """Return data length value for this packet."""
         if is_user_interface_req(self.start):
             return len(self.data)
         else:
@@ -46,11 +124,13 @@ class Packet:
 
     @property
     def checksum(self) -> int:
+        """Return checksum value for this packet."""
         bytes = self.encode(with_checksum=False)
         total = sum([ord(x) for x in bytes]) & 0xFF
         return (256 - total) % 256
 
     def encode(self, with_checksum: bool = True) -> str:
+        """Encode this packet to a Ness Serial ASCII Protocol string."""
         data = ""
         data += "{:02x}".format(self.start)
 
@@ -74,6 +154,8 @@ class Packet:
     @classmethod
     def decode(cls, _data: str) -> "Packet":
         """
+        Decode from a Ness Serial ASCII Protocol string into a Packet.
+
         Packets are ASCII encoded data. Packet layout is as follows:
 
         +---------------------------------------------------------------------------+
@@ -138,11 +220,17 @@ class Packet:
 
 
 class DataIterator:
-    def __init__(self, data: str):
+    """Data Buffer that allows taking incremental byte amounts."""
+
+    def __init__(self, data: str) -> None:
+        """Create a DataIterator with a specified string."""
         self._data = data
         self._position = 0
 
     def take_bytes(self, n: int, half: bool = False) -> str:
+        """
+        Take bytes from the buffer, advancing the read position.
+        """
         multi = 2 if not half else 1
         position = self._position
         self._position += n * multi
@@ -158,12 +246,14 @@ class DataIterator:
         return int(self.take_bytes(1, half), 10)
 
     def is_consumed(self) -> bool:
+        """Return True if entire buffer has been read."""
         return self._position >= len(self._data)
 
 
 def has_address(start: int, data_length: int) -> bool:
     """
     Determine whether the packet has an "address" encoded into it.
+
     There exists an undocumented bug/edge case in the spec - some packets
     with 0x82 as _start_, still encode the address into the packet, and thus
     throws off decoding. This edge case is handled explicitly.
@@ -186,6 +276,7 @@ def is_user_interface_resp(start: int) -> bool:
 def decode_timestamp(data: str) -> datetime.datetime:
     """
     Decode timestamp using bespoke decoder.
+
     Cannot use simple strptime since the ness panel contains a bug
     that P199E zone and state updates emitted on the hour cause a minute
     value of `60` to be sent, causing strptime to fail. This decoder handles

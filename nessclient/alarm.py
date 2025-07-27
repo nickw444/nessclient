@@ -1,3 +1,5 @@
+"""Provides an in-memory representation of the state of the NESS alarm device."""
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Callable, List
@@ -6,6 +8,8 @@ from .event import BaseEvent, ZoneUpdate, ArmingUpdate, SystemStatusEvent
 
 
 class ArmingState(Enum):
+    """Arming States used with on_state_change() callback."""
+
     UNKNOWN = "UNKNOWN"
     DISARMED = "DISARMED"
     ARMING = "ARMING"
@@ -16,6 +20,8 @@ class ArmingState(Enum):
 
 
 class ArmingMode(Enum):
+    """Armed Modes used with on_state_change() callback."""
+
     ARMED_AWAY = "ARMED_AWAY"
     ARMED_HOME = "ARMED_HOME"
     ARMED_DAY = "ARMED_DAY"
@@ -25,10 +31,7 @@ class ArmingMode(Enum):
 
 
 class Alarm:
-    """
-    In-memory representation of the state of the alarm the client is connected
-    to.
-    """
+    """In-memory representation of the state of the alarm the client is connected to."""
 
     ARM_EVENTS_MAP = {
         SystemStatusEvent.EventType.ARMED_AWAY: ArmingMode.ARMED_AWAY,
@@ -41,9 +44,12 @@ class Alarm:
 
     @dataclass
     class Zone:
+        """Represents the current sealed state for an alarm zone."""
+
         triggered: Optional[bool]
 
     def __init__(self, infer_arming_state: bool = False) -> None:
+        """Create a new Alarm instance."""
         self._infer_arming_state = infer_arming_state
         self.arming_state: ArmingState = ArmingState.UNKNOWN
         self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(16)]
@@ -56,6 +62,11 @@ class Alarm:
         self._on_zone_change: Optional[Callable[[int, bool], None]] = None
 
     def handle_event(self, event: BaseEvent) -> None:
+        """
+        Forward event to appropriate handlers.
+
+        Handlers will keep alarm state up-to-date and call callbacks as needed
+        """
         if isinstance(event, ArmingUpdate):
             self._handle_arming_update(event)
         elif (
@@ -67,6 +78,9 @@ class Alarm:
             self._handle_system_status_event(event)
 
     def _handle_arming_update(self, update: ArmingUpdate) -> None:
+        # Note: ArmingUpdate cannot indicate whether the alarm is currently triggered
+        #       This can only be obtained from the ZONE_IN_ALARM ZoneUpdate StatusUpdate
+        #       or from the ALARM System-Status Event
         if update.status == [ArmingUpdate.ArmingStatus.AREA_1_ARMED]:
             return self._update_arming_state(ArmingState.EXIT_DELAY)
         if (
@@ -96,6 +110,7 @@ class Alarm:
                 return self._update_arming_state(ArmingState.DISARMED)
 
     def _handle_zone_input_update(self, update: ZoneUpdate) -> None:
+        """Handle Zone Unsealed updates."""
         for i, zone in enumerate(self.zones):
             zone_id = i + 1
             name = "ZONE_{}".format(zone_id)
@@ -106,13 +121,18 @@ class Alarm:
 
     def _handle_system_status_event(self, event: SystemStatusEvent) -> None:
         """
+        Handle a system status event received from the Ness Alarm.
+
+        Update the internal state to match the Ness Alarm
+
         DISARMED -> ARMED_AWAY -> EXIT_DELAY_START -> EXIT_DELAY_END
          (trip): -> ALARM -> OUTPUT_ON -> ALARM_RESTORE
             (disarm): -> DISARMED -> OUTPUT_OFF
          (disarm): -> DISARMED
          (disarm before EXIT_DELAY_END): -> DISARMED -> EXIT_DELAY_END
 
-        TODO(NW): Check ALARM_RESTORE state transition to move back into ARMED_AWAY state
+        TODO(NW): Check ALARM_RESTORE state transition to move back
+                  into ARMED_AWAY state
         """
         if event.type == SystemStatusEvent.EventType.UNSEALED:
             return self._update_zone(event.zone, True)
@@ -159,7 +179,9 @@ class Alarm:
     def on_state_change(
         self, f: Callable[[ArmingState, ArmingMode | None], None]
     ) -> None:
+        """Set the callback that receives Arming state/mode updates."""
         self._on_state_change = f
 
     def on_zone_change(self, f: Callable[[int, bool], None]) -> None:
+        """Set the callback that receives Zone sealed/unsealed updates."""
         self._on_zone_change = f

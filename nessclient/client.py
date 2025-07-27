@@ -1,3 +1,5 @@
+"""Provides the user API for communicating with a NESS alarm."""
+
 import asyncio
 import datetime
 import logging
@@ -15,13 +17,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class Client:
-    """
-    :param update_interval: Frequency (in seconds) to trigger a full state
-        refresh
-    :param infer_arming_state: Infer the `DISARMED` arming state only via
-        system status events. This works around a bug with some panels
-        (`<v5.8`) which emit `update.status = []` when they are armed.
-    """
+    """Main class that contains the user API for communicating with a NESS alarm."""
 
     def __init__(
         self,
@@ -32,7 +28,18 @@ class Client:
         update_interval: int = 60,
         infer_arming_state: bool = False,
         alarm: Optional[Alarm] = None,
-    ):
+    ) -> None:
+        """
+        Create a Ness Client for a specific NESS alarm device.
+
+        Uses specified communicationsconnction details.
+
+        :param update_interval: Frequency (in seconds) to trigger a full state
+            refresh
+        :param infer_arming_state: Infer the `DISARMED` arming state only via
+            system status events. This works around a bug with some panels
+            (`<v5.8`) which emit `update.status = []` when they are armed.
+        """
         if connection is None:
             if host is not None and port is not None:
                 connection = IP232Connection(host=host, port=port)
@@ -56,27 +63,54 @@ class Client:
         self._update_interval = update_interval
 
     async def arm_away(self, code: Optional[str] = None) -> None:
+        """
+        Send the 'Arm-away' command to the Ness alarm device.
+
+        :param code: The user code to send
+        """
         command = "A{}E".format(code if code else "")
         return await self.send_command(command)
 
     async def arm_home(self, code: Optional[str] = None) -> None:
+        """
+        Send the 'Arm-home' command to the Ness alarm device.
+
+        :param code: The user code to send
+        """
         command = "H{}E".format(code if code else "")
         return await self.send_command(command)
 
     async def disarm(self, code: str) -> None:
+        """
+        Send the 'Disarm' command to the Ness alarm device.
+
+        :param code: The user code to send
+        """
         command = "{}E".format(code)
         return await self.send_command(command)
 
     async def panic(self, code: str) -> None:
+        """
+        Send the 'Panic' command to the Ness alarm device.
+
+        :param code: The user code to send
+        """
         command = "*{}#".format(code)
         return await self.send_command(command)
 
     async def aux(self, output_id: int, state: bool = True) -> None:
+        """
+        Set one of the auxilliary outputs.
+
+        :param output_id: Which aux output to change.
+                          (1, 2, 3, or 4)
+        :param state: if true, set aux active, otherwise inactive
+        """
         command = "{}{}{}".format(output_id, output_id, "*" if state else "#")
         return await self.send_command(command)
 
     async def update(self) -> None:
-        """Force update of alarm status and zones"""
+        """Force update of alarm status and zones."""
         _LOGGER.debug("Requesting state update from server (S00, S14)")
         await asyncio.gather(
             # List unsealed Zones
@@ -104,6 +138,19 @@ class Client:
             self._backoff.reset()
 
     async def send_command(self, command: str) -> None:
+        """
+        Send a command to the NESS alarm.
+
+        Commands are strings containing either
+        * Keypad entry sequences
+        * Status update requests
+        """
+        # The spec requires that Input Commands must use:
+        # Start byte: 0x83
+        # Command byte: 0x60
+        # One-character Address only (different to Output Commands)
+        # No timestamp
+        #
         packet = Packet(
             address=0x00,
             seq=0x00,
@@ -156,36 +203,61 @@ class Client:
         )
 
     async def _update_loop(self) -> None:
-        """Schedule a state update to keep the connection alive"""
+        """Schedule a state update to keep the connection alive."""
         await asyncio.sleep(self._update_interval)
         while not self._closed:
             await self.update()
             await asyncio.sleep(self._update_interval)
 
     async def keepalive(self) -> None:
+        """
+        Run the long-running receive and update loops.
+
+        This will run until Client.close() or asyncio_task.cancel() is called.
+        """
         await asyncio.gather(
             self._recv_loop(),
             self._update_loop(),
         )
 
     async def close(self) -> None:
+        """
+        Stop the nessclient.
+
+        Closes comms connection and stops receive and update loops.
+        """
         self._closed = True
         await self._connection.close()
 
     def on_state_change(
         self, f: Callable[[ArmingState, ArmingMode | None], None]
     ) -> Callable[[ArmingState, ArmingMode | None], None]:
+        """
+        Provide a decorator @client.on_state_change for alarm state-change handlers.
+
+        Can also be called directly to set the state-change handler
+        """
         self.alarm.on_state_change(f)
         return f
 
     def on_zone_change(
         self, f: Callable[[int, bool], None]
     ) -> Callable[[int, bool], None]:
+        """
+        Provide a decorator @client.on_zone_change for alarm zone-sealed handlers.
+
+        Can also be called directly to set the zone-sealed handler
+        """
         self.alarm.on_zone_change(f)
         return f
 
     def on_event_received(
         self, f: Callable[[BaseEvent], None]
     ) -> Callable[[BaseEvent], None]:
+        """
+        Provide a decorator @client.on_event_received for alarm general event handler.
+
+        Can also be called directly to set the general event handler
+        """
         self._on_event_received = f
         return f

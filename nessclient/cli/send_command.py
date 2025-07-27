@@ -1,3 +1,5 @@
+"""Provide the 'send_command' nessclient CLI command."""
+
 import asyncio
 
 import click
@@ -12,6 +14,7 @@ from .server import DEFAULT_PORT
 @click.option("--serial-tty")
 @click.argument("command")
 def send_command(host: str, port: int, serial_tty: str, command: str) -> None:
+    """Add the 'send_command' CLI command which sends a command packet."""
     loop = asyncio.get_event_loop()
     client = Client(
         host=host if serial_tty is None else None,

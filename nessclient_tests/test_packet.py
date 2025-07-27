@@ -1,3 +1,5 @@
+"""Test encode/decode of Packets."""
+
 import datetime
 import logging
 import unittest
@@ -14,7 +16,10 @@ def fixture_path(fixture_name: str):
 
 
 class PacketTestCase(unittest.TestCase):
-    def test_decode_encode_identity(self):
+    """Test many constant packets."""
+
+    def test_decode_encode_identity(self) -> None:
+        """Test decoding and re-encoding a simple packet."""
         cases = [
             # '8700036100070018092118370677',
             "8300c6012345678912EE7"
@@ -24,14 +29,16 @@ class PacketTestCase(unittest.TestCase):
             pkt = Packet.decode(case)
             self.assertEqual(case, pkt.encode())
 
-    def test_decode(self):
+    def test_decode(self) -> None:
+        """Test decoding of packets in the sample_output.txt file."""
         with open(fixture_path("sample_output.txt")) as f:
             for line in f.readlines():
                 line = line.strip()
                 pkt = Packet.decode(line)
                 _LOGGER.info("Decoded '%s' into %s", line, pkt)
 
-    def test_user_interface_packet_decode(self):
+    def test_user_interface_packet_decode(self) -> None:
+        """Test decoding a specific UI Request with address."""
         pkt = Packet.decode("8300c6012345678912EE7")
         self.assertEqual(pkt.start, 0x83)
         self.assertEqual(pkt.address, 0x00)
@@ -42,7 +49,8 @@ class PacketTestCase(unittest.TestCase):
         self.assertIsNone(pkt.timestamp)
         self.assertEqual(pkt.checksum, 0xE7)
 
-    def test_system_status_packet_decode(self):
+    def test_system_status_packet_decode(self) -> None:
+        """Test decoding a specific System Status Event with address and timestamp."""
         pkt = Packet.decode("8700036100070018092118370974")
         self.assertEqual(pkt.start, 0x87)
         self.assertEqual(pkt.address, 0x00)
@@ -56,7 +64,8 @@ class PacketTestCase(unittest.TestCase):
         )
         # self.assertEqual(pkt.checksum, 0x74)
 
-    def test_decode_with_address_and_time(self):
+    def test_decode_with_address_and_time(self) -> None:
+        """Test decoding another System Status Event with address and timestamp."""
         pkt = Packet.decode("8709036101050018122709413536")
         self.assertEqual(pkt.address, 0x09)
         self.assertEqual(pkt.length, 3)
@@ -71,7 +80,8 @@ class PacketTestCase(unittest.TestCase):
         )
         self.assertFalse(pkt.is_user_interface_resp)
 
-    def test_decode_without_address(self):
+    def test_decode_without_address(self) -> None:
+        """Test decoding a specific System Status Event with no address."""
         pkt = Packet.decode("820361230001f6")
         self.assertIsNone(pkt.address)
         self.assertEqual(pkt.length, 3)
@@ -81,7 +91,8 @@ class PacketTestCase(unittest.TestCase):
         self.assertIsNone(pkt.timestamp)
         self.assertFalse(pkt.is_user_interface_resp)
 
-    def test_decode_with_address(self):
+    def test_decode_with_address(self) -> None:
+        """Test decoding a Status Update UI response packet with an address."""
         pkt = Packet.decode("820003600000001b")
         self.assertEqual(pkt.address, 0x00)
         self.assertEqual(pkt.length, 3)
@@ -91,7 +102,8 @@ class PacketTestCase(unittest.TestCase):
         self.assertIsNone(pkt.timestamp)
         self.assertTrue(pkt.is_user_interface_resp)
 
-    def test_encode_decode1(self):
+    def test_encode_decode1(self) -> None:
+        """Tests encoding then decoding a UI request packet."""
         pkt = Packet(
             address=0x00,
             seq=0x00,
@@ -102,7 +114,8 @@ class PacketTestCase(unittest.TestCase):
         self.assertEqual(pkt.length, 6)
         self.assertEqual(pkt.encode(), "8300660A1234E49")
 
-    def test_encode_cecode2(self):
+    def test_encode_decode2(self) -> None:
+        """Tests encoding then decoding another UI request packet."""
         pkt = Packet(
             address=0x00,
             seq=0x00,
@@ -115,10 +128,8 @@ class PacketTestCase(unittest.TestCase):
         self.assertEqual(pkt.length, 3)
         self.assertEqual(pkt.encode(), "87000360000100180510153255E3")
 
-    def test_decode_status_update_response(self):
-        """
-        82 00 03 60 070000 14
-        """
+    def test_decode_status_update_response(self) -> None:
+        """Test decoding a Status Update UI response packet."""
         pkt = Packet.decode("8200036007000014")
         self.assertEqual(pkt.start, 0x82)
         self.assertEqual(pkt.address, 0x00)
@@ -129,7 +140,8 @@ class PacketTestCase(unittest.TestCase):
         self.assertIsNone(pkt.timestamp)
         # self.assertEqual(pkt.checksum, 0x14)
 
-    def test_bad_timestamp(self):
+    def test_bad_timestamp(self) -> None:
+        """Test decoding a specific System Status Event with a bad timestamp."""
         pkt = Packet.decode("8700036100070019022517600057")
         self.assertEqual(pkt.start, 0x87)
         self.assertEqual(pkt.address, 0x00)
@@ -142,7 +154,8 @@ class PacketTestCase(unittest.TestCase):
             datetime.datetime(year=2019, month=2, day=25, hour=18, minute=0, second=0),
         )
 
-    def test_decode_zone_16(self):
+    def test_decode_zone_16(self) -> None:
+        """Test decoding specific System Status Event with zone=16."""
         pkt = Packet.decode("8700036100160019022823032274")
         self.assertEqual(pkt.start, 0x87)
         self.assertEqual(pkt.address, 0x00)
@@ -155,7 +168,8 @@ class PacketTestCase(unittest.TestCase):
             datetime.datetime(year=2019, month=2, day=28, hour=23, minute=3, second=22),
         )
 
-    def test_decode_update(self):
+    def test_decode_update(self) -> None:
+        """Test decoding a specific UI response packet gives correct data."""
         pkt = Packet.decode("820003601700867e")
         event = BaseEvent.decode(pkt)
         print(pkt)
