@@ -1,3 +1,5 @@
+"""Module file for nessclient."""
+
 from .client import Client
 from .alarm import ArmingState, ArmingMode
 from .event import BaseEvent

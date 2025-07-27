@@ -1,3 +1,5 @@
+"""Implements a test alarm emulator with an interactive CLI UI."""
+
 import logging
 import random
 import threading
@@ -13,7 +15,10 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class AlarmServer:
-    def __init__(self, host: str, port: int):
+    """Implements a test alarm emulator with an interactive CLI UI."""
+
+    def __init__(self, host: str, port: int) -> None:
+        """Create a new test alarm emulator that listens on a specifc host+port."""
         self._alarm = Alarm.create(
             num_zones=8,
             alarm_state_changed=self._alarm_state_changed,
@@ -25,6 +30,7 @@ class AlarmServer:
         self._simulation_running = False
 
     def start(self) -> None:
+        """Start running the test alarm emulator."""
         self._server.start(host=self._host, port=self._port)
         self._start_simulation()
 
@@ -57,6 +63,11 @@ class AlarmServer:
         state: Alarm.ArmingState,
         arming_mode: Alarm.ArmingMode | None,
     ) -> None:
+        """
+        Handle zone arming status changes.
+
+        Sends a System Status Event packet to indicate the change
+        """
         if state != Alarm.ArmingState.DISARMED:
             self._stop_simulation()
 
@@ -69,6 +80,11 @@ class AlarmServer:
             self._server.write_event(event)
 
     def _zone_state_changed(self, zone_id: int, state: Zone.State) -> None:
+        """
+        Handle zone sealed/unsealed changes.
+
+        Sends a System Status Event packet to indicate the change
+        """
         event = SystemStatusEvent(
             type=get_zone_state_event_type(state),
             zone=zone_id,
@@ -79,7 +95,17 @@ class AlarmServer:
         self._server.write_event(event)
 
     def _handle_command(self, command: str) -> None:
+        """
+        Responds to commands from a TCP client.
+
+        This is the main function that handles incoming packets.
+
+        Handles Arm, Arm-Home, Disarm, Unsealed-Status & Arming-Status requests
+        """
         _LOGGER.info("Incoming User Command: {}".format(command))
+
+        # NOTE: No defined way to set Armed-Night mode, Armed-Vacation
+        #       or Armed-Highest in the manual
         if command == "AE" or command == "A1234E":
             self._alarm.arm()
         elif command == "HE" or command == "H1234E":
@@ -92,6 +118,11 @@ class AlarmServer:
             self._handle_arming_status_update_request()
 
     def _handle_arming_status_update_request(self) -> None:
+        """
+        Handle a "S14" (arming state) status update request.
+
+        Sends a Status Update response packet to indicate the current arming state.
+        """
         event = ArmingUpdate(
             status=get_arming_status(self._alarm.state),
             address=0x00,
@@ -100,6 +131,11 @@ class AlarmServer:
         self._server.write_event(event)
 
     def _handle_zone_input_unsealed_status_update_request(self) -> None:
+        """
+        Handle a "S00" (zone unsealed state) status update request.
+
+        Sends a Status Update response packet to indicate the current sealed states.
+        """
         event = ZoneUpdate(
             request_id=StatusUpdate.RequestID.ZONE_INPUT_UNSEALED,
             included_zones=[
@@ -113,6 +149,11 @@ class AlarmServer:
         self._server.write_event(event)
 
     def _simulate_zone_events(self) -> None:
+        """
+        Thread that randomly toggles the sealed/unsealed state of a random zones.
+
+        Toggles in a loop with pauses of 1-5 seconds between each
+        """
         while self._simulation_running:
             zone: Zone = random.choice(self._alarm.zones)
             self._alarm.update_zone(zone.id, toggled_state(zone.state))
@@ -120,15 +161,18 @@ class AlarmServer:
             time.sleep(random.randint(1, 5))
 
     def _stop_simulation(self) -> None:
+        """Stop the sealed/unsealed random toggling."""
         self._simulation_running = False
 
     def _start_simulation(self) -> None:
+        """Start the sealed/unsealed random toggling."""
         if not self._simulation_running:
             self._simulation_running = True
             threading.Thread(target=self._simulate_zone_events).start()
 
 
 def mode_to_event(mode: Alarm.ArmingMode | None) -> SystemStatusEvent.EventType:
+    """Convert a Alarm.ArmingMode to a SystemStatusEvent.EventType mode."""
     if mode == Alarm.ArmingMode.ARMED_AWAY:
         return SystemStatusEvent.EventType.ARMED_AWAY
     elif mode == Alarm.ArmingMode.ARMED_HOME:
@@ -148,6 +192,7 @@ def get_events_for_state_update(
     state: Alarm.ArmingState,
     arming_mode: Alarm.ArmingMode | None,
 ) -> Iterator[SystemStatusEvent.EventType]:
+    """Determine which async events should be sent upon state changes."""
     if state == Alarm.ArmingState.DISARMED:
         yield SystemStatusEvent.EventType.DISARMED
     if state == Alarm.ArmingState.EXIT_DELAY:
@@ -174,6 +219,11 @@ def get_events_for_state_update(
 
 
 def get_arming_status(state: Alarm.ArmingState) -> List[ArmingUpdate.ArmingStatus]:
+    """
+    Get a list of ArmingStatus items for the current armed status.
+
+    Appropriate to pass to ArmingUpdate() constructor
+    """
     if state == Alarm.ArmingState.ARMED:
         return [
             ArmingUpdate.ArmingStatus.AREA_1_ARMED,
@@ -186,6 +236,7 @@ def get_arming_status(state: Alarm.ArmingState) -> List[ArmingUpdate.ArmingStatu
 
 
 def toggled_state(state: Zone.State) -> Zone.State:
+    """Invert the supplied sealed/unsealed zone state."""
     if state == Zone.State.SEALED:
         return Zone.State.UNSEALED
     else:
@@ -193,5 +244,6 @@ def toggled_state(state: Zone.State) -> Zone.State:
 
 
 def get_zone_for_id(zone_id: int) -> ZoneUpdate.Zone:
+    """Get the zone details matching the supplied zone ID."""
     key = "ZONE_{}".format(zone_id)
     return ZoneUpdate.Zone[key]

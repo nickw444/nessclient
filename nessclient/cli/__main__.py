@@ -1,3 +1,5 @@
+"""Main file for nessclient CLI."""
+
 import logging
 
 import click
@@ -15,6 +17,7 @@ _LOGGER = logging.getLogger(__name__)
 @click.group()
 @click.option("--log-level", type=click.Choice(LOG_LEVELS), default="warning")
 def cli(log_level: str) -> None:
+    """Create the click CLI group with specified log level."""
     level = getattr(logging, log_level.upper())
     logging.basicConfig(level=level)
     _LOGGER.debug("nessclient version: %s", get_version())
@@ -22,14 +25,16 @@ def cli(log_level: str) -> None:
 
 @cli.command()
 def version() -> None:
-    """Print installed package version."""
+    """CLI command to print installed package version."""
     print(get_version())
 
 
 def get_version() -> str:
+    """Get the version of the nessclient module."""
     return importlib_version("nessclient")
 
 
+# Add more commands to the CLI
 cli.add_command(events)
 cli.add_command(send_command)
 cli.add_command(server)
