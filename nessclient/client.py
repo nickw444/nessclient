@@ -4,7 +4,7 @@ import asyncio
 import datetime
 import logging
 from asyncio import sleep
-from typing import Optional, Callable
+from typing import Callable
 
 from justbackoff import Backoff
 
@@ -21,13 +21,13 @@ class Client:
 
     def __init__(
         self,
-        connection: Optional[Connection] = None,
-        host: Optional[str] = None,
-        port: Optional[int] = None,
-        serial_tty: Optional[str] = None,
+        connection: Connection | None = None,
+        host: str | None = None,
+        port: int | None = None,
+        serial_tty: str | None = None,
         update_interval: int = 60,
         infer_arming_state: bool = False,
-        alarm: Optional[Alarm] = None,
+        alarm: Alarm | None = None,
     ) -> None:
         """
         Create a Ness Client for a specific NESS alarm device.
@@ -54,15 +54,15 @@ class Client:
             alarm = Alarm(infer_arming_state=infer_arming_state)
 
         self.alarm = alarm
-        self._on_event_received: Optional[Callable[[BaseEvent], None]] = None
+        self._on_event_received: Callable[[BaseEvent], None] | None = None
         self._connection = connection
         self._closed = False
         self._backoff = Backoff()
         self._connect_lock = asyncio.Lock()
-        self._last_recv: Optional[datetime.datetime] = None
+        self._last_recv: datetime.datetime | None = None
         self._update_interval = update_interval
 
-    async def arm_away(self, code: Optional[str] = None) -> None:
+    async def arm_away(self, code: str | None = None) -> None:
         """
         Send the 'Arm-away' command to the Ness alarm device.
 
@@ -71,7 +71,7 @@ class Client:
         command = "A{}E".format(code if code else "")
         return await self.send_command(command)
 
-    async def arm_home(self, code: Optional[str] = None) -> None:
+    async def arm_home(self, code: str | None = None) -> None:
         """
         Send the 'Arm-home' command to the Ness alarm device.
 
@@ -80,7 +80,7 @@ class Client:
         command = "H{}E".format(code if code else "")
         return await self.send_command(command)
 
-    async def disarm(self, code: str) -> None:
+    async def disarm(self, code: str | None) -> None:
         """
         Send the 'Disarm' command to the Ness alarm device.
 
@@ -89,7 +89,7 @@ class Client:
         command = "{}E".format(code)
         return await self.send_command(command)
 
-    async def panic(self, code: str) -> None:
+    async def panic(self, code: str | None) -> None:
         """
         Send the 'Panic' command to the Ness alarm device.
 

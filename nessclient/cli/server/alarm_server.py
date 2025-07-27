@@ -4,7 +4,7 @@ import logging
 import random
 import threading
 import time
-from typing import List, Iterator
+from typing import Iterator
 
 from .alarm import Alarm
 from .server import Server, get_zone_state_event_type
@@ -218,7 +218,7 @@ def get_events_for_state_update(
         yield SystemStatusEvent.EventType.ENTRY_DELAY_END
 
 
-def get_arming_status(state: Alarm.ArmingState) -> List[ArmingUpdate.ArmingStatus]:
+def get_arming_status(state: Alarm.ArmingState) -> list[ArmingUpdate.ArmingStatus]:
     """
     Get a list of ArmingStatus items for the current armed status.
 

@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Callable, List
+from typing import Callable
 
 from .event import BaseEvent, ZoneUpdate, ArmingUpdate, SystemStatusEvent
 
@@ -46,20 +46,20 @@ class Alarm:
     class Zone:
         """Represents the current sealed state for an alarm zone."""
 
-        triggered: Optional[bool]
+        triggered: bool | None
 
     def __init__(self, infer_arming_state: bool = False) -> None:
         """Create a new Alarm instance."""
         self._infer_arming_state = infer_arming_state
         self.arming_state: ArmingState = ArmingState.UNKNOWN
-        self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(16)]
+        self.zones: list[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(16)]
 
         self._arming_mode: ArmingMode | None = None
 
-        self._on_state_change: Optional[
-            Callable[[ArmingState, ArmingMode | None], None]
-        ] = None
-        self._on_zone_change: Optional[Callable[[int, bool], None]] = None
+        self._on_state_change: (
+            Callable[[ArmingState, ArmingMode | None], None] | None
+        ) = None
+        self._on_zone_change: Callable[[int, bool], None] | None = None
 
     def handle_event(self, event: BaseEvent) -> None:
         """
@@ -177,11 +177,11 @@ class Alarm:
                 self._on_zone_change(zone_id, state)
 
     def on_state_change(
-        self, f: Callable[[ArmingState, ArmingMode | None], None]
+        self, f: Callable[[ArmingState, ArmingMode | None], None] | None
     ) -> None:
         """Set the callback that receives Arming state/mode updates."""
         self._on_state_change = f
 
-    def on_zone_change(self, f: Callable[[int, bool], None]) -> None:
+    def on_zone_change(self, f: Callable[[int, bool], None] | None) -> None:
         """Set the callback that receives Zone sealed/unsealed updates."""
         self._on_zone_change = f

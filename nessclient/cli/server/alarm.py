@@ -5,7 +5,7 @@ import threading
 import time
 import uuid
 from enum import Enum
-from typing import List, Callable, Optional
+from typing import Callable
 
 from .zone import Zone
 
@@ -39,7 +39,7 @@ class Alarm:
     def __init__(
         self,
         state: ArmingState,
-        zones: List[Zone],
+        zones: list[Zone],
         _alarm_state_changed: Callable[
             [ArmingState, ArmingState, ArmingMode | None], None
         ],
@@ -51,7 +51,7 @@ class Alarm:
         self._arming_mode: Alarm.ArmingMode | None = None
         self._alarm_state_changed = _alarm_state_changed
         self._zone_state_changed = _zone_state_changed
-        self._pending_event: Optional[str] = None
+        self._pending_event: str | None = None
 
     @staticmethod
     def create(
@@ -70,7 +70,7 @@ class Alarm:
         )
 
     @staticmethod
-    def _generate_zones(num_zones: int) -> List[Zone]:
+    def _generate_zones(num_zones: int) -> list[Zone]:
         """Create a list of zones for the create() method."""
         rv = []
         for i in range(num_zones):

@@ -3,14 +3,14 @@
 import datetime
 import struct
 from enum import Enum
-from typing import List, Optional, TypeVar, Type
+from typing import TypeVar
 
 from .packet import CommandType, Packet
 
 T = TypeVar("T", bound=Enum)
 
 
-def unpack_unsigned_short_data_enum(packet: Packet, enum_type: Type[T]) -> List[T]:
+def unpack_unsigned_short_data_enum(packet: Packet, enum_type: type[T]) -> list[T]:
     """
     Parse a bitfield from a 3 hex bytes of packet data.
 
@@ -27,7 +27,7 @@ def unpack_unsigned_short_data_enum(packet: Packet, enum_type: Type[T]) -> List[
     return [e for e in enum_type if e.value & raw_data]
 
 
-def pack_unsigned_short_data_enum(items: List[T]) -> str:
+def pack_unsigned_short_data_enum(items: list[T]) -> str:
     """
     Construct hex packet data from a list of bitfield items.
 
@@ -58,7 +58,7 @@ class BaseEvent(object):
     """
 
     def __init__(
-        self, address: Optional[int], timestamp: Optional[datetime.datetime]
+        self, address: int | None, timestamp: datetime.datetime | None
     ) -> None:
         """
         Construct a BaseEvent object - used by subclass constructors.
@@ -164,8 +164,8 @@ class SystemStatusEvent(BaseEvent):
         type: "SystemStatusEvent.EventType",
         zone: int,
         area: int,
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ) -> None:
         """
         Construct a :py:class:`SystemStatusEvent` object - used by :py:meth:`decode`.
@@ -264,9 +264,9 @@ class StatusUpdate(BaseEvent):
 
     def __init__(
         self,
-        request_id: "StatusUpdate.RequestID",
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        request_id: RequestID,
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ) -> None:
         """
         Construct a :py:class:`StatusUpdate` object - used by subclasses.
@@ -279,7 +279,7 @@ class StatusUpdate(BaseEvent):
         self.request_id = request_id
 
     @classmethod
-    def decode(self, packet: Packet) -> "StatusUpdate":
+    def decode(cls, packet: Packet) -> "StatusUpdate":
         """
         Decode a :py:class:`Packet` received from the Ness alarm.
 
@@ -342,10 +342,10 @@ class ZoneUpdate(StatusUpdate):
 
     def __init__(
         self,
-        included_zones: List["ZoneUpdate.Zone"],
-        request_id: "StatusUpdate.RequestID",
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        included_zones: list[Zone],
+        request_id: StatusUpdate.RequestID,
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ) -> None:
         """
         Construct a :py:class:`ZoneUpdate` object - used by py:meth:`decode`.
@@ -441,9 +441,9 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
 
     def __init__(
         self,
-        included_alarms: List["MiscellaneousAlarmsUpdate.AlarmType"],
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        included_alarms: list[AlarmType],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ) -> None:
         """
         Construct a :py:class:`MiscellaneousAlarmsUpdate` object.
@@ -514,9 +514,9 @@ class ArmingUpdate(StatusUpdate):
 
     def __init__(
         self,
-        status: List["ArmingUpdate.ArmingStatus"],
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        status: list["ArmingUpdate.ArmingStatus"],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ) -> None:
         """
         Construct a :py:class:`ArmingUpdate` object.
@@ -610,9 +610,9 @@ class OutputsUpdate(StatusUpdate):
 
     def __init__(
         self,
-        outputs: List["OutputsUpdate.OutputType"],
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        outputs: list["OutputsUpdate.OutputType"],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ) -> None:
         """
         Construct a :py:class:`OutputsUpdate` object - used by :py:meth:`decode`.
@@ -678,8 +678,8 @@ class ViewStateUpdate(StatusUpdate):
     def __init__(
         self,
         state: "ViewStateUpdate.State",
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ) -> None:
         """
         Construct a :py:class:`ViewStateUpdate` object - used by :py:meth:`decode`.
@@ -742,8 +742,8 @@ class PanelVersionUpdate(StatusUpdate):
         model: Model,
         major_version: int,
         minor_version: int,
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ) -> None:
         """
         Construct a :py:class:`PanelVersionUpdate` object - used by :py:meth:`decode`.
@@ -819,9 +819,9 @@ class AuxiliaryOutputsUpdate(StatusUpdate):
 
     def __init__(
         self,
-        outputs: List[OutputType],
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        outputs: list[OutputType],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ) -> None:
         """
         Construct a :py:class:`AuxiliaryOutputsUpdate` object.

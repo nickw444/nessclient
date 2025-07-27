@@ -3,7 +3,7 @@
 import logging
 import socket
 import threading
-from typing import List, Callable, Any
+from typing import Callable, Any
 
 from .zone import Zone
 from ...event import BaseEvent, SystemStatusEvent
@@ -20,7 +20,7 @@ class Server:
         self._handle_command = handle_command
         self._handle_event_lock: threading.Lock = threading.Lock()
         self._clients_lock: threading.Lock = threading.Lock()
-        self._clients: List[socket.socket] = []
+        self._clients: list[socket.socket] = []
 
     def start(self, host: str, port: int) -> None:
         """Start the server loop listening on the specified host+port."""

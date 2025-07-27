@@ -55,7 +55,6 @@ import datetime
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,11 +70,11 @@ class CommandType(Enum):
 class Packet:
     """Represents a generic Ness Serial protocol packet."""
 
-    address: Optional[int]
+    address: int | None
     seq: int
     command: CommandType
     data: str
-    timestamp: Optional[datetime.datetime]
+    timestamp: datetime.datetime | None
 
     # Whether or not this packet is a USER_INTERFACE response
     is_user_interface_resp: bool = False
