@@ -12,14 +12,6 @@ class CommandType(Enum):
     USER_INTERFACE = 0x60
     TEST_ASCII_STRING = 0X36
 
-    # This is a special command that is used to validate a "Test ASCII String" which may not be standard/documented but still contain 0x36.
-    @property
-    def requires_special_handling(self) -> bool:
-        return self in [
-            CommandType.TEST_ASCII_STRING
-        ]
-
-
 @dataclass
 class Packet:
     address: Optional[int]
@@ -28,7 +20,7 @@ class Packet:
     data: str
     timestamp: Optional[datetime.datetime]
 
-    # Whether or not this packet is a USER_INTERFACE response
+    # Whether this packet is a USER_INTERFACE response
     is_user_interface_resp: bool = False
 
     @property
@@ -127,14 +119,18 @@ class Packet:
         if has_timestamp(start):
             timestamp = decode_timestamp(data.take_bytes(6))
 
-        if command.requires_special_handling:
-            return Packet(address, seq, command, msg_data, timestamp, True)
-
-        # TODO(NW): Figure out checksum validation
-        checksum = data.take_hex()  # noqa
-
-        if not data.is_consumed():
-            raise ValueError("Unable to consume all data")
+        if command == CommandType.TEST_ASCII_STRING:
+            # TEST_ASCII_STRING from DPLUS panels require special handling
+            # Skip checksum validation due to non-standard implementation
+            _LOGGER.warning(
+                "TEST_ASCII_STRING (0x36) detected - using DPLUS compatibility mode"
+            )
+        else:
+            # TODO(NW): Figure out checksum validation
+            # Standard checksum validation
+            checksum = data.take_hex()  # noqa
+            if not data.is_consumed():
+                raise ValueError("Unable to consume all data")
 
         return Packet(
             is_user_interface_resp=(
