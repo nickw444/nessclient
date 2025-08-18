@@ -250,11 +250,21 @@ class PanelVersionUpdateTestCase(unittest.TestCase):
         self.assertEqual(event.model, PanelVersionUpdate.Model.D16X_CEL_4G)
 
     def test_sw_version(self):
-        pkt = make_packet(CommandType.USER_INTERFACE, "170086")
-        event = PanelVersionUpdate.decode(pkt)
-        self.assertEqual(event.major_version, 8)
-        self.assertEqual(event.minor_version, 6)
-        self.assertEqual(event.version, "8.6")
+        cases = [
+            ("170078", 7, 8, "7.8"),
+            ("170080", 8, 0, "8.0"),
+            ("1714a8", 10, 8, "10.8"),
+            ("170086", 8, 6, "8.6"),
+            ("170087", 8, 7, "8.7"),
+            ("1715b0", 11, 0, "11.0"),
+        ]
+        for data, major, minor, version in cases:
+            with self.subTest(data=data):
+                pkt = make_packet(CommandType.USER_INTERFACE, data)
+                event = PanelVersionUpdate.decode(pkt)
+                self.assertEqual(event.major_version, major)
+                self.assertEqual(event.minor_version, minor)
+                self.assertEqual(event.version, version)
 
 
 class AuxiliaryOutputsUpdateTestCase(unittest.TestCase):
