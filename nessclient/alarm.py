@@ -46,7 +46,7 @@ class Alarm:
     def __init__(self, infer_arming_state: bool = False) -> None:
         self._infer_arming_state = infer_arming_state
         self.arming_state: ArmingState = ArmingState.UNKNOWN
-        self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(16)]
+        self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(32)]
 
         self._arming_mode: ArmingMode | None = None
 

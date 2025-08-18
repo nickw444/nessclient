@@ -2,7 +2,10 @@ import asyncio
 
 from nessclient import Client
 
-loop = asyncio.get_event_loop()
+# Create a new event loop to avoid DeprecationWarning in python 3.10+
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+
 host = '127.0.0.1'
 port = 65432
 client = Client(host=host, port=port)

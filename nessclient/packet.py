@@ -10,7 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 class CommandType(Enum):
     SYSTEM_STATUS = 0x61
     USER_INTERFACE = 0x60
-
+    TEST_ASCII_STRING = 0X36
 
 @dataclass
 class Packet:
@@ -20,7 +20,7 @@ class Packet:
     data: str
     timestamp: Optional[datetime.datetime]
 
-    # Whether or not this packet is a USER_INTERFACE response
+    # Whether this packet is a USER_INTERFACE response
     is_user_interface_resp: bool = False
 
     @property
@@ -119,15 +119,22 @@ class Packet:
         if has_timestamp(start):
             timestamp = decode_timestamp(data.take_bytes(6))
 
-        # TODO(NW): Figure out checksum validation
-        checksum = data.take_hex()  # noqa
-
-        if not data.is_consumed():
-            raise ValueError("Unable to consume all data")
+        if command == CommandType.TEST_ASCII_STRING:
+            # TEST_ASCII_STRING from DPLUS panels require special handling
+            # Skip checksum validation due to non-standard implementation
+            _LOGGER.warning(
+                "TEST_ASCII_STRING (0x36) detected - using DPLUS compatibility mode"
+            )
+        else:
+            # TODO(NW): Figure out checksum validation
+            # Standard checksum validation
+            checksum = data.take_hex()  # noqa
+            if not data.is_consumed():
+                raise ValueError("Unable to consume all data")
 
         return Packet(
             is_user_interface_resp=(
-                is_user_interface_resp(start) and command == CommandType.USER_INTERFACE
+                    is_user_interface_resp(start) and command == CommandType.USER_INTERFACE
             ),
             address=address,
             seq=seq,
@@ -149,7 +156,7 @@ class DataIterator:
         if self._position > len(self._data):
             raise ValueError("Unable to take more data than exists")
 
-        return self._data[position : self._position]
+        return self._data[position: self._position]
 
     def take_hex(self, half: bool = False) -> int:
         return int(self.take_bytes(1, half), 16)
