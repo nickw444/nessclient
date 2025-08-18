@@ -224,23 +224,33 @@ class SystemStatusEventTestCase(unittest.TestCase):
 
 
 class PanelVersionUpdateTestCase(unittest.TestCase):
-    def test_model(self):
-        pkt = make_packet(CommandType.USER_INTERFACE, "160000")
+    def test_d8x_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "170000")
+        event = PanelVersionUpdate.decode(pkt)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D8X)
+
+    def test_d8xcel_3g_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "170400")
+        event = PanelVersionUpdate.decode(pkt)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D8X_CEL_3G)
+
+    def test_d16x_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "171000")
         event = PanelVersionUpdate.decode(pkt)
         self.assertEqual(event.model, PanelVersionUpdate.Model.D16X)
 
-    def test_3g_model(self):
-        pkt = make_packet(CommandType.USER_INTERFACE, "160400")
+    def test_d16xcel_3g_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "171400")
         event = PanelVersionUpdate.decode(pkt)
-        self.assertEqual(event.model, PanelVersionUpdate.Model.D16X_3G)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D16X_CEL_3G)
 
-    def test_4g_model(self):
-        pkt = make_packet(CommandType.USER_INTERFACE, "161400")
+    def test_d16xcel_4g_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "171500")
         event = PanelVersionUpdate.decode(pkt)
-        self.assertEqual(event.model, PanelVersionUpdate.Model.D16XCEL)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D16X_CEL_4G)
 
     def test_sw_version(self):
-        pkt = make_packet(CommandType.USER_INTERFACE, "160086")
+        pkt = make_packet(CommandType.USER_INTERFACE, "170086")
         event = PanelVersionUpdate.decode(pkt)
         self.assertEqual(event.major_version, 8)
         self.assertEqual(event.minor_version, 6)
