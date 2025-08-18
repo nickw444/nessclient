@@ -1,6 +1,6 @@
 import asyncio
 
-from nessclient import Client, ArmingState, BaseEvent, ArmingMode
+from nessclient import Client, ArmingState, ArmingMode, BaseEvent
 
 loop = asyncio.get_event_loop()
 host = '127.0.0.1'
@@ -14,7 +14,7 @@ def on_zone_change(zone: int, triggered: bool):
 
 
 @client.on_state_change
-def on_state_change(state: ArmingState, arming_mode: ArmingMode):
+def on_state_change(state: ArmingState, _arming_mode: ArmingMode | None):
     print('Alarm state changed to {}'.format(state))
 
 
