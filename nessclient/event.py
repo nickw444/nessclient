@@ -429,9 +429,24 @@ class ViewStateUpdate(StatusUpdate):
 
 class PanelVersionUpdate(StatusUpdate):
     class Model(Enum):
-        D16X = 0x00
-        D16X_3G = 0x04
-        D16XCEL = 0x14
+        """Panel model and modem combinations.
+
+        These values are hard coded from the panel documentation where the
+        upper four bits represent the panel model and the lower four bits the
+        modem (if any). The values are not generated dynamically so that only
+        known combinations are accepted.
+        """
+
+        # Base D8X panel variants
+        D8X = 0x00
+        D8X_CEL_3G = 0x04
+        D8X_CEL_4G = 0x05
+        D32X = 0x06
+
+        # D16X based panels
+        D16X = 0x10
+        D16X_CEL_3G = 0x14
+        D16X_CEL_4G = 0x15
 
     def __init__(
         self,
