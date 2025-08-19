@@ -1,8 +1,3 @@
-.. nessclient documentation master file, created by
-   sphinx-quickstart on Fri Nov 16 07:34:39 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 # nessclient
 
 [![](https://travis-ci.org/nickw444/nessclient.svg?branch=master)](https://travis-ci.org/nickw444/nessclient)
@@ -20,17 +15,18 @@ A python implementation/abstraction of the [Ness D8x / D16x Serial Interface ASC
 pip install nessclient
 ```
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-   
-   cli.md
-   api.md
-   examples.md
-   developing.md
+```{toctree}
+:maxdepth: 2
+:caption: Contents:
+
+cli.md
+api.rst
+examples.md
+developing.md
+```
 
 # Indices and tables
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+* {ref}`genindex`
+* {ref}`modindex`
+* {ref}`search`

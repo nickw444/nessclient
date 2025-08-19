@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = 'nessclient'
-copyright = '2018, Nick Whyte'
+copyright = '2025, Nick Whyte'
 author = 'Nick Whyte'
 
 # The short X.Y version
@@ -45,7 +45,7 @@ release = ''
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'm2r',
+    'myst_parser',
     'sphinx.ext.autodoc',
 ]
 

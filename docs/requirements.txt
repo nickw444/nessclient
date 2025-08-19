@@ -1,3 +1,4 @@
 .
 sphinx
-m2r
+myst-parser
+alabaster>=0.7,<0.8

@@ -1,23 +1,25 @@
-# API
+API
+===
 
-## nessclient Core
+nessclient Core
+---------------
 
 .. automodule:: nessclient
     :members:
     :undoc-members:
     :exclude-members: BaseEvent
 
-## nessclient.event
+nessclient.event
+----------------
 
 .. automodule:: nessclient.event
     :members:
     :undoc-members:
 
 
-## nessclient.connection
+nessclient.connection
+---------------------
 
 .. automodule:: nessclient.connection
     :members:
     :undoc-members:
-
-.
