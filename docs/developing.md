@@ -14,8 +14,8 @@ uv run pytest
 ## Linting
 
 ```sh
-uv run black nessclient nessclient_tests
-uv run flake8 nessclient nessclient_tests
+uv run ruff format nessclient nessclient_tests
+uv run ruff check nessclient nessclient_tests
 ```
 
 ## Type Checking

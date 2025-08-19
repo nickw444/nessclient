@@ -60,9 +60,7 @@ class AlarmServer:
         if state != Alarm.ArmingState.DISARMED:
             self._stop_simulation()
 
-        for event_type in get_events_for_state_update(
-            previous_state, state, arming_mode
-        ):
+        for event_type in get_events_for_state_update(previous_state, state, arming_mode):
             event = SystemStatusEvent(
                 type=event_type, zone=0x00, area=0x00, timestamp=None, address=0
             )

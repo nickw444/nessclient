@@ -65,9 +65,7 @@ class PacketTestCase(unittest.TestCase):
         self.assertEqual(pkt.data, "010500")
         self.assertEqual(
             pkt.timestamp,
-            datetime.datetime(
-                year=2018, month=12, day=27, hour=9, minute=41, second=35
-            ),
+            datetime.datetime(year=2018, month=12, day=27, hour=9, minute=41, second=35),
         )
         self.assertFalse(pkt.is_user_interface_resp)
 
