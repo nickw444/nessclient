@@ -56,6 +56,3 @@ exclude = [
     "virtualenv",
     "docs",
 ]
-
-[tool.ruff.lint]
-select = ["E", "F"]
