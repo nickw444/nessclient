@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nessclient"
+dynamic = ["version"]
+description = "Implementation/abstraction of the Ness D8x / D16x Serial Interface ASCII protocol"
+readme = "README.md"
+license = "MIT"
+authors = [{name = "Nick Whyte", email = "nick@nickwhyte.com"}]
+urls = {"Homepage" = "https://github.com/nickw444/nessclient"}
+classifiers = [
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "justbackoff",
+    "dataclasses; python_version < \"3.7\"",
+    "pyserial_asyncio_fast",
+]
+
+[project.optional-dependencies]
+cli = ["click"]
+
+[project.scripts]
+ness-cli = "nessclient.cli.__main__:cli"
+
+[dependency-groups]
+dev = [
+    "codecov",
+    "flake8",
+    "mypy",
+    "types-setuptools",
+    "black",
+    "pytest",
+    "pytest-asyncio",
+]
+
+[tool.setuptools]
+license-files = ["LICENSE"]
+
+[tool.setuptools.packages.find]
+include = ["nessclient*"]
+
+[tool.setuptools_scm]
+version_file = "nessclient/_version.py"

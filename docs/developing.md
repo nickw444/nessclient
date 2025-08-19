@@ -1,25 +1,25 @@
 # Developing
-Use [pipenv](https://github.com/pypa/pipenv) to setup the local environment:
+Use [uv](https://docs.astral.sh/uv/) to set up the local environment:
 
 ```sh
-pipenv install --dev 
+uv sync --dev
 ```
 
 ## Running tests
 
 ```sh
-pipenv run python setup.py test
+uv run pytest
 ```
 
 ## Linting
 
 ```sh
-pipenv run black nessclient nessclient_tests
-pipenv run flake8 nessclient nessclient_tests
+uv run black nessclient nessclient_tests
+uv run flake8 nessclient nessclient_tests
 ```
 
 ## Type Checking
 
 ```sh
-pipenv run mypy --strict nessclient
+uv run mypy --strict nessclient
 ```
