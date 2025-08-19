@@ -30,11 +30,9 @@ ness-cli = "nessclient.cli.__main__:cli"
 [dependency-groups]
 dev = [
     "codecov",
-    "click",
     "mypy",
     "types-setuptools",
     "types-pyserial",
-    "types-click",
     "pytest",
     "pytest-asyncio",
     "ruff",
