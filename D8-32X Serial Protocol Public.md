@@ -523,57 +523,101 @@ The following tables list the messages sent with an example showing the string d
 
 ### ALARM
 
-| EVENT DESCRIPTION | Start | Address | Length | Command | Message |  |  | Date |  |  | TIME |  |  | Ck | Cr-LF |
-|-------------------|-------|---------|--------|---------|---------|---|---|------|---|---|------|---|---|----|----- |
-|  |  |  |  |  | Event E/R | ID | Area | Yr | Mth | Day | Hr | Min | Sec |  |  |
+#### Duress
+- **Example:** D32 2 User1 07:43 1:2:2006
 
-| Duress | 87 |  | 03 | 61 | 2 | User | 0x84 | yy | mm | dd | hh | mm | 00 |  |  |
-| ie D32 2 User1 07:43 1:2:2006 | 87 | 02 | 03 | 61 | 02 | 01 | 84 | 06 | 12 | 01 | 07 | 43 | 00 | 8D | 0d 0a |
-| 30 byte message (ASCII) | 38 37 | 30 32 | 30 31 | 36 31 | 30 32 | 30 31 | 38 34 | 30 36 | 31 32 | 30 31 | 30 37 | 34 33 | 30 30 | 38 44 | 0d 0a |
+| Field | Start | Address | Length | Command | Event E/R | ID | Area | Yr | Mth | Day | Hr | Min | Sec | Ck | Cr-LF |
+|-------|-------|---------|--------|---------|-----------|----|----- |----|-----|-----|----|----- |-----|----|----- |
+| **HEX** | 87 | 02 | 03 | 61 | 02 | 01 | 84 | 06 | 12 | 01 | 07 | 43 | 00 | 8D | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 31 | 36 31 | 30 32 | 30 31 | 38 34 | 30 36 | 31 32 | 30 31 | 30 37 | 34 33 | 30 30 | 38 44 | 0d 0a |
 
-| Fire | 87 |  | 03 | 61 | 02 | Zone | 0x81 | yy | mm | dd | hh | mm | 00 |  |  |
-| ie Zone 1 09:43 1:2:2006 | 87 | 02 | 03 | 61 | 02 | 04 | 81 | 06 | 02 | 01 | 09 | 43 | 00 | 9B | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 31 | 36 31 | 30 32 | 30 31 | 38 31 | 30 36 | 30 32 | 30 31 | 30 39 | 34 33 | 30 30 | 39 42 | 0d 0a |
+#### Fire
+- **Example:** Zone 1 09:43 1:2:2006
 
-| Medical | 87 |  | 03 | 61 | 2 | 01 | 0x83 | yy | mm | dd | hh | mm | 00 |  |  |
-| Ex: User 1 13:15 2:3:2006 | 87 | 02 | 03 | 61 | 02 | 01 | 83 | 06 | 02 | 01 | 13 | 15 | 00 | C0 | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 31 | 36 31 | 30 32 | 30 31 | 38 33 | 30 36 | 30 32 | 30 31 | 31 33 | 31 35 | 30 30 | 43 30 | 0d 0a |
+| Field | Start | Address | Length | Command | Event E/R | ID | Area | Yr | Mth | Day | Hr | Min | Sec | Ck | Cr-LF |
+|-------|-------|---------|--------|---------|-----------|----|----- |----|-----|-----|----|----- |-----|----|----- |
+| **HEX** | 87 | 02 | 03 | 61 | 02 | 04 | 81 | 06 | 02 | 01 | 09 | 43 | 00 | 9B | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 31 | 36 31 | 30 32 | 30 31 | 38 31 | 30 36 | 30 32 | 30 31 | 30 39 | 34 33 | 30 30 | 39 42 | 0d 0a |
 
-| Panic Radio Key | 87 |  | 03 | 61 | 2 | User | 0x82 | yy | mm | dd | hh | mm | 00 |  |  |
-| Ex: User 50 13:15 2:3:2006 | 87 | 02 | 03 | 61 | 02 | 32=50d | 82 | 06 | 02 | 01 | 13 | 15 | 00 | 90 | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 31 | 36 31 | 30 32 | 33 32 | 38 32 | 30 36 | 30 32 | 30 31 | 31 33 | 31 35 | 30 30 | 39 30 | 0d 0a |
+#### Medical
+- **Example:** User 1 13:15 2:3:2006
 
-| Panic Keypad | 87 |  | 03 | 61 | 2 | 57 | 0x82 | yy | mm | dd | hh | mm | 00 |  |  |
-| Ex: 13:15 2:3:2006 | 87 | 02 | 03 | 61 | 02 | 39=57d | 82 | 06 | 02 | 01 | 13 | 15 | 00 | 89 | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 31 | 36 31 | 30 32 | 33 39 | 38 32 | 30 36 | 30 32 | 30 31 | 31 33 | 31 35 | 30 30 | 38 39 | 0d 0a |
+| Field | Start | Address | Length | Command | Event E/R | ID | Area | Yr | Mth | Day | Hr | Min | Sec | Ck | Cr-LF |
+|-------|-------|---------|--------|---------|-----------|----|----- |----|-----|-----|----|----- |-----|----|----- |
+| **HEX** | 87 | 02 | 03 | 61 | 02 | 01 | 83 | 06 | 02 | 01 | 13 | 15 | 00 | C0 | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 31 | 36 31 | 30 32 | 30 31 | 38 33 | 30 36 | 30 32 | 30 31 | 31 33 | 31 35 | 30 30 | 43 30 | 0d 0a |
 
-| Panic Keyswitch | 87 |  | 03 | 61 | 2 | 58 | 0x82 | yy | mm | dd | hh | mm | 00 |  |  |
-| Ex: 13:15 2:3:2006 | 87 | 02 | 03 | 61 | 02 | 3A=58d | 82 | 06 | 02 | 01 | 13 | 15 | 00 | 88 | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 31 | 36 31 | 30 32 | 33 41 | 38 32 | 30 36 | 30 32 | 30 31 | 31 33 | 31 35 | 30 30 | 38 38 | 0d 0a |
+#### Panic Radio Key
+- **Example:** User 50 13:15 2:3:2006
 
-| Tamper Internal Panel | 87 |  | 03 | 61 | 8 | 0 | 0x00 | yy | mm | dd | hh | mm | 00 |  |  |
-| Ex: 23:45 10:5:2008 | 87 | 02 | 03 | 61 | 08 | 00 | 00 | 08 | 05 | 10 | 23 | 45 | 00 | EA | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 31 | 36 31 | 30 38 | 30 30 | 30 30 | 30 38 | 30 35 | 31 30 | 32 33 | 34 35 | 30 30 | 45 41 | 0d 0a |
+| Field | Start | Address | Length | Command | Event E/R | ID | Area | Yr | Mth | Day | Hr | Min | Sec | Ck | Cr-LF |
+|-------|-------|---------|--------|---------|-----------|----|----- |----|-----|-----|----|----- |-----|----|----- |
+| **HEX** | 87 | 02 | 03 | 61 | 02 | 32=50d | 82 | 06 | 02 | 01 | 13 | 15 | 00 | 90 | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 31 | 36 31 | 30 32 | 33 32 | 38 32 | 30 36 | 30 32 | 30 31 | 31 33 | 31 35 | 30 30 | 39 30 | 0d 0a |
 
-| Tamper Radio Detector | 87 |  | 03 | 61 | 8 | User | Area | yy | mm | dd | hh | mm | 00 |  |  |
-| Ex: Zone 15 Area 1 23:45 10:5:2008 | 87 | 02 | 03 | 61 | 08 | 0F= 15d | 91 | 08 | 05 | 10 | 23 | 45 | 00 | DA | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 31 | 36 31 | 30 38 | 30 46 | 30 31 | 30 38 | 30 35 | 31 30 | 32 33 | 34 35 | 30 30 | 44 41 | 0d 0a |
+#### Panic Keypad
+- **Example:** 13:15 2:3:2006
 
-| Tamper External | 87 |  | 03 | 61 | 8 | 57 | 0x00 | yy | mm | dd | hh | mm | 00 |  |  |
-| Ex: 23:45 10:5:2008 | 87 | 02 | 03 | 61 | 08 | 39=57d | 00 | 08 | 05 | 10 | 23 | 45 | 00 | B1 | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 31 | 36 31 | 30 38 | 30 39 | 30 30 | 30 38 | 30 35 | 31 30 | 32 33 | 34 35 | 30 30 |  | 0d 0a |
+| Field | Start | Address | Length | Command | Event E/R | ID | Area | Yr | Mth | Day | Hr | Min | Sec | Ck | Cr-LF |
+|-------|-------|---------|--------|---------|-----------|----|----- |----|-----|-----|----|----- |-----|----|----- |
+| **HEX** | 87 | 02 | 03 | 61 | 02 | 39=57d | 82 | 06 | 02 | 01 | 13 | 15 | 00 | 89 | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 31 | 36 31 | 30 32 | 33 39 | 38 32 | 30 36 | 30 32 | 30 31 | 31 33 | 31 35 | 30 30 | 38 39 | 0d 0a |
 
-| Tamper Keypad | 87 |  | 03 | 61 | 8 | 0xf0 | Area | yy | mm | dd | hh | mm | 00 |  |  |
-| Ex: 23:45 10:5:2008 | 87 | 02 | 03 | 61 | 08 | F0 | 00 | 08 | 05 | 10 | 23 | 45 | 00 | FA | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 31 | 36 31 | 30 38 | 46 30 | 30 30 | 30 38 | 30 35 | 31 30 | 32 33 | 34 35 | 30 30 |  | 0d 0a |
+#### Panic Keyswitch
+- **Example:** 13:15 2:3:2006
 
-| Zone | 87 |  | 03 | 61 | 2 | 1-32 | Area | yy | mm | dd | hh | mm | 00 |  |  |
-| Ex: Zone 12 Area 1 23:45 10:5:2008 | 87 | 02 | 03 | 61 | 02 | 0c=12 | 01 | 08 | 05 | 10 | 23 | 45 | 00 |  | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 31 | 36 31 | 30 38 | 30 43 | 30 31 | 30 38 | 30 35 | 31 30 | 32 33 | 34 35 | 30 30 |  | 0d 0a |
+| Field | Start | Address | Length | Command | Event E/R | ID | Area | Yr | Mth | Day | Hr | Min | Sec | Ck | Cr-LF |
+|-------|-------|---------|--------|---------|-----------|----|----- |----|-----|-----|----|----- |-----|----|----- |
+| **HEX** | 87 | 02 | 03 | 61 | 02 | 3A=58d | 82 | 06 | 02 | 01 | 13 | 15 | 00 | 88 | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 31 | 36 31 | 30 32 | 33 41 | 38 32 | 30 36 | 30 32 | 30 31 | 31 33 | 31 35 | 30 30 | 38 38 | 0d 0a |
 
-| ARM Open/Close | 87 |  | 03 | 61 | 0 | 1-32 | Area | yy | mm | dd | hh | mm | 00 |  |  |
-| Ex: Open User 24 Area 2 23:45 10:5:2008 | 87 | 02 | 03 | 61 | 00 | 18=24 | 02 | 08 | 05 | 10 | 23 | 45 | 00 |  | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 31 | 36 31 | 30 38 | 30 43 | 30 31 | 30 38 | 30 35 | 31 30 | 32 33 | 34 35 | 30 30 |  | 0d 0a |
+#### Tamper Internal Panel
+- **Example:** 23:45 10:5:2008
+
+| Field | Start | Address | Length | Command | Event E/R | ID | Area | Yr | Mth | Day | Hr | Min | Sec | Ck | Cr-LF |
+|-------|-------|---------|--------|---------|-----------|----|----- |----|-----|-----|----|----- |-----|----|----- |
+| **HEX** | 87 | 02 | 03 | 61 | 08 | 00 | 00 | 08 | 05 | 10 | 23 | 45 | 00 | EA | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 31 | 36 31 | 30 38 | 30 30 | 30 30 | 30 38 | 30 35 | 31 30 | 32 33 | 34 35 | 30 30 | 45 41 | 0d 0a |
+
+#### Tamper Radio Detector
+- **Example:** Zone 15 Area 1 23:45 10:5:2008
+
+| Field | Start | Address | Length | Command | Event E/R | ID | Area | Yr | Mth | Day | Hr | Min | Sec | Ck | Cr-LF |
+|-------|-------|---------|--------|---------|-----------|----|----- |----|-----|-----|----|----- |-----|----|----- |
+| **HEX** | 87 | 02 | 03 | 61 | 08 | 0F=15d | 91 | 08 | 05 | 10 | 23 | 45 | 00 | DA | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 31 | 36 31 | 30 38 | 30 46 | 30 31 | 30 38 | 30 35 | 31 30 | 32 33 | 34 35 | 30 30 | 44 41 | 0d 0a |
+
+#### Tamper External
+- **Example:** 23:45 10:5:2008
+
+| Field | Start | Address | Length | Command | Event E/R | ID | Area | Yr | Mth | Day | Hr | Min | Sec | Ck | Cr-LF |
+|-------|-------|---------|--------|---------|-----------|----|----- |----|-----|-----|----|----- |-----|----|----- |
+| **HEX** | 87 | 02 | 03 | 61 | 08 | 39=57d | 00 | 08 | 05 | 10 | 23 | 45 | 00 | B1 | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 31 | 36 31 | 30 38 | 30 39 | 30 30 | 30 38 | 30 35 | 31 30 | 32 33 | 34 35 | 30 30 |  | 0d 0a |
+
+#### Tamper Keypad
+- **Example:** 23:45 10:5:2008
+
+| Field | Start | Address | Length | Command | Event E/R | ID | Area | Yr | Mth | Day | Hr | Min | Sec | Ck | Cr-LF |
+|-------|-------|---------|--------|---------|-----------|----|----- |----|-----|-----|----|----- |-----|----|----- |
+| **HEX** | 87 | 02 | 03 | 61 | 08 | F0 | 00 | 08 | 05 | 10 | 23 | 45 | 00 | FA | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 31 | 36 31 | 30 38 | 46 30 | 30 30 | 30 38 | 30 35 | 31 30 | 32 33 | 34 35 | 30 30 |  | 0d 0a |
+
+#### Zone
+- **Example:** Zone 12 Area 1 23:45 10:5:2008
+
+| Field | Start | Address | Length | Command | Event E/R | ID | Area | Yr | Mth | Day | Hr | Min | Sec | Ck | Cr-LF |
+|-------|-------|---------|--------|---------|-----------|----|----- |----|-----|-----|----|----- |-----|----|----- |
+| **HEX** | 87 | 02 | 03 | 61 | 02 | 0c=12 | 01 | 08 | 05 | 10 | 23 | 45 | 00 |  | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 31 | 36 31 | 30 38 | 30 43 | 30 31 | 30 38 | 30 35 | 31 30 | 32 33 | 34 35 | 30 30 |  | 0d 0a |
+
+#### ARM Open/Close
+- **Example:** Open User 24 Area 2 23:45 10:5:2008
+
+| Field | Start | Address | Length | Command | Event E/R | ID | Area | Yr | Mth | Day | Hr | Min | Sec | Ck | Cr-LF |
+|-------|-------|---------|--------|---------|-----------|----|----- |----|-----|-----|----|----- |-----|----|----- |
+| **HEX** | 87 | 02 | 03 | 61 | 00 | 18=24 | 02 | 08 | 05 | 10 | 23 | 45 | 00 |  | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 31 | 36 31 | 30 38 | 30 43 | 30 31 | 30 38 | 30 35 | 31 30 | 32 33 | 34 35 | 30 30 |  | 0d 0a |
 
 ### Legend:
 
@@ -591,18 +635,21 @@ The following tables list the messages sent with an example showing the string d
 
 ### ACCESS CONTROL
 
-| EVENT DESCRIPTION | Start | Add | Message |  |  | TIME |  | DATE |  |  | Check sum | Cr-LF |
-|-------------------|-------|-----|---------|---|---|------|---|------|---|---|-----------|-------|
-|  |  |  | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year |  |  |
-| Number Base | Hex | Hex | Hex | Hex | Hex | Dec | Dec | Dec | Dec | Dec | Hex |  |
+#### Door Access
+- **Example:** User 40 Door 3 06:10 12:1:2006
 
-| Door Access | 87 |  | 0x30 | User | Door | hh | mm | dd | mm | yy |  |  |
-| Ex: User 40 Door 3 06:10 12:1:2006 | 87 | 02 | 30 | 28= 40 | 03 | 06 | 10 | 12 | 01 | 06 | ED | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 33 30 | 32 38 | 30 33 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 | 45 44 | 0d 0a |
+| Field | Start | Address | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year | Check sum | Cr-LF |
+|-------|-------|---------|-----------|---------|-----------|-------|------|-----|-------|------|-----------|-------|
+| **HEX** | 87 | 02 | 30 | 28=40 | 03 | 06 | 10 | 12 | 01 | 06 | ED | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 33 30 | 32 38 | 30 33 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 | 45 44 | 0d 0a |
 
-| Door Open Too Long | 87 |  | 0x02 | Door | 0x85 | mm | hh | dd | mm | yy |  |  |
-| Ex: Door 1 06:10 12:1:2006 | 87 | 02 | 02 | 01 | 85 | 06 | 10 | 12 | 01 | 06 | C0 | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 32 | 30 31 | 38 35 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 | 43 30 | 0d 0a |
+#### Door Open Too Long
+- **Example:** Door 1 06:10 12:1:2006
+
+| Field | Start | Address | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year | Check sum | Cr-LF |
+|-------|-------|---------|-----------|---------|-----------|-------|------|-----|-------|------|-----------|-------|
+| **HEX** | 87 | 02 | 02 | 01 | 85 | 06 | 10 | 12 | 01 | 06 | C0 | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 32 | 30 31 | 38 35 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 | 43 30 | 0d 0a |
 
 ### Legend:
 
@@ -620,58 +667,103 @@ The following tables list the messages sent with an example showing the string d
 
 ### WARNING
 
-| EVENT DESCRIPTION | Start | Add | Message |  |  | TIME |  | DATE |  |  | Check sum | Cr-LF |
-|-------------------|-------|-----|---------|---|---|------|---|------|---|---|-----------|-------|
-|  |  |  | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year |  |  |
-| Number Base | Hex | Hex | Hex | Hex | Hex | Dec | Dec | Dec | Dec | Dec | Hex |  |
+#### Installer Program Mode Restore
+- **Example:** 06:10 12:1:2006
 
-| Installer Program Mode Restore | 87 |  | 0x01 | 0x00 | 0x00 | mm | hh | dd | mm | yy |  |  |
-| Ex: 06:10 12:1:2006 | 87 | 02 | 01 | 00 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 31 | 30 30 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+| Field | Start | Address | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year | Check sum | Cr-LF |
+|-------|-------|---------|-----------|---------|-----------|-------|------|-----|-------|------|-----------|-------|
+| **HEX** | 87 | 02 | 01 | 00 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 31 | 30 30 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
 
-| Power UP Restore | 87 |  | 0x11 | 0x00 | 0x00 | mm | hh | dd | mm | yy |  |  |
-| Ex: 06:10 12:1:2006 | 87 | 02 | 11 | 00 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 31 31 | 30 30 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+#### Power UP Restore
+- **Example:** 06:10 12:1:2006
 
-| Power Panel Battery | 87 |  | 0x12 | 0x00 | 0x00 | mm | hh | dd | mm | yy |  |  |
-| EX: 06:10 12:1:2006 | 87 | 02 | 12 | 00 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 31 32 | 30 30 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+| Field | Start | Address | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year | Check sum | Cr-LF |
+|-------|-------|---------|-----------|---------|-----------|-------|------|-----|-------|------|-----------|-------|
+| **HEX** | 87 | 02 | 11 | 00 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 31 31 | 30 30 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
 
-| Power Mains | 87 |  | 0x10 | 0x00 | 0x00 | mm | hh | dd | mm | yy |  |  |
-| EX: 06:10 12:1:2006 | 87 | 02 | 10 | 00 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 31 30 | 30 30 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+#### Power Panel Battery
+- **Example:** 06:10 12:1:2006
 
-| Radio Key Battery | 87 |  | 0x12 | User | Area | mm | hh | dd | mm | yy |  |  |
-| EX: User 2 06:10 12:1:2006 | 87 | 02 | 12 | 02 | 92 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 31 32 | 30 32 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+| Field | Start | Address | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year | Check sum | Cr-LF |
+|-------|-------|---------|-----------|---------|-----------|-------|------|-----|-------|------|-----------|-------|
+| **HEX** | 87 | 02 | 12 | 00 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 31 32 | 30 30 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
 
-| Radio Detector Battery | 87 |  | 0x12 | Zone | Area | mm | hh | dd | mm | yy |  |  |
-| EX: Zone 9 06:10 12:1:2006 | 87 | 02 | 12 | 09 | 91 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 31 32 | 30 39 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+#### Power Mains
+- **Example:** 06:10 12:1:2006
 
-| Zone Supervisor | 87 |  | 0x16 | Zone | Area | mm | hh | dd | mm | yy |  |  |
-| EX: Zone 9 06:10 12:1:2006 | 87 | 02 | 32 | 09 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 31 36 | 30 39 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+| Field | Start | Address | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year | Check sum | Cr-LF |
+|-------|-------|---------|-----------|---------|-----------|-------|------|-----|-------|------|-----------|-------|
+| **HEX** | 87 | 02 | 10 | 00 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 31 30 | 30 30 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
 
-| RTC Adjust | 87 |  | 0x18 | 0x00 | 0x00 | mm | hh | dd | mm | yy |  |  |
-| EX: Zone 9 06:10 12:1:2006 | 87 | 02 | 18 | 00 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 31 38 | 30 30 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+#### Radio Key Battery
+- **Example:** User 2 06:10 12:1:2006
 
-| Exclude Zone Manual | 87 |  | 0x04 | Zone | Area | mm | hh | dd | mm | yy |  |  |
-| EX: Zone 9 06:10 12:1:2006 | 87 | 02 | 04 | 09 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 34 | 30 39 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+| Field | Start | Address | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year | Check sum | Cr-LF |
+|-------|-------|---------|-----------|---------|-----------|-------|------|-----|-------|------|-----------|-------|
+| **HEX** | 87 | 02 | 12 | 02 | 92 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 31 32 | 30 32 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
 
-| Exclude Zone Auto | 87 |  | 0x06 | Zone | Area | mm | hh | dd | mm | yy |  |  |
-| EX: Zone 9 06:10 12:1:2006 | 87 | 02 | 06 | 09 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 36 | 30 39 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+#### Radio Detector Battery
+- **Example:** Zone 9 06:10 12:1:2006
 
-| Entry Delay | 87 |  | 0x20 | Zone | Area | mm | hh | dd | mm | yy |  |  |
-| EX: Zone 1 Area 1 06:10 12:1:2006 | 87 | 02 | 02 | 01 | 01 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
-| 24 byte message (ASCII) | 38 37 | 30 32 | 30 32 | 30 31 | 30 31 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+| Field | Start | Address | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year | Check sum | Cr-LF |
+|-------|-------|---------|-----------|---------|-----------|-------|------|-----|-------|------|-----------|-------|
+| **HEX** | 87 | 02 | 12 | 09 | 91 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 31 32 | 30 39 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
 
-| Zone SEAL | 83 |  | 0x00 | Zone | Area |  |  |  |  |  |  |  |
-| EX Zone 32 06:10 12:1:2006 | 83 | 02 | 00 | 10= 32d | 00 |  |  |  |  |  |  | 0d 0a |
-| 14 byte message (ASCII) | 38 33 | 30 32 | 30 30 | 31 30 | 30 30 |  |  |  |  |  |  | 0d 0a |
+#### Zone Supervisor
+- **Example:** Zone 9 06:10 12:1:2006
+
+| Field | Start | Address | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year | Check sum | Cr-LF |
+|-------|-------|---------|-----------|---------|-----------|-------|------|-----|-------|------|-----------|-------|
+| **HEX** | 87 | 02 | 32 | 09 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 31 36 | 30 39 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+
+#### RTC Adjust
+- **Example:** Zone 9 06:10 12:1:2006
+
+| Field | Start | Address | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year | Check sum | Cr-LF |
+|-------|-------|---------|-----------|---------|-----------|-------|------|-----|-------|------|-----------|-------|
+| **HEX** | 87 | 02 | 18 | 00 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 31 38 | 30 30 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+
+#### Exclude Zone Manual
+- **Example:** Zone 9 06:10 12:1:2006
+
+| Field | Start | Address | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year | Check sum | Cr-LF |
+|-------|-------|---------|-----------|---------|-----------|-------|------|-----|-------|------|-----------|-------|
+| **HEX** | 87 | 02 | 04 | 09 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 34 | 30 39 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+
+#### Exclude Zone Auto
+- **Example:** Zone 9 06:10 12:1:2006
+
+| Field | Start | Address | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year | Check sum | Cr-LF |
+|-------|-------|---------|-----------|---------|-----------|-------|------|-----|-------|------|-----------|-------|
+| **HEX** | 87 | 02 | 06 | 09 | 00 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 36 | 30 39 | 30 30 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+
+#### Entry Delay
+- **Example:** Zone 1 Area 1 06:10 12:1:2006
+
+| Field | Start | Address | Event E/R | NESS ID | NESS Area | Hours | Mins | Day | Month | Year | Check sum | Cr-LF |
+|-------|-------|---------|-----------|---------|-----------|-------|------|-----|-------|------|-----------|-------|
+| **HEX** | 87 | 02 | 02 | 01 | 01 | 06 | 10 | 12 | 01 | 06 |  | 0d 0a |
+| **ASCII** | 38 37 | 30 32 | 30 32 | 30 31 | 30 31 | 30 36 | 31 30 | 31 32 | 30 31 | 30 36 |  | 0d 0a |
+
+#### Zone SEAL
+- **Example:** Zone 32 06:10 12:1:2006
+
+| Field | Start | Address | Event E/R | NESS ID | NESS Area |
+|-------|-------|---------|-----------|---------|-----------|
+| **HEX** | 83 | 02 | 00 | 10=32d | 00 |
+| **ASCII** | 38 33 | 30 32 | 30 30 | 31 30 | 30 30 |
+
+**Note:** 14 byte message
 
 ### Legend:
 
@@ -734,47 +826,86 @@ The table below is copied from the NESSBus specification document.
 It lists the CMD_SYSTEM_STATUS (0x61) command bytes.
 The D32X does not connect to the NESSBus, however it does conform to the NESSBus specification except as noted in Appendix B.
 
-| Event | Identity | Area |
-|-------|----------|------|
-| **Zone/User States** | 0x00 main unit<br>0x01-0xef addition identities such as zone/user number<br>-------------------------------------<br>0xf0-0xfe keypads.<br>-------------------------------------<br>0xff is reserved. | 0x00 unknown area<br>0x01 - 0x7f area the event is part of.<br>----------------------------------------<br>0x80 24 hrs<br>0x81 Fire<br>0x82 Panic<br>0x83 Medical<br>0x84 Duress<br>0x85 Door/Doorbell<br>0x90 Radio Device<br>0x91 Radio Detector<br>0x92 Radio Pendant<br>0xa1 Access (Door 1)<br>0xa2 Access (Door 2)<br>0xa3 Access (Door 3)<br>0xa4 Access (Door 4)<br>0xa5 Access (Door 5)<br>0xa6 Access (Door 6)<br>0xb0 Program area<br>0x85-0x8f ??? future<br>0x93-0x9f ??? future<br>0x96-0xfe ??? future<br>0xff is reserved. |
-| 0x00 unsealed | 0x01-0xef addition identities such as zone/user number | 0x01 - 0x7f area the event is part of. |
-| 0x01 sealed | ------------------------------------- | ---------------------------------------- |
-| 0x02 alarm | 0xf0-0xfe keypads. | 0x80 24 hrs |
-| 0x03 alarm restore | ------------------------------------- | 0x81 Fire |
-| 0x04 manual exclude | 0xff is reserved. | 0x82 Panic |
-| 0x05 manual include |  | 0x83 Medical |
-| 0x06 auto exclude |  | 0x84 Duress |
-| 0x07 auto include |  | 0x85 Door/Doorbell |
-| 0x08 tamper unsealed |  | 0x90 Radio Device |
-| 0x09 tamper normal |  | 0x91 Radio Detector |
-| **System States** |  | 0x92 Radio Pendant |
-| 0x10 power failure |  | 0xa1 Access (Door 1) |
-| 0x11 power normal |  | 0xa2 Access (Door 2) |
-| 0x12 battery failure |  | 0xa3 Access (Door 3) |
-| 0x13 battery normal |  | 0xa4 Access (Door 4) |
-| 0x14 report failure |  | 0xa5 Access (Door 5) |
-| 0x15 report normal |  | 0xa6 Access (Door 6) |
-| 0x16 supervision failure |  | 0xb0 Program area |
-| 0x17 supervision normal |  | 0x85-0x8f ??? future |
-| 0x19 real time clock |  | 0x93-0x9f ??? future |
-| **Area States** |  | 0x96-0xfe ??? future |
-| 0x20 entry delay started |  | 0xff is reserved. |
-| 0x21 entry delay ended |  |  |
-| 0x22 exit delay started |  |  |
-| 0x23 exit delay ended |  |  |
-| 0x24 armed away |  |  |
-| 0x25 armed home |  |  |
-| 0x26 armed day |  |  |
-| 0x27 armed night |  |  |
-| 0x28 armed vacation |  |  |
-| 0x2e armed highest |  |  |
-| 0x2f disarmed |  |  |
-| 0x30 arming delayed |  |  |
-| 0x31 status state |  |  |
-| **Result States** |  |  |
-| 0x32 Output On |  |  |
-| 0x31 Output Off |  |  |
-| 0xff is reserved |  |  |
+### NESSBus Specification Reference
+
+#### Event Codes
+
+**Zone/User States**
+- 0x00 unsealed
+- 0x01 sealed  
+- 0x02 alarm
+- 0x03 alarm restore
+- 0x04 manual exclude
+- 0x05 manual include
+- 0x06 auto exclude
+- 0x07 auto include
+- 0x08 tamper unsealed
+- 0x09 tamper normal
+
+**System States**
+- 0x10 power failure
+- 0x11 power normal
+- 0x12 battery failure
+- 0x13 battery normal
+- 0x14 report failure
+- 0x15 report normal
+- 0x16 supervision failure
+- 0x17 supervision normal
+- 0x19 real time clock
+
+**Area States**
+- 0x20 entry delay started
+- 0x21 entry delay ended
+- 0x22 exit delay started
+- 0x23 exit delay ended
+- 0x24 armed away
+- 0x25 armed home
+- 0x26 armed day
+- 0x27 armed night
+- 0x28 armed vacation
+- 0x2e armed highest
+- 0x2f disarmed
+- 0x30 arming delayed
+- 0x31 status state
+
+**Result States**
+- 0x32 Output On
+- 0x31 Output Off
+- 0xff is reserved
+
+#### Identity Codes
+
+- 0x00 main unit
+- 0x01-0xef addition identities such as zone/user number
+- 0xf0-0xfe keypads
+- 0xff is reserved
+
+#### Area Codes
+
+- 0x00 unknown area
+- 0x01 - 0x7f area the event is part of
+
+**Special Area Codes:**
+- 0x80 24 hrs
+- 0x81 Fire
+- 0x82 Panic
+- 0x83 Medical
+- 0x84 Duress
+- 0x85 Door/Doorbell
+- 0x90 Radio Device
+- 0x91 Radio Detector
+- 0x92 Radio Pendant
+- 0xa1 Access (Door 1)
+- 0xa2 Access (Door 2)
+- 0xa3 Access (Door 3)
+- 0xa4 Access (Door 4)
+- 0xa5 Access (Door 5)
+- 0xa6 Access (Door 6)
+- 0xb0 Program area
+- 0x85-0x8f ??? future
+- 0x93-0x9f ??? future
+- 0x96-0xfe ??? future
+- 0xff is reserved
 
 ---
 
