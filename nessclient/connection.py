@@ -54,7 +54,7 @@ class AsyncIoConnection(Connection, ABC):
             data = await self._reader.readuntil(b"\n")
         except (asyncio.IncompleteReadError, TimeoutError, ConnectionResetError) as e:
             _LOGGER.info(
-                "Got exception: %s. Most likely the other side has " "disconnected!", e
+                "Got exception: %s. Most likely the other side has disconnected!", e
             )
             self._writer = None
             self._reader = None
