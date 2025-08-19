@@ -45,7 +45,7 @@ release = ''
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'm2r',
+    'myst_parser',
     'sphinx.ext.autodoc',
 ]
 
