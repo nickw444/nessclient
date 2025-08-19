@@ -20,7 +20,7 @@ pip install nessclient
 :caption: Contents:
 
 cli.md
-api.md
+api.rst
 examples.md
 developing.md
 ```

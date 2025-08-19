@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = 'nessclient'
-copyright = '2018, Nick Whyte'
+copyright = '2025, Nick Whyte'
 author = 'Nick Whyte'
 
 # The short X.Y version
