@@ -7,13 +7,26 @@ from typing import List, Iterator
 from .alarm import Alarm
 from .server import Server, get_zone_state_event_type
 from .zone import Zone
-from ...event import SystemStatusEvent, ArmingUpdate, ZoneUpdate, StatusUpdate
+from ...event import (
+    SystemStatusEvent,
+    ArmingUpdate,
+    ZoneUpdate,
+    StatusUpdate,
+    PanelVersionUpdate,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class AlarmServer:
-    def __init__(self, host: str, port: int):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        panel_model: PanelVersionUpdate.Model,
+        panel_major: int,
+        panel_minor: int,
+    ) -> None:
         self._alarm = Alarm.create(
             num_zones=8,
             alarm_state_changed=self._alarm_state_changed,
@@ -23,6 +36,9 @@ class AlarmServer:
         self._host = host
         self._port = port
         self._simulation_running = False
+        self._panel_model = panel_model
+        self._panel_major = panel_major
+        self._panel_minor = panel_minor
 
     def start(self) -> None:
         self._server.start(host=self._host, port=self._port)
@@ -90,10 +106,22 @@ class AlarmServer:
             self._handle_zone_input_unsealed_status_update_request()
         elif command == "S14":
             self._handle_arming_status_update_request()
+        elif command == "S17":
+            self._handle_panel_version_update_request()
 
     def _handle_arming_status_update_request(self) -> None:
         event = ArmingUpdate(
             status=get_arming_status(self._alarm.state),
+            address=0x00,
+            timestamp=None,
+        )
+        self._server.write_event(event)
+
+    def _handle_panel_version_update_request(self) -> None:
+        event = PanelVersionUpdate(
+            model=self._panel_model,
+            major_version=self._panel_major,
+            minor_version=self._panel_minor,
             address=0x00,
             timestamp=None,
         )
