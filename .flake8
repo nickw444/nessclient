@@ -1,9 +1,0 @@
-[flake8]
-ignore = E261, W504, W503, E203
-exclude =
-   .git,
-   venv,
-   virtualenv,
-   docs,
-
-max-line-length = 90

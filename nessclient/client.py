@@ -149,10 +149,8 @@ class Client:
 
     def _should_reconnect(self) -> bool:
         now = datetime.datetime.now()
-        return (
-            self._last_recv is not None
-            and self._last_recv
-            < now - datetime.timedelta(seconds=self._update_interval + 30)
+        return self._last_recv is not None and self._last_recv < now - datetime.timedelta(
+            seconds=self._update_interval + 30
         )
 
     async def _update_loop(self) -> None:

@@ -19,10 +19,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install uv
           uv sync --dev
-      - name: 'Check Formatting (flake8)'
-        run: uv run flake8 nessclient nessclient_tests
-      - name: 'Check Formatting (black)'
-        run: uv run black --check nessclient nessclient_tests
+      - name: 'Lint (ruff)'
+        run: uv run ruff check nessclient nessclient_tests
+      - name: 'Check Formatting (ruff)'
+        run: uv run ruff format --check nessclient nessclient_tests
       - name: 'Check Types'
         run: uv run mypy --strict nessclient
   build:

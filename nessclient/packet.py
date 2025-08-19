@@ -120,7 +120,7 @@ class Packet:
             timestamp = decode_timestamp(data.take_bytes(6))
 
         # TODO(NW): Figure out checksum validation
-        checksum = data.take_hex()  # noqa
+        _checksum = data.take_hex()
 
         if not data.is_consumed():
             raise ValueError("Unable to consume all data")

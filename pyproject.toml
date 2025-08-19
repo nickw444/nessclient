@@ -30,13 +30,14 @@ ness-cli = "nessclient.cli.__main__:cli"
 [dependency-groups]
 dev = [
     "codecov",
-    "flake8",
+    "click",
     "mypy",
     "types-setuptools",
     "types-pyserial",
-    "black",
+    "types-click",
     "pytest",
     "pytest-asyncio",
+    "ruff",
 ]
 
 [tool.setuptools]
@@ -47,3 +48,14 @@ include = ["nessclient*"]
 
 [tool.setuptools_scm]
 version_file = "nessclient/_version.py"
+
+[tool.ruff]
+line-length = 90
+exclude = [
+    "venv",
+    "virtualenv",
+    "docs",
+]
+
+[tool.ruff.lint]
+select = ["E", "F"]
