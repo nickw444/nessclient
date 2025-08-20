@@ -20,9 +20,9 @@ jobs:
           python -m pip install uv
           uv sync --dev
       - name: 'Lint (ruff)'
-        run: uv run ruff check nessclient nessclient_tests
+        run: uv run ruff check .
       - name: 'Check Formatting (ruff)'
-        run: uv run ruff format --check nessclient nessclient_tests
+        run: uv run ruff format --check .
       - name: 'Check Types'
         run: uv run mypy --strict nessclient
   docs:

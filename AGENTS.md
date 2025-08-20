@@ -9,8 +9,8 @@ This repository uses [uv](https://docs.astral.sh/uv/) for dependency management 
 - Install dependencies with `uv sync --dev`.
 
 ## Style, Linting, and Type Checking
-- Format Python code with `uv run ruff format nessclient nessclient_tests`.
-- Lint with `uv run ruff check nessclient nessclient_tests`.
+- Format Python code with `uv run ruff format .`.
+- Lint with `uv run ruff check .`.
 - Run type checks using `uv run mypy --strict nessclient`.
 
 ## Testing
