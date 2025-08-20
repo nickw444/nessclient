@@ -1,7 +1,9 @@
 import asyncio
 import curses
+from collections import deque
 from contextlib import suppress
 
+from ..alarm import ArmingMode, ArmingState
 from ..client import Client
 from ..event import BaseEvent, PanelVersionUpdate
 
@@ -24,14 +26,26 @@ async def interactive_ui(
     )
 
     panel_version: str | None = None
+    events: deque[str] = deque(maxlen=100)
+    command_buffer = ""
 
     @client.on_event_received
     def on_event_received(event: BaseEvent) -> None:
         nonlocal panel_version
+        events.append(str(event))
         if isinstance(event, PanelVersionUpdate):
             panel_version = (
                 f"{event.model.name} {event.major_version}.{event.minor_version}"
             )
+
+    @client.on_zone_change
+    def on_zone_change(zone: int, triggered: bool) -> None:
+        status = "UNSEALED" if triggered else "SEALED"
+        events.append(f"Zone {zone:02d} {status}")
+
+    @client.on_state_change
+    def on_state_change(state: ArmingState, arming_mode: ArmingMode | None) -> None:
+        events.append(f"State changed to {state.value}")
 
     keepalive_task = asyncio.create_task(client.keepalive())
     await client.update()
@@ -45,37 +59,74 @@ async def interactive_ui(
     try:
         while True:
             stdscr.erase()
-            stdscr.addstr(0, 0, "Ness Alarm Interactive")
-            stdscr.addstr(1, 0, f"Panel: {panel_version or 'unknown'}")
-            stdscr.addstr(2, 0, f"State: {client.alarm.arming_state.value}")
-            for i, zone in enumerate(client.alarm.zones, 1):
+            max_y, max_x = stdscr.getmaxyx()
+
+            footer_height = 1
+            input_height = 1
+            state_height = 1
+            content_height = max_y - (footer_height + input_height + state_height)
+            zone_width = 20
+            event_width = max_x - zone_width
+
+            state_win = stdscr.derwin(state_height, max_x, 0, 0)
+            event_win = stdscr.derwin(content_height, event_width, state_height, 0)
+            zone_win = stdscr.derwin(
+                content_height, zone_width, state_height, event_width
+            )
+            input_win = stdscr.derwin(
+                input_height, max_x, state_height + content_height, 0
+            )
+            footer_win = stdscr.derwin(
+                footer_height, max_x, state_height + content_height + input_height, 0
+            )
+
+            state_win.addstr(0, 0, f"Arming: {client.alarm.arming_state.value}")
+
+            for i, zone in enumerate(client.alarm.zones, start=1):
+                if i > content_height:
+                    break
                 triggered = zone.triggered
                 if triggered is None:
                     status = "UNKNOWN"
                 else:
                     status = "UNSEALED" if triggered else "SEALED"
-                stdscr.addstr(2 + i, 0, f"Zone {i:02d}: {status}")
-            command_row = 3 + len(client.alarm.zones)
-            stdscr.addstr(
-                command_row,
-                0,
-                "Commands: A=Arm Away H=Arm Home D=Disarm U=Update Q=Quit",
-            )
+                zone_win.addstr(i - 1, 0, f"Z{i:02d}: {status}")
+
+            visible_events = list(events)[-content_height:]
+            for idx, line in enumerate(visible_events[-content_height:]):
+                event_win.addstr(idx, 0, line[: event_width - 1])
+
+            input_win.addstr(0, 0, f"> {command_buffer}")
+            footer_win.addstr(0, 0, f"Panel: {panel_version or 'unknown'}")
+
             stdscr.refresh()
             await asyncio.sleep(0.1)
             ch = stdscr.getch()
             if ch == -1:
                 continue
-            if ch in (ord("q"), ord("Q")):
-                break
-            if ch in (ord("a"), ord("A")):
-                await client.arm_away()
-            elif ch in (ord("h"), ord("H")):
-                await client.arm_home()
-            elif ch in (ord("d"), ord("D")):
-                await client.disarm("1234")
-            elif ch in (ord("u"), ord("U")):
-                await client.update()
+            if ch in (10, 13):
+                cmd = command_buffer.strip()
+                command_buffer = ""
+                if cmd:
+                    lower = cmd.lower()
+                    if lower in {"q", "quit", "exit"}:
+                        break
+                    elif lower in {"a", "arm", "away", "arm_away"}:
+                        await client.arm_away()
+                    elif lower in {"h", "home", "arm_home"}:
+                        await client.arm_home()
+                    elif lower.startswith("d"):
+                        parts = lower.split()
+                        code = parts[1] if len(parts) > 1 else "1234"
+                        await client.disarm(code)
+                    elif lower in {"u", "update"}:
+                        await client.update()
+                    else:
+                        events.append(f"Unknown command: {cmd}")
+            elif ch in (curses.KEY_BACKSPACE, 127, 8):
+                command_buffer = command_buffer[:-1]
+            elif 0 <= ch <= 255:
+                command_buffer += chr(ch)
     finally:
         keepalive_task.cancel()
         with suppress(asyncio.CancelledError):
