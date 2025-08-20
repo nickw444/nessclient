@@ -44,7 +44,7 @@ class BaseEvent(object):
         return "<{} {}>".format(self.__class__.__name__, self.__dict__)
 
     @classmethod
-    def decode(cls, packet: Packet, options: DecodeOptions = None) -> "BaseEvent":
+    def decode(cls, packet: Packet, options: DecodeOptions | None = None) -> "BaseEvent":
         if packet.command == CommandType.SYSTEM_STATUS:
             return SystemStatusEvent.decode(packet, options)
         elif packet.command == CommandType.USER_INTERFACE:
@@ -113,7 +113,9 @@ class SystemStatusEvent(BaseEvent):
         self.area = area
 
     @classmethod
-    def decode(cls, packet: Packet, options: DecodeOptions = None) -> "SystemStatusEvent":
+    def decode(
+        cls, packet: Packet, options: DecodeOptions | None = None
+    ) -> "SystemStatusEvent":
         event_type = int(packet.data[0:2], 16)
         zone = int(packet.data[2:4])
         area = int(packet.data[4:6], 16)
@@ -169,7 +171,9 @@ class StatusUpdate(BaseEvent):
         self.request_id = request_id
 
     @classmethod
-    def decode(self, packet: Packet, options: DecodeOptions = None) -> "StatusUpdate":
+    def decode(
+        self, packet: Packet, options: DecodeOptions | None = None
+    ) -> "StatusUpdate":
         request_id = StatusUpdate.RequestID(int(packet.data[0:2], 16))
         if request_id.name.startswith("ZONE"):
             return ZoneUpdate.decode(packet, options)
@@ -221,7 +225,7 @@ class ZoneUpdate(StatusUpdate):
         self.included_zones = included_zones
 
     @classmethod
-    def decode(cls, packet: Packet, options: DecodeOptions = None) -> "ZoneUpdate":
+    def decode(cls, packet: Packet, options: DecodeOptions | None = None) -> "ZoneUpdate":
         request_id = StatusUpdate.RequestID(int(packet.data[0:2], 16))
         return ZoneUpdate(
             request_id=request_id,
@@ -286,7 +290,7 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
 
     @classmethod
     def decode(
-        cls, packet: Packet, options: DecodeOptions = None
+        cls, packet: Packet, options: DecodeOptions | None = None
     ) -> "MiscellaneousAlarmsUpdate":
         return MiscellaneousAlarmsUpdate(
             included_alarms=unpack_unsigned_short_data_enum(
@@ -335,7 +339,9 @@ class ArmingUpdate(StatusUpdate):
         self.status = status
 
     @classmethod
-    def decode(cls, packet: Packet, options: DecodeOptions = None) -> "ArmingUpdate":
+    def decode(
+        cls, packet: Packet, options: DecodeOptions | None = None
+    ) -> "ArmingUpdate":
         return ArmingUpdate(
             status=unpack_unsigned_short_data_enum(packet, ArmingUpdate.ArmingStatus),
             address=packet.address,
@@ -399,7 +405,9 @@ class OutputsUpdate(StatusUpdate):
         self.outputs = outputs
 
     @classmethod
-    def decode(cls, packet: Packet, options: DecodeOptions = None) -> "OutputsUpdate":
+    def decode(
+        cls, packet: Packet, options: DecodeOptions | None = None
+    ) -> "OutputsUpdate":
         return OutputsUpdate(
             outputs=unpack_unsigned_short_data_enum(packet, OutputsUpdate.OutputType),
             timestamp=packet.timestamp,
@@ -432,7 +440,9 @@ class ViewStateUpdate(StatusUpdate):
         self.state = state
 
     @classmethod
-    def decode(cls, packet: Packet, options: DecodeOptions = None) -> "ViewStateUpdate":
+    def decode(
+        cls, packet: Packet, options: DecodeOptions | None = None
+    ) -> "ViewStateUpdate":
         state = ViewStateUpdate.State(int(packet.data[2:6], 16))
         return ViewStateUpdate(
             state=state,
@@ -562,7 +572,7 @@ class PanelVersionUpdate(StatusUpdate):
 
     @classmethod
     def decode(
-        cls, packet: Packet, options: DecodeOptions = None
+        cls, packet: Packet, options: DecodeOptions | None = None
     ) -> "PanelVersionUpdate":
         if options and options.panel_version_update_model_mapper:
             model_mapper = options.panel_version_update_model_mapper
@@ -612,7 +622,7 @@ class AuxiliaryOutputsUpdate(StatusUpdate):
 
     @classmethod
     def decode(
-        cls, packet: Packet, options: DecodeOptions = None
+        cls, packet: Packet, options: DecodeOptions | None = None
     ) -> "AuxiliaryOutputsUpdate":
         return AuxiliaryOutputsUpdate(
             outputs=unpack_unsigned_short_data_enum(
