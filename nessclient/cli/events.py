@@ -13,13 +13,29 @@ from .server import DEFAULT_PORT
 @click.option("--serial-tty")
 @click.option("--update-interval", type=int, default=60)
 @click.option("--infer-arming-state/--no-infer-arming-state")
+@click.option("--interactive", is_flag=True, help="Run with terminal UI")
 def events(
     host: str,
     port: int,
     update_interval: int,
     infer_arming_state: bool,
-    serial_tty: str,
+    serial_tty: str | None,
+    interactive: bool,
 ) -> None:
+    if interactive:
+        from .tui import interactive_ui
+
+        asyncio.run(
+            interactive_ui(
+                host=host,
+                port=port,
+                update_interval=update_interval,
+                infer_arming_state=infer_arming_state,
+                serial_tty=serial_tty,
+            )
+        )
+        return
+
     loop = asyncio.get_event_loop()
     client = Client(
         host=host if serial_tty is None else None,
