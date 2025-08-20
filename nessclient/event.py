@@ -100,12 +100,12 @@ class SystemStatusEvent(BaseEvent):
         OUTPUT_OFF = 0x32
 
     def __init__(
-            self,
-            type: "SystemStatusEvent.EventType",
-            zone: int,
-            area: int,
-            address: Optional[int],
-            timestamp: Optional[datetime.datetime],
+        self,
+        type: "SystemStatusEvent.EventType",
+        zone: int,
+        area: int,
+        address: Optional[int],
+        timestamp: Optional[datetime.datetime],
     ) -> None:
         super(SystemStatusEvent, self).__init__(address=address, timestamp=timestamp)
         self.type = type
@@ -160,10 +160,10 @@ class StatusUpdate(BaseEvent):
         AUXILIARY_OUTPUTS = 0x18
 
     def __init__(
-            self,
-            request_id: "StatusUpdate.RequestID",
-            address: Optional[int],
-            timestamp: Optional[datetime.datetime],
+        self,
+        request_id: "StatusUpdate.RequestID",
+        address: Optional[int],
+        timestamp: Optional[datetime.datetime],
     ) -> None:
         super(StatusUpdate, self).__init__(address=address, timestamp=timestamp)
         self.request_id = request_id
@@ -209,11 +209,11 @@ class ZoneUpdate(StatusUpdate):
         ZONE_16 = 0x0080
 
     def __init__(
-            self,
-            included_zones: List["ZoneUpdate.Zone"],
-            request_id: "StatusUpdate.RequestID",
-            address: Optional[int],
-            timestamp: Optional[datetime.datetime],
+        self,
+        included_zones: List["ZoneUpdate.Zone"],
+        request_id: "StatusUpdate.RequestID",
+        address: Optional[int],
+        timestamp: Optional[datetime.datetime],
     ) -> None:
         super(ZoneUpdate, self).__init__(
             request_id=request_id, address=address, timestamp=timestamp
@@ -271,10 +271,10 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
         CBUS_FAIL = 0x0010
 
     def __init__(
-            self,
-            included_alarms: List["MiscellaneousAlarmsUpdate.AlarmType"],
-            address: Optional[int],
-            timestamp: Optional[datetime.datetime],
+        self,
+        included_alarms: List["MiscellaneousAlarmsUpdate.AlarmType"],
+        address: Optional[int],
+        timestamp: Optional[datetime.datetime],
     ):
         super(MiscellaneousAlarmsUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.MISCELLANEOUS_ALARMS,
@@ -285,7 +285,9 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
         self.included_alarms = included_alarms
 
     @classmethod
-    def decode(cls, packet: Packet, options: DecodeOptions = None) -> "MiscellaneousAlarmsUpdate":
+    def decode(
+        cls, packet: Packet, options: DecodeOptions = None
+    ) -> "MiscellaneousAlarmsUpdate":
         return MiscellaneousAlarmsUpdate(
             included_alarms=unpack_unsigned_short_data_enum(
                 packet, MiscellaneousAlarmsUpdate.AlarmType
@@ -319,10 +321,10 @@ class ArmingUpdate(StatusUpdate):
         DAY_ZONE_SELECT = 0x0004
 
     def __init__(
-            self,
-            status: List["ArmingUpdate.ArmingStatus"],
-            address: Optional[int],
-            timestamp: Optional[datetime.datetime],
+        self,
+        status: List["ArmingUpdate.ArmingStatus"],
+        address: Optional[int],
+        timestamp: Optional[datetime.datetime],
     ):
         super(ArmingUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.ARMING,
@@ -384,10 +386,10 @@ class OutputsUpdate(StatusUpdate):
         TAMPER_XPAND = 0x0080
 
     def __init__(
-            self,
-            outputs: List["OutputsUpdate.OutputType"],
-            address: Optional[int],
-            timestamp: Optional[datetime.datetime],
+        self,
+        outputs: List["OutputsUpdate.OutputType"],
+        address: Optional[int],
+        timestamp: Optional[datetime.datetime],
     ):
         super(OutputsUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.OUTPUTS,
@@ -417,10 +419,10 @@ class ViewStateUpdate(StatusUpdate):
         INSTALLER_PROGRAM = 0x8000
 
     def __init__(
-            self,
-            state: "ViewStateUpdate.State",
-            address: Optional[int],
-            timestamp: Optional[datetime.datetime],
+        self,
+        state: "ViewStateUpdate.State",
+        address: Optional[int],
+        timestamp: Optional[datetime.datetime],
     ):
         super(ViewStateUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.VIEW_STATE,
@@ -517,13 +519,13 @@ class PanelVersionUpdate(StatusUpdate):
     }
 
     def __init__(
-            self,
-            model: Model,
-            major_version: int,
-            minor_version: int,
-            address: Optional[int],
-            timestamp: Optional[datetime.datetime],
-            _model_mapper: Optional[Dict[int, Model]] = None,
+        self,
+        model: Model,
+        major_version: int,
+        minor_version: int,
+        address: Optional[int],
+        timestamp: Optional[datetime.datetime],
+        _model_mapper: Optional[Dict[int, Model]] = None,
     ):
         super(PanelVersionUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.PANEL_VERSION,
@@ -559,7 +561,9 @@ class PanelVersionUpdate(StatusUpdate):
         )
 
     @classmethod
-    def decode(cls, packet: Packet, options: DecodeOptions = None) -> "PanelVersionUpdate":
+    def decode(
+        cls, packet: Packet, options: DecodeOptions = None
+    ) -> "PanelVersionUpdate":
         if options and options.panel_version_update_model_mapper:
             model_mapper = options.panel_version_update_model_mapper
             model = model_mapper[int(packet.data[2:4], 16)]
@@ -568,8 +572,7 @@ class PanelVersionUpdate(StatusUpdate):
             # rev16 mapper
             model_key = int(packet.data[2:4], 16)
             model = PanelVersionUpdate.ModelLegacyMapper.get(
-                model_key,
-                PanelVersionUpdate.ModelRev16Mapper[model_key]
+                model_key, PanelVersionUpdate.ModelRev16Mapper[model_key]
             )
 
         major_version = int(packet.data[4:5], 16)
@@ -595,10 +598,10 @@ class AuxiliaryOutputsUpdate(StatusUpdate):
         AUX_8 = 0x0080
 
     def __init__(
-            self,
-            outputs: List[OutputType],
-            address: Optional[int],
-            timestamp: Optional[datetime.datetime],
+        self,
+        outputs: List[OutputType],
+        address: Optional[int],
+        timestamp: Optional[datetime.datetime],
     ):
         super(AuxiliaryOutputsUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.AUXILIARY_OUTPUTS,
@@ -608,7 +611,9 @@ class AuxiliaryOutputsUpdate(StatusUpdate):
         self.outputs = outputs
 
     @classmethod
-    def decode(cls, packet: Packet, options: DecodeOptions = None) -> "AuxiliaryOutputsUpdate":
+    def decode(
+        cls, packet: Packet, options: DecodeOptions = None
+    ) -> "AuxiliaryOutputsUpdate":
         return AuxiliaryOutputsUpdate(
             outputs=unpack_unsigned_short_data_enum(
                 packet, AuxiliaryOutputsUpdate.OutputType

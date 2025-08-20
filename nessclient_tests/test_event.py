@@ -12,7 +12,8 @@ from nessclient.event import (
     MiscellaneousAlarmsUpdate,
     BaseEvent,
     AuxiliaryOutputsUpdate,
-    PanelVersionUpdate, DecodeOptions,
+    PanelVersionUpdate,
+    DecodeOptions,
 )
 from nessclient.packet import Packet, CommandType
 
@@ -222,12 +223,14 @@ class SystemStatusEventTestCase(unittest.TestCase):
         self.assertEqual(event.zone, 16)
         self.assertEqual(event.type, SystemStatusEvent.EventType.UNSEALED)
 
+
 Rev16DecodeOptions = DecodeOptions(
     panel_version_update_model_mapper=PanelVersionUpdate.ModelRev16Mapper
 )
 LegacyDecodeOptions = DecodeOptions(
     panel_version_update_model_mapper=PanelVersionUpdate.ModelLegacyMapper
 )
+
 
 class PanelVersionUpdateTestCase(unittest.TestCase):
     def test_inferred_d16x_model(self):
@@ -282,7 +285,9 @@ class PanelVersionUpdateTestCase(unittest.TestCase):
 
     def test_legacy_unhandled_model(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "171300")
-        self.assertRaises(KeyError, lambda: PanelVersionUpdate.decode(pkt, LegacyDecodeOptions))
+        self.assertRaises(
+            KeyError, lambda: PanelVersionUpdate.decode(pkt, LegacyDecodeOptions)
+        )
 
     def test_sw_version(self):
         cases = [
