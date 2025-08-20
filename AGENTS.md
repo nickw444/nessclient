@@ -6,7 +6,7 @@ This repository uses [uv](https://docs.astral.sh/uv/) for dependency management 
 - Refer to [`D8-32X Serial Protocol Public.md`](./D8-32X%20Serial%20Protocol%20Public.md) for details on the device protocol.
 
 ## Setup
-- Install dependencies with `uv sync --dev`.
+- Install dependencies with `uv sync --dev --all-extras`.
 
 ## Style, Linting, and Type Checking
 - Format Python code with `uv run ruff format .`.
