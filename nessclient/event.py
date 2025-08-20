@@ -1,7 +1,8 @@
+import dataclasses
 import datetime
 import struct
 from enum import Enum
-from typing import List, Optional, TypeVar, Type
+from typing import List, Optional, TypeVar, Type, Dict
 
 from .packet import CommandType, Packet
 
@@ -23,6 +24,17 @@ def pack_unsigned_short_data_enum(items: List[T]) -> str:
     return packed_value.hex()
 
 
+@dataclasses.dataclass
+class DecodeOptions:
+    """
+    Options to be passed to all decoders to customise decoder behaviour.
+    """
+
+    # Select a specific model mapper to use for PanelVersionUpdate decoding. If
+    # omitted, the legacy mapper will be attempted first, and then the revision 16 mapper.
+    panel_version_update_model_mapper: Dict[int, "PanelVersionUpdate.Model"] | None = None
+
+
 class BaseEvent(object):
     def __init__(self, address: Optional[int], timestamp: Optional[datetime.datetime]):
         self.address = address
@@ -32,11 +44,11 @@ class BaseEvent(object):
         return "<{} {}>".format(self.__class__.__name__, self.__dict__)
 
     @classmethod
-    def decode(cls, packet: Packet) -> "BaseEvent":
+    def decode(cls, packet: Packet, options: DecodeOptions | None = None) -> "BaseEvent":
         if packet.command == CommandType.SYSTEM_STATUS:
-            return SystemStatusEvent.decode(packet)
+            return SystemStatusEvent.decode(packet, options)
         elif packet.command == CommandType.USER_INTERFACE:
-            return StatusUpdate.decode(packet)
+            return StatusUpdate.decode(packet, options)
         else:
             raise ValueError("Unknown command: {}".format(packet.command))
 
@@ -101,7 +113,9 @@ class SystemStatusEvent(BaseEvent):
         self.area = area
 
     @classmethod
-    def decode(cls, packet: Packet) -> "SystemStatusEvent":
+    def decode(
+        cls, packet: Packet, options: DecodeOptions | None = None
+    ) -> "SystemStatusEvent":
         event_type = int(packet.data[0:2], 16)
         zone = int(packet.data[2:4])
         area = int(packet.data[4:6], 16)
@@ -157,22 +171,24 @@ class StatusUpdate(BaseEvent):
         self.request_id = request_id
 
     @classmethod
-    def decode(self, packet: Packet) -> "StatusUpdate":
+    def decode(
+        self, packet: Packet, options: DecodeOptions | None = None
+    ) -> "StatusUpdate":
         request_id = StatusUpdate.RequestID(int(packet.data[0:2], 16))
         if request_id.name.startswith("ZONE"):
-            return ZoneUpdate.decode(packet)
+            return ZoneUpdate.decode(packet, options)
         elif request_id == StatusUpdate.RequestID.MISCELLANEOUS_ALARMS:
-            return MiscellaneousAlarmsUpdate.decode(packet)
+            return MiscellaneousAlarmsUpdate.decode(packet, options)
         elif request_id == StatusUpdate.RequestID.ARMING:
-            return ArmingUpdate.decode(packet)
+            return ArmingUpdate.decode(packet, options)
         elif request_id == StatusUpdate.RequestID.OUTPUTS:
-            return OutputsUpdate.decode(packet)
+            return OutputsUpdate.decode(packet, options)
         elif request_id == StatusUpdate.RequestID.VIEW_STATE:
-            return ViewStateUpdate.decode(packet)
+            return ViewStateUpdate.decode(packet, options)
         elif request_id == StatusUpdate.RequestID.PANEL_VERSION:
-            return PanelVersionUpdate.decode(packet)
+            return PanelVersionUpdate.decode(packet, options)
         elif request_id == StatusUpdate.RequestID.AUXILIARY_OUTPUTS:
-            return AuxiliaryOutputsUpdate.decode(packet)
+            return AuxiliaryOutputsUpdate.decode(packet, options)
         else:
             raise ValueError("Unhandled request_id case: {}".format(request_id))
 
@@ -209,7 +225,7 @@ class ZoneUpdate(StatusUpdate):
         self.included_zones = included_zones
 
     @classmethod
-    def decode(cls, packet: Packet) -> "ZoneUpdate":
+    def decode(cls, packet: Packet, options: DecodeOptions | None = None) -> "ZoneUpdate":
         request_id = StatusUpdate.RequestID(int(packet.data[0:2], 16))
         return ZoneUpdate(
             request_id=request_id,
@@ -273,7 +289,9 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
         self.included_alarms = included_alarms
 
     @classmethod
-    def decode(cls, packet: Packet) -> "MiscellaneousAlarmsUpdate":
+    def decode(
+        cls, packet: Packet, options: DecodeOptions | None = None
+    ) -> "MiscellaneousAlarmsUpdate":
         return MiscellaneousAlarmsUpdate(
             included_alarms=unpack_unsigned_short_data_enum(
                 packet, MiscellaneousAlarmsUpdate.AlarmType
@@ -321,7 +339,9 @@ class ArmingUpdate(StatusUpdate):
         self.status = status
 
     @classmethod
-    def decode(cls, packet: Packet) -> "ArmingUpdate":
+    def decode(
+        cls, packet: Packet, options: DecodeOptions | None = None
+    ) -> "ArmingUpdate":
         return ArmingUpdate(
             status=unpack_unsigned_short_data_enum(packet, ArmingUpdate.ArmingStatus),
             address=packet.address,
@@ -385,7 +405,9 @@ class OutputsUpdate(StatusUpdate):
         self.outputs = outputs
 
     @classmethod
-    def decode(cls, packet: Packet) -> "OutputsUpdate":
+    def decode(
+        cls, packet: Packet, options: DecodeOptions | None = None
+    ) -> "OutputsUpdate":
         return OutputsUpdate(
             outputs=unpack_unsigned_short_data_enum(packet, OutputsUpdate.OutputType),
             timestamp=packet.timestamp,
@@ -418,7 +440,9 @@ class ViewStateUpdate(StatusUpdate):
         self.state = state
 
     @classmethod
-    def decode(cls, packet: Packet) -> "ViewStateUpdate":
+    def decode(
+        cls, packet: Packet, options: DecodeOptions | None = None
+    ) -> "ViewStateUpdate":
         state = ViewStateUpdate.State(int(packet.data[2:6], 16))
         return ViewStateUpdate(
             state=state,
@@ -429,24 +453,80 @@ class ViewStateUpdate(StatusUpdate):
 
 class PanelVersionUpdate(StatusUpdate):
     class Model(Enum):
-        """Panel model and modem combinations.
+        # D8X panel variants
+        D8X = "D8X"
+        D8X_CEL_3G = "D8X_CEL_3G"
+        D8X_CEL_4G = "D8X_CEL_4G"
 
-        These values are hard coded from the panel documentation where the
-        upper four bits represent the panel model and the lower four bits the
-        modem (if any). The values are not generated dynamically so that only
-        known combinations are accepted.
-        """
+        # D16X panel variants
+        D16X = "D16X"
+        D16X_CEL_3G = "D16X_CEL_3G"
+        D16X_CEL_4G = "D16X_CEL_4G"
 
+        # D32X panel variants
+        D32X = "D32X"
+
+    """Panel model and modem combinations prior to documentation revision 16.
+
+    Previous documentation revisions did not specify explicit examples beyond:
+
+    mmxy
+    mm – model
+    D16X - 00h
+    D16X 3G - 04h
+
+    However, documentation revision 16 conflicts with the existing mapping and
+    values emitted from D16X panels.
+    """
+    ModelLegacyMapper = {
+        0x00: Model.D16X,
+        0x04: Model.D16X_CEL_3G,
+        0x14: Model.D16X_CEL_3G,
+    }
+
+    """Panel model and modem combinations in documentation revision 16.
+
+    mmxy
+    mm – model
+    D16X
+    - 00h
+    D16X 3G - 04h
+    D16X 4G - 05h
+    D32X - 06h
+
+    1. 8200036017000004
+    0000 Prior to V7.8
+    2. 820003601700788c
+    0078
+    00 = D8x
+    78 = Version 7.8
+    3. 8200036017008084
+    0080
+    00 = D8x
+    80 = Version 8.0
+    4. 820003601714a848 .
+    14a8
+    14 = D16xcel 3G (04 = D8xCel 3G)
+    a8 =Version 10.8 (a = 10)
+    5. 820003601700877d
+    00 = D8x (D16x is 10)
+    87 = Version 8.7 ie current product.
+    6. 820003601715b048 .
+    15b0
+    15 = D16xcel 4G (05 = D8xCel 4G)
+    b0 =Version 11.0 (b = 11)
+    """
+    ModelRev16Mapper = {
         # Base D8X panel variants
-        D8X = 0x00
-        D8X_CEL_3G = 0x04
-        D8X_CEL_4G = 0x05
-        D32X = 0x06
-
+        0x00: Model.D8X,
+        0x04: Model.D8X_CEL_3G,
+        0x05: Model.D8X_CEL_4G,
+        0x06: Model.D32X,
         # D16X based panels
-        D16X = 0x10
-        D16X_CEL_3G = 0x14
-        D16X_CEL_4G = 0x15
+        0x10: Model.D16X,
+        0x14: Model.D16X_CEL_3G,
+        0x15: Model.D16X_CEL_4G,
+    }
 
     def __init__(
         self,
@@ -455,6 +535,7 @@ class PanelVersionUpdate(StatusUpdate):
         minor_version: int,
         address: Optional[int],
         timestamp: Optional[datetime.datetime],
+        _model_mapper: Optional[Dict[int, Model]] = None,
     ):
         super(PanelVersionUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.PANEL_VERSION,
@@ -464,15 +545,19 @@ class PanelVersionUpdate(StatusUpdate):
         self.model = model
         self.major_version = major_version
         self.minor_version = minor_version
+        self._model_mapper = _model_mapper
 
     @property
     def version(self) -> str:
         return "{}.{}".format(self.major_version, self.minor_version)
 
     def encode(self) -> Packet:
+        model_mapper = self._model_mapper or PanelVersionUpdate.ModelRev16Mapper
+        model_mapper_inv = {v: k for k, v in model_mapper.items()}
+        model = model_mapper_inv[self.model]
         data = "{:02x}{:02x}{:x}{:x}".format(
             self.request_id.value,
-            self.model.value,
+            model,
             self.major_version,
             self.minor_version,
         )
@@ -486,8 +571,20 @@ class PanelVersionUpdate(StatusUpdate):
         )
 
     @classmethod
-    def decode(cls, packet: Packet) -> "PanelVersionUpdate":
-        model = PanelVersionUpdate.Model(int(packet.data[2:4], 16))
+    def decode(
+        cls, packet: Packet, options: DecodeOptions | None = None
+    ) -> "PanelVersionUpdate":
+        if options and options.panel_version_update_model_mapper:
+            model_mapper = options.panel_version_update_model_mapper
+            model = model_mapper[int(packet.data[2:4], 16)]
+        else:
+            # If no explicit mapper specified, then use legacy mapper, but fallback to
+            # rev16 mapper
+            model_key = int(packet.data[2:4], 16)
+            model = PanelVersionUpdate.ModelLegacyMapper.get(
+                model_key, PanelVersionUpdate.ModelRev16Mapper[model_key]
+            )
+
         major_version = int(packet.data[4:5], 16)
         minor_version = int(packet.data[5:6], 16)
         return PanelVersionUpdate(
@@ -524,7 +621,9 @@ class AuxiliaryOutputsUpdate(StatusUpdate):
         self.outputs = outputs
 
     @classmethod
-    def decode(cls, packet: Packet) -> "AuxiliaryOutputsUpdate":
+    def decode(
+        cls, packet: Packet, options: DecodeOptions | None = None
+    ) -> "AuxiliaryOutputsUpdate":
         return AuxiliaryOutputsUpdate(
             outputs=unpack_unsigned_short_data_enum(
                 packet, AuxiliaryOutputsUpdate.OutputType
