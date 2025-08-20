@@ -31,7 +31,7 @@ class AlarmServer:
         panel_minor_version: int,
     ):
         self._alarm = Alarm.create(
-            num_zones=8,
+            num_zones=16,
             alarm_state_changed=self._alarm_state_changed,
             zone_state_changed=self._zone_state_changed,
         )
@@ -171,8 +171,8 @@ class AlarmServer:
         win.addstr(0, 2, " Input ", curses.A_BOLD)
         # Legend area
         legend_lines = [
-            "Commands: a=away h=home n=night v=vac d=disarm t=trip",
-            f"Toggle zones with 1-{len(self._alarm.zones)}    q=quit",
+            "Commands: a=away h=home n=night v=vac d=disarm t=trip s=sim on/off",
+            f"Toggle zone: type number then Enter (1-{len(self._alarm.zones)})    q=quit",
         ]
         for i, line in enumerate(legend_lines):
             if 1 + i >= win_height - 2:
@@ -241,17 +241,10 @@ class AlarmServer:
             self._alarm.trip()
             self._set_status("Alarm tripped")
             return True
-        if ord("1") <= ch <= ord("0") + len(self._alarm.zones):
-            zone_id = ch - ord("0")
-            zone = next(z for z in self._alarm.zones if z.id == zone_id)
-            new_state = (
-                Zone.State.UNSEALED
-                if zone.state == Zone.State.SEALED
-                else Zone.State.SEALED
-            )
-            self._alarm.update_zone(zone_id, new_state)
-            self._set_status(f"Toggled zone {zone_id}")
+        if ch in (ord("s"), ord("S")):
+            self._toggle_simulation()
             return True
+        # Numeric toggles are handled via the input buffer + Enter to support multi-digit zones
 
         # Printable characters go to input buffer
         if 32 <= ch <= 126:
@@ -287,6 +280,16 @@ class AlarmServer:
         if lc in ("t", "trip"):
             self._alarm.trip()
             self._set_status("Alarm tripped")
+            return
+        # Simulation controls
+        if lc in ("s", "sim", "simulate"):
+            self._toggle_simulation()
+            return
+        if lc in ("s on", "sim on", "simulate on"):
+            self._toggle_simulation(True)
+            return
+        if lc in ("s off", "sim off", "simulate off"):
+            self._toggle_simulation(False)
             return
         if lc.isdigit():
             zone_id = int(lc)
@@ -404,6 +407,15 @@ class AlarmServer:
         if not self._simulation_running:
             self._simulation_running = True
             threading.Thread(target=self._simulate_zone_events, daemon=True).start()
+
+    def _toggle_simulation(self, on: Optional[bool] | None = None) -> None:
+        desired = (not self._simulation_running) if on is None else on
+        if desired and not self._simulation_running:
+            self._start_simulation()
+            self._set_status("Simulation: ON")
+        elif not desired and self._simulation_running:
+            self._stop_simulation()
+            self._set_status("Simulation: OFF")
 
     def _add_log(self, direction: str, message: str) -> None:
         ts = datetime.now().strftime("%H:%M:%S")
