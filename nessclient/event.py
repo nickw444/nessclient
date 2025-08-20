@@ -469,6 +469,22 @@ class PanelVersionUpdate(StatusUpdate):
     def version(self) -> str:
         return "{}.{}".format(self.major_version, self.minor_version)
 
+    def encode(self) -> Packet:
+        data = "{:02x}{:02x}{:x}{:x}".format(
+            self.request_id.value,
+            self.model.value,
+            self.major_version,
+            self.minor_version,
+        )
+        return Packet(
+            address=self.address,
+            seq=0x00,
+            command=CommandType.USER_INTERFACE,
+            data=data,
+            timestamp=None,
+            is_user_interface_resp=True,
+        )
+
     @classmethod
     def decode(cls, packet: Packet) -> "PanelVersionUpdate":
         model = PanelVersionUpdate.Model(int(packet.data[2:4], 16))
