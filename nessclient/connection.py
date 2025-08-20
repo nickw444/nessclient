@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
 import serial
 from serial_asyncio_fast import SerialTransport, create_serial_connection
 
@@ -12,7 +11,7 @@ class Connection(ABC):
     """Represents a connection to a Ness D8X/D16X server"""
 
     @abstractmethod
-    async def read(self) -> Optional[bytes]:
+    async def read(self) -> bytes | None:
         raise NotImplementedError()
 
     @abstractmethod
@@ -40,14 +39,14 @@ class AsyncIoConnection(Connection, ABC):
         super().__init__()
 
         self._write_lock = asyncio.Lock()
-        self._reader: Optional[asyncio.StreamReader] = None
-        self._writer: Optional[asyncio.StreamWriter] = None
+        self._reader: asyncio.StreamReader | None = None
+        self._writer: asyncio.StreamWriter | None = None
 
     @property
     def connected(self) -> bool:
         return self._reader is not None and self._writer is not None
 
-    async def read(self) -> Optional[bytes]:
+    async def read(self) -> bytes | None:
         assert self._reader is not None
 
         try:
@@ -111,7 +110,7 @@ class Serial232Connection(AsyncIoConnection):
         super().__init__()
 
         self._tty_path = tty_path
-        self._serial_connection: Optional[serial.Serial] = None
+        self._serial_connection: serial.Serial | None = None
 
     @property
     def connected(self) -> bool:

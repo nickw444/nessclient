@@ -2,7 +2,7 @@ import dataclasses
 import datetime
 import struct
 from enum import Enum
-from typing import List, Optional, TypeVar, Type, Dict
+from typing import List, TypeVar, Type, Dict
 
 from .packet import CommandType, Packet
 
@@ -36,7 +36,7 @@ class DecodeOptions:
 
 
 class BaseEvent(object):
-    def __init__(self, address: Optional[int], timestamp: Optional[datetime.datetime]):
+    def __init__(self, address: int | None, timestamp: datetime.datetime | None):
         self.address = address
         self.timestamp = timestamp
 
@@ -104,8 +104,8 @@ class SystemStatusEvent(BaseEvent):
         type: "SystemStatusEvent.EventType",
         zone: int,
         area: int,
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ) -> None:
         super(SystemStatusEvent, self).__init__(address=address, timestamp=timestamp)
         self.type = type
@@ -164,8 +164,8 @@ class StatusUpdate(BaseEvent):
     def __init__(
         self,
         request_id: "StatusUpdate.RequestID",
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ) -> None:
         super(StatusUpdate, self).__init__(address=address, timestamp=timestamp)
         self.request_id = request_id
@@ -216,8 +216,8 @@ class ZoneUpdate(StatusUpdate):
         self,
         included_zones: List["ZoneUpdate.Zone"],
         request_id: "StatusUpdate.RequestID",
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ) -> None:
         super(ZoneUpdate, self).__init__(
             request_id=request_id, address=address, timestamp=timestamp
@@ -277,8 +277,8 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
     def __init__(
         self,
         included_alarms: List["MiscellaneousAlarmsUpdate.AlarmType"],
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ):
         super(MiscellaneousAlarmsUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.MISCELLANEOUS_ALARMS,
@@ -327,8 +327,8 @@ class ArmingUpdate(StatusUpdate):
     def __init__(
         self,
         status: List["ArmingUpdate.ArmingStatus"],
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ):
         super(ArmingUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.ARMING,
@@ -394,8 +394,8 @@ class OutputsUpdate(StatusUpdate):
     def __init__(
         self,
         outputs: List["OutputsUpdate.OutputType"],
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ):
         super(OutputsUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.OUTPUTS,
@@ -429,8 +429,8 @@ class ViewStateUpdate(StatusUpdate):
     def __init__(
         self,
         state: "ViewStateUpdate.State",
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ):
         super(ViewStateUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.VIEW_STATE,
@@ -533,9 +533,9 @@ class PanelVersionUpdate(StatusUpdate):
         model: Model,
         major_version: int,
         minor_version: int,
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
-        _model_mapper: Optional[Dict[int, Model]] = None,
+        address: int | None,
+        timestamp: datetime.datetime | None,
+        _model_mapper: Dict[int, Model] | None = None,
     ):
         super(PanelVersionUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.PANEL_VERSION,
@@ -610,8 +610,8 @@ class AuxiliaryOutputsUpdate(StatusUpdate):
     def __init__(
         self,
         outputs: List[OutputType],
-        address: Optional[int],
-        timestamp: Optional[datetime.datetime],
+        address: int | None,
+        timestamp: datetime.datetime | None,
     ):
         super(AuxiliaryOutputsUpdate, self).__init__(
             request_id=StatusUpdate.RequestID.AUXILIARY_OUTPUTS,
