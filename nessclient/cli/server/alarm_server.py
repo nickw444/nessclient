@@ -1,8 +1,9 @@
+import curses
 import logging
 import random
 import threading
 import time
-from typing import List, Iterator
+from typing import Any, List, Iterator
 
 from .alarm import Alarm
 from .server import Server, get_zone_state_event_type
@@ -43,29 +44,58 @@ class AlarmServer:
     def start(self) -> None:
         self._server.start(host=self._host, port=self._port)
         self._start_simulation()
+        curses.wrapper(self._run_ui)
 
+    def _run_ui(self, stdscr: Any) -> None:
+        curses.curs_set(0)
+        stdscr.nodelay(True)
         while True:
-            command = input("Command: ")
-            if command is None:
+            self._draw_ui(stdscr)
+            ch = stdscr.getch()
+            if ch == -1:
+                time.sleep(0.1)
                 continue
-
-            command = command.upper().strip()
-            if command == "D":
+            if ch in (ord("q"), ord("Q")):
+                break
+            if ch in (ord("d"), ord("D")):
                 self._alarm.disarm()
-            elif command == "A" or command == "AA":
+            elif ch in (ord("a"), ord("A")):
                 self._alarm.arm(Alarm.ArmingMode.ARMED_AWAY)
-            elif command == "AH":
+            elif ch in (ord("h"), ord("H")):
                 self._alarm.arm(Alarm.ArmingMode.ARMED_HOME)
-            elif command == "AD":
-                self._alarm.arm(Alarm.ArmingMode.ARMED_DAY)
-            elif command == "AN":
+            elif ch in (ord("n"), ord("N")):
                 self._alarm.arm(Alarm.ArmingMode.ARMED_NIGHT)
-            elif command == "AV":
+            elif ch in (ord("v"), ord("V")):
                 self._alarm.arm(Alarm.ArmingMode.ARMED_VACATION)
-            elif command == "T":
+            elif ch in (ord("t"), ord("T")):
                 self._alarm.trip()
+            elif ord("1") <= ch <= ord("0") + len(self._alarm.zones):
+                zone_id = ch - ord("0")
+                zone = next(z for z in self._alarm.zones if z.id == zone_id)
+                new_state = (
+                    Zone.State.UNSEALED
+                    if zone.state == Zone.State.SEALED
+                    else Zone.State.SEALED
+                )
+                self._alarm.update_zone(zone_id, new_state)
+        self._stop_simulation()
 
-            print(command)
+    def _draw_ui(self, stdscr: Any) -> None:
+        stdscr.erase()
+        mode = self._alarm.arming_mode.value if self._alarm.arming_mode else "-"
+        stdscr.addstr(0, 0, f"Alarm state: {self._alarm.state.value}")
+        stdscr.addstr(1, 0, f"Mode: {mode}")
+        stdscr.addstr(3, 0, "Zones:")
+        for i, z in enumerate(self._alarm.zones):
+            stdscr.addstr(4 + i, 2, f"{z.id}: {z.state.value}")
+        row = 4 + len(self._alarm.zones) + 1
+        stdscr.addstr(
+            row,
+            0,
+            "d=disarm a=away h=home n=night v=vac t=trip q=quit",
+        )
+        stdscr.addstr(row + 1, 0, "Toggle zones with 1-{}".format(len(self._alarm.zones)))
+        stdscr.refresh()
 
     def _alarm_state_changed(
         self,
