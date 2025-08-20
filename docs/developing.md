@@ -1,8 +1,9 @@
 # Developing
-Use [uv](https://docs.astral.sh/uv/) to set up the local environment:
+Use [uv](https://docs.astral.sh/uv/) to set up the local environment and
+install optional extras such as the CLI tools:
 
 ```sh
-uv sync --dev
+uv sync --dev --all-extras
 ```
 
 ## Running tests
