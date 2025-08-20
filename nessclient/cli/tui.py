@@ -61,12 +61,15 @@ async def interactive_ui(
             stdscr.erase()
             max_y, max_x = stdscr.getmaxyx()
 
-            footer_height = 1
-            input_height = 1
-            state_height = 1
+            footer_height = 3
+            input_height = 3
+            state_height = 3
             content_height = max_y - (footer_height + input_height + state_height)
-            zone_width = 20
+            zone_inner_width = 20
+            zone_width = zone_inner_width + 2
             event_width = max_x - zone_width
+            event_inner_width = event_width - 2
+            content_inner_height = content_height - 2
 
             state_win = stdscr.derwin(state_height, max_x, 0, 0)
             event_win = stdscr.derwin(content_height, event_width, state_height, 0)
@@ -80,26 +83,31 @@ async def interactive_ui(
                 footer_height, max_x, state_height + content_height + input_height, 0
             )
 
-            state_win.addstr(0, 0, f"Arming: {client.alarm.arming_state.value}")
+            for win in (state_win, event_win, zone_win, input_win, footer_win):
+                win.box()
+
+            state_win.addstr(1, 1, f"Arming: {client.alarm.arming_state.value}")
 
             for i, zone in enumerate(client.alarm.zones, start=1):
-                if i > content_height:
+                if i > content_inner_height:
                     break
                 triggered = zone.triggered
                 if triggered is None:
                     status = "UNKNOWN"
                 else:
                     status = "UNSEALED" if triggered else "SEALED"
-                zone_win.addstr(i - 1, 0, f"Z{i:02d}: {status}")
+                zone_win.addstr(i + 1, 1, f"Z{i:02d}: {status}")
 
-            visible_events = list(events)[-content_height:]
-            for idx, line in enumerate(visible_events[-content_height:]):
-                event_win.addstr(idx, 0, line[: event_width - 1])
+            visible_events = list(events)[-content_inner_height:]
+            for idx, line in enumerate(visible_events):
+                event_win.addstr(idx + 1, 1, line[:event_inner_width])
 
-            input_win.addstr(0, 0, f"> {command_buffer}")
-            footer_win.addstr(0, 0, f"Panel: {panel_version or 'unknown'}")
+            input_win.addstr(1, 1, f"> {command_buffer}"[: max_x - 2])
+            footer_win.addstr(1, 1, f"Panel: {panel_version or 'unknown'}")
 
-            stdscr.refresh()
+            for win in (state_win, event_win, zone_win, input_win, footer_win):
+                win.noutrefresh()
+            curses.doupdate()
             await asyncio.sleep(0.1)
             ch = stdscr.getch()
             if ch == -1:
