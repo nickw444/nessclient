@@ -23,12 +23,21 @@ The full documentation can be found at [Read the Docs](https://nessclient.readth
 
 This package includes a CLI which uses the library to interface with the Ness Serial Interface. You can read more in [the docs](https://nessclient.readthedocs.io/en/latest/cli.html)
 
-To use the CLI you must install it's dependencies by installing it with extras for `cli`: 
+To use the CLI you must install it's dependencies by installing it with extras for `cli`:
 
 ```
 pip install nessclient[cli]
 ness-cli --help
-``` 
+```
+
+The CLI exposes several high level commands:
+
+- `events` – listen for alarm events emitted by a connected panel. Use `--interactive` for a terminal UI with live zone status and event logs.
+- `send` – send a raw command to the panel.
+- `server` – run a dummy panel server, useful for local development when an alarm panel isn't available.
+- `version` – print the installed package version.
+
+Run `ness-cli COMMAND --help` for full options on each command.
 
 ## API Documentation
 You can find the full API documentation [here](https://nessclient.readthedocs.io/en/latest/api.html)
@@ -39,4 +48,19 @@ Please see [Examples](https://nessclient.readthedocs.io/en/latest/examples.html)
  
 ## Developing
 
-Please see [Developing](https://nessclient.readthedocs.io/en/latest/developing.html) section in the docs for development environment setup information.
+For a quick development setup, install dependencies and tooling with [uv](https://docs.astral.sh/uv/):
+
+```
+uv sync --dev --all-extras
+```
+
+Before submitting changes, ensure code is formatted, linted, type-checked and tested:
+
+```
+uv run ruff format .
+uv run ruff check .
+uv run mypy --strict nessclient
+uv run pytest
+```
+
+See the [Developing](https://nessclient.readthedocs.io/en/latest/developing.html) section in the docs for more details on contributing and environment setup.
