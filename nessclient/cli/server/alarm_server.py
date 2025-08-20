@@ -3,7 +3,9 @@ import logging
 import random
 import threading
 import time
-from typing import Any, List, Iterator
+from collections import deque
+from datetime import datetime
+from typing import Any, Deque, Iterator, List, Optional
 
 from .alarm import Alarm
 from .server import Server, get_zone_state_event_type
@@ -33,13 +35,22 @@ class AlarmServer:
             alarm_state_changed=self._alarm_state_changed,
             zone_state_changed=self._zone_state_changed,
         )
-        self._server = Server(handle_command=self._handle_command)
+        self._server = Server(
+            handle_command=self._handle_command,
+            log_callback=self._on_server_log,
+            rx_callback=self._on_server_rx,
+        )
         self._host = host
         self._port = port
         self._simulation_running = False
         self._panel_model = panel_model
         self._panel_major_version = panel_major_version
         self._panel_minor_version = panel_minor_version
+        # UI state
+        self._logs: Deque[str] = deque(maxlen=500)
+        self._input_buffer: str = ""
+        self._status_message: Optional[str] = None
+        self._stop_flag = threading.Event()
 
     def start(self) -> None:
         self._server.start(host=self._host, port=self._port)
@@ -47,55 +58,261 @@ class AlarmServer:
         curses.wrapper(self._run_ui)
 
     def _run_ui(self, stdscr: Any) -> None:
-        curses.curs_set(0)
+        curses.curs_set(1)
+        curses.start_color()
+        try:
+            curses.use_default_colors()
+        except Exception:
+            pass
+        # Define a few simple color pairs that play nicely with terminal theme
+        try:
+            curses.init_pair(1, curses.COLOR_GREEN, -1)
+            curses.init_pair(2, curses.COLOR_YELLOW, -1)
+            curses.init_pair(3, curses.COLOR_RED, -1)
+            curses.init_pair(4, curses.COLOR_CYAN, -1)
+        except Exception:
+            # On terminals without color support, ignore
+            pass
+
         stdscr.nodelay(True)
-        while True:
+        stdscr.keypad(True)
+        self._stop_flag.clear()
+        while not self._stop_flag.is_set():
             self._draw_ui(stdscr)
             ch = stdscr.getch()
             if ch == -1:
-                time.sleep(0.1)
+                time.sleep(0.05)
                 continue
-            if ch in (ord("q"), ord("Q")):
+            if ch in (3, 4):  # Ctrl+C/Ctrl+D
                 break
-            if ch in (ord("d"), ord("D")):
-                self._alarm.disarm()
-            elif ch in (ord("a"), ord("A")):
-                self._alarm.arm(Alarm.ArmingMode.ARMED_AWAY)
-            elif ch in (ord("h"), ord("H")):
-                self._alarm.arm(Alarm.ArmingMode.ARMED_HOME)
-            elif ch in (ord("n"), ord("N")):
-                self._alarm.arm(Alarm.ArmingMode.ARMED_NIGHT)
-            elif ch in (ord("v"), ord("V")):
-                self._alarm.arm(Alarm.ArmingMode.ARMED_VACATION)
-            elif ch in (ord("t"), ord("T")):
-                self._alarm.trip()
-            elif ord("1") <= ch <= ord("0") + len(self._alarm.zones):
-                zone_id = ch - ord("0")
-                zone = next(z for z in self._alarm.zones if z.id == zone_id)
+            handled = self._handle_keypress(ch)
+            if not handled:
+                # fall back small sleep to avoid tight loop
+                time.sleep(0.01)
+        self._stop_simulation()
+
+    def _draw_ui(self, stdscr: Any) -> None:
+        stdscr.erase()
+        height, width = stdscr.getmaxyx()
+
+        # Layout sizes
+        bottom_h = 5
+        top_h = max(3, height - bottom_h)
+        zones_w = min(28, max(24, int(width * 0.28)))
+        log_w = max(10, width - zones_w)
+
+        # Top title/status line (no border)
+        title = "Ness Alarm Server"
+        mode = self._alarm.arming_mode.value if self._alarm.arming_mode else "-"
+        status = f"State: {self._alarm.state.value}  Mode: {mode}  Panel: {self._panel_model.value} {self._panel_major_version}.{self._panel_minor_version}"
+        stdscr.addstr(0, 1, title, curses.A_BOLD)
+        stdscr.addstr(0, min(len(title) + 3, width - 1), "|")
+        stdscr.addnstr(
+            0, min(len(title) + 5, width - 1), status, max(0, width - (len(title) + 6))
+        )
+
+        # Zones window with border
+        zones_h = top_h - 1
+        zones_win = stdscr.derwin(zones_h, zones_w, 1, 0)
+        zones_win.box()
+        self._draw_zones(zones_win)
+
+        # Logs window with border
+        logs_h = top_h - 1
+        logs_win = stdscr.derwin(logs_h, log_w, 1, zones_w)
+        logs_win.box()
+        self._draw_logs(logs_win)
+
+        # Bottom input/legend window with border
+        input_win = stdscr.derwin(bottom_h, width, top_h, 0)
+        input_win.box()
+        self._draw_input(input_win)
+
+        stdscr.refresh()
+
+    def _draw_zones(self, win: Any) -> None:
+        win_height, win_width = win.getmaxyx()
+        # Title
+        win.addstr(0, 2, " Zones ", curses.A_BOLD)
+        # Content area starts at (1,1) inside border
+        y = 1
+        for z in self._alarm.zones:
+            if y >= win_height - 1:
+                break
+            label = f"{z.id:>2}: {z.state.value}"
+            attr = curses.A_NORMAL
+            if z.state == Zone.State.SEALED:
+                attr |= curses.color_pair(1)
+            elif z.state == Zone.State.UNSEALED:
+                attr |= curses.color_pair(2)
+            # TRIPPED isn't a zone state; ALARM reflects global, but keep red for emphasis where useful
+            win.addnstr(y, 2, label.ljust(win_width - 4), win_width - 4, attr)
+            y += 1
+
+    def _draw_logs(self, win: Any) -> None:
+        win_height, win_width = win.getmaxyx()
+        win.addstr(0, 2, " Messages ", curses.A_BOLD)
+        # Show the latest lines, clipped to window height - 2 (for borders)
+        max_lines = max(0, win_height - 2)
+        lines = list(self._logs)[-max_lines:]
+        start_y = 1
+        for i, line in enumerate(lines):
+            attr = curses.A_NORMAL
+            if line.startswith("TX"):
+                attr |= curses.color_pair(4)
+            elif line.startswith("RX"):
+                attr |= curses.color_pair(2)
+            elif line.startswith("ERR"):
+                attr |= curses.color_pair(3)
+            win.addnstr(start_y + i, 1, line.ljust(win_width - 2), win_width - 2, attr)
+
+    def _draw_input(self, win: Any) -> None:
+        win_height, win_width = win.getmaxyx()
+        win.addstr(0, 2, " Input ", curses.A_BOLD)
+        # Legend area
+        legend_lines = [
+            "Commands: a=away h=home n=night v=vac d=disarm t=trip",
+            f"Toggle zones with 1-{len(self._alarm.zones)}    q=quit",
+        ]
+        for i, line in enumerate(legend_lines):
+            if 1 + i >= win_height - 2:
+                break
+            win.addnstr(1 + i, 2, line, max(0, win_width - 4))
+
+        # Status message (if any)
+        if self._status_message:
+            msg = self._status_message
+            win.addnstr(
+                win_height - 3,
+                2,
+                msg[: max(0, win_width - 4)],
+                max(0, win_width - 4),
+                curses.A_DIM,
+            )
+
+        # Input prompt on the last line
+        prompt = "> "
+        max_input = max(0, win_width - len(prompt) - 4)
+        display = self._input_buffer[-max_input:]
+        win.addnstr(win_height - 2, 2, prompt + display, max(0, win_width - 4))
+        # Place cursor at end
+        try:
+            win.move(win_height - 2, min(2 + len(prompt) + len(display), win_width - 2))
+        except Exception:
+            pass
+
+    def _handle_keypress(self, ch: int) -> bool:
+        """Handle keypress. Returns True if handled."""
+        # Handle special keys
+        if ch in (ord("q"), ord("Q")):
+            self._stop_flag.set()
+            return True
+        if ch in (curses.KEY_BACKSPACE, 127, 8):
+            if self._input_buffer:
+                self._input_buffer = self._input_buffer[:-1]
+            return True
+        if ch in (10, 13):  # Enter
+            self._execute_command(self._input_buffer.strip())
+            self._input_buffer = ""
+            return True
+
+        # Single-key shortcuts (also log status)
+        if ch in (ord("d"), ord("D")):
+            self._alarm.disarm()
+            self._set_status("Disarmed")
+            return True
+        if ch in (ord("a"), ord("A")):
+            self._alarm.arm(Alarm.ArmingMode.ARMED_AWAY)
+            self._set_status("Arming: Away")
+            return True
+        if ch in (ord("h"), ord("H")):
+            self._alarm.arm(Alarm.ArmingMode.ARMED_HOME)
+            self._set_status("Arming: Home")
+            return True
+        if ch in (ord("n"), ord("N")):
+            self._alarm.arm(Alarm.ArmingMode.ARMED_NIGHT)
+            self._set_status("Arming: Night")
+            return True
+        if ch in (ord("v"), ord("V")):
+            self._alarm.arm(Alarm.ArmingMode.ARMED_VACATION)
+            self._set_status("Arming: Vacation")
+            return True
+        if ch in (ord("t"), ord("T")):
+            self._alarm.trip()
+            self._set_status("Alarm tripped")
+            return True
+        if ord("1") <= ch <= ord("0") + len(self._alarm.zones):
+            zone_id = ch - ord("0")
+            zone = next(z for z in self._alarm.zones if z.id == zone_id)
+            new_state = (
+                Zone.State.UNSEALED
+                if zone.state == Zone.State.SEALED
+                else Zone.State.SEALED
+            )
+            self._alarm.update_zone(zone_id, new_state)
+            self._set_status(f"Toggled zone {zone_id}")
+            return True
+
+        # Printable characters go to input buffer
+        if 32 <= ch <= 126:
+            self._input_buffer += chr(ch)
+            return True
+
+        return False
+
+    def _execute_command(self, cmd: str) -> None:
+        if not cmd:
+            return
+        lc = cmd.lower()
+        if lc in ("d", "disarm"):
+            self._alarm.disarm()
+            self._set_status("Disarmed")
+            return
+        if lc in ("a", "away"):
+            self._alarm.arm(Alarm.ArmingMode.ARMED_AWAY)
+            self._set_status("Arming: Away")
+            return
+        if lc in ("h", "home"):
+            self._alarm.arm(Alarm.ArmingMode.ARMED_HOME)
+            self._set_status("Arming: Home")
+            return
+        if lc in ("n", "night"):
+            self._alarm.arm(Alarm.ArmingMode.ARMED_NIGHT)
+            self._set_status("Arming: Night")
+            return
+        if lc in ("v", "vac", "vacation"):
+            self._alarm.arm(Alarm.ArmingMode.ARMED_VACATION)
+            self._set_status("Arming: Vacation")
+            return
+        if lc in ("t", "trip"):
+            self._alarm.trip()
+            self._set_status("Alarm tripped")
+            return
+        if lc.isdigit():
+            zone_id = int(lc)
+            zone = next((z for z in self._alarm.zones if z.id == zone_id), None)
+            if zone is not None:
                 new_state = (
                     Zone.State.UNSEALED
                     if zone.state == Zone.State.SEALED
                     else Zone.State.SEALED
                 )
                 self._alarm.update_zone(zone_id, new_state)
-        self._stop_simulation()
+                self._set_status(f"Toggled zone {zone_id}")
+                return
+        self._set_status(f"Unknown command: {cmd}")
 
-    def _draw_ui(self, stdscr: Any) -> None:
-        stdscr.erase()
-        mode = self._alarm.arming_mode.value if self._alarm.arming_mode else "-"
-        stdscr.addstr(0, 0, f"Alarm state: {self._alarm.state.value}")
-        stdscr.addstr(1, 0, f"Mode: {mode}")
-        stdscr.addstr(3, 0, "Zones:")
-        for i, z in enumerate(self._alarm.zones):
-            stdscr.addstr(4 + i, 2, f"{z.id}: {z.state.value}")
-        row = 4 + len(self._alarm.zones) + 1
-        stdscr.addstr(
-            row,
-            0,
-            "d=disarm a=away h=home n=night v=vac t=trip q=quit",
-        )
-        stdscr.addstr(row + 1, 0, "Toggle zones with 1-{}".format(len(self._alarm.zones)))
-        stdscr.refresh()
+    def _set_status(self, msg: str) -> None:
+        self._status_message = msg
+
+        # Clear after a short delay, without blocking UI
+        def _clear() -> None:
+            time.sleep(2.0)
+            # Only clear if the message hasn't changed
+            if self._status_message == msg:
+                self._status_message = None
+
+        threading.Thread(target=_clear, daemon=True).start()
 
     def _alarm_state_changed(
         self,
@@ -110,6 +327,7 @@ class AlarmServer:
             event = SystemStatusEvent(
                 type=event_type, zone=0x00, area=0x00, timestamp=None, address=0
             )
+            self._log_tx_event(event)
             self._server.write_event(event)
 
     def _zone_state_changed(self, zone_id: int, state: Zone.State) -> None:
@@ -120,6 +338,7 @@ class AlarmServer:
             timestamp=None,
             address=0,
         )
+        self._log_tx_event(event)
         self._server.write_event(event)
 
     def _handle_command(self, command: str) -> None:
@@ -143,6 +362,7 @@ class AlarmServer:
             address=0x00,
             timestamp=None,
         )
+        self._log_tx_event(event)
         self._server.write_event(event)
 
     def _handle_zone_input_unsealed_status_update_request(self) -> None:
@@ -156,6 +376,7 @@ class AlarmServer:
             address=0x00,
             timestamp=None,
         )
+        self._log_tx_event(event)
         self._server.write_event(event)
 
     def _handle_panel_version_update_request(self) -> None:
@@ -166,6 +387,7 @@ class AlarmServer:
             address=0x00,
             timestamp=None,
         )
+        self._log_tx_event(event)
         self._server.write_event(event)
 
     def _simulate_zone_events(self) -> None:
@@ -181,7 +403,38 @@ class AlarmServer:
     def _start_simulation(self) -> None:
         if not self._simulation_running:
             self._simulation_running = True
-            threading.Thread(target=self._simulate_zone_events).start()
+            threading.Thread(target=self._simulate_zone_events, daemon=True).start()
+
+    def _add_log(self, direction: str, message: str) -> None:
+        ts = datetime.now().strftime("%H:%M:%S")
+        self._logs.append(f"{direction} {ts} | {message}")
+
+    def _add_log_multiline(self, direction: str, text: str) -> None:
+        for line in text.splitlines():
+            self._add_log(direction, line)
+
+    def _log_tx_event(self, event: Any) -> None:
+        try:
+            pkt = event.encode()
+            encoded = pkt.encode()
+            self._add_log("TX", f"{pkt.command.name}:{pkt.data} -> {encoded}")
+        except Exception:
+            self._add_log("TX", repr(event))
+
+    def _on_server_log(self, message: str) -> None:
+        # Surface server errors in the UI log area
+        self._add_log_multiline("ERR", message)
+
+    def _on_server_rx(self, line: str, pkt: Optional[Any]) -> None:
+        # Show the full ASCII RX line and decoded command/data (if available)
+        if pkt is not None:
+            try:
+                parsed = f"{pkt.command.name}:{pkt.data}"
+            except Exception:
+                parsed = "<unknown>"
+            self._add_log("RX", f"{line} -> {parsed}")
+        else:
+            self._add_log("RX", line)
 
 
 def mode_to_event(mode: Alarm.ArmingMode | None) -> SystemStatusEvent.EventType:
