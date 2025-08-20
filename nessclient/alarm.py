@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Callable, List
+from typing import Callable, List
 
 from .event import BaseEvent, ZoneUpdate, ArmingUpdate, SystemStatusEvent
 
@@ -41,7 +41,7 @@ class Alarm:
 
     @dataclass
     class Zone:
-        triggered: Optional[bool]
+        triggered: bool | None
 
     def __init__(self, infer_arming_state: bool = False) -> None:
         self._infer_arming_state = infer_arming_state
@@ -50,10 +50,10 @@ class Alarm:
 
         self._arming_mode: ArmingMode | None = None
 
-        self._on_state_change: Optional[
-            Callable[[ArmingState, ArmingMode | None], None]
-        ] = None
-        self._on_zone_change: Optional[Callable[[int, bool], None]] = None
+        self._on_state_change: Callable[[ArmingState, ArmingMode | None], None] | None = (
+            None
+        )
+        self._on_zone_change: Callable[[int, bool], None] | None = None
 
     def handle_event(self, event: BaseEvent) -> None:
         if isinstance(event, ArmingUpdate):
