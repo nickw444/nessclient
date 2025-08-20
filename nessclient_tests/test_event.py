@@ -12,7 +12,7 @@ from nessclient.event import (
     MiscellaneousAlarmsUpdate,
     BaseEvent,
     AuxiliaryOutputsUpdate,
-    PanelVersionUpdate,
+    PanelVersionUpdate, DecodeOptions,
 )
 from nessclient.packet import Packet, CommandType
 
@@ -222,32 +222,67 @@ class SystemStatusEventTestCase(unittest.TestCase):
         self.assertEqual(event.zone, 16)
         self.assertEqual(event.type, SystemStatusEvent.EventType.UNSEALED)
 
+Rev16DecodeOptions = DecodeOptions(
+    panel_version_update_model_mapper=PanelVersionUpdate.ModelRev16Mapper
+)
+LegacyDecodeOptions = DecodeOptions(
+    panel_version_update_model_mapper=PanelVersionUpdate.ModelLegacyMapper
+)
 
 class PanelVersionUpdateTestCase(unittest.TestCase):
-    def test_d8x_model(self):
+    def test_inferred_d16x_model(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "170000")
-        event = PanelVersionUpdate.decode(pkt)
-        self.assertEqual(event.model, PanelVersionUpdate.Model.D8X)
-
-    def test_d8xcel_3g_model(self):
-        pkt = make_packet(CommandType.USER_INTERFACE, "170400")
-        event = PanelVersionUpdate.decode(pkt)
-        self.assertEqual(event.model, PanelVersionUpdate.Model.D8X_CEL_3G)
-
-    def test_d16x_model(self):
-        pkt = make_packet(CommandType.USER_INTERFACE, "171000")
         event = PanelVersionUpdate.decode(pkt)
         self.assertEqual(event.model, PanelVersionUpdate.Model.D16X)
 
-    def test_d16xcel_3g_model(self):
-        pkt = make_packet(CommandType.USER_INTERFACE, "171400")
-        event = PanelVersionUpdate.decode(pkt)
-        self.assertEqual(event.model, PanelVersionUpdate.Model.D16X_CEL_3G)
-
-    def test_d16xcel_4g_model(self):
+    def test_inferred_d16x_cel_4g_model_via_fallback(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "171500")
         event = PanelVersionUpdate.decode(pkt)
         self.assertEqual(event.model, PanelVersionUpdate.Model.D16X_CEL_4G)
+
+    def test_rev16_d8x_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "170000")
+        event = PanelVersionUpdate.decode(pkt, Rev16DecodeOptions)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D8X)
+
+    def test_rev16_d8xcel_3g_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "170400")
+        event = PanelVersionUpdate.decode(pkt, Rev16DecodeOptions)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D8X_CEL_3G)
+
+    def test_rev16_d16x_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "171000")
+        event = PanelVersionUpdate.decode(pkt, Rev16DecodeOptions)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D16X)
+
+    def test_rev16_d16xcel_3g_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "171400")
+        event = PanelVersionUpdate.decode(pkt, Rev16DecodeOptions)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D16X_CEL_3G)
+
+    def test_rev16_d16xcel_4g_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "171500")
+        event = PanelVersionUpdate.decode(pkt, Rev16DecodeOptions)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D16X_CEL_4G)
+
+    def test_legacy_d16x_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "170000")
+        event = PanelVersionUpdate.decode(pkt, LegacyDecodeOptions)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D16X)
+
+    def test_legacy_d16x_cel_3g_model_1(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "170400")
+        event = PanelVersionUpdate.decode(pkt, LegacyDecodeOptions)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D16X_CEL_3G)
+
+    def test_legacy_d16x_cel_3g_model_2(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "171400")
+        event = PanelVersionUpdate.decode(pkt, LegacyDecodeOptions)
+        self.assertEqual(event.model, PanelVersionUpdate.Model.D16X_CEL_3G)
+
+    def test_legacy_unhandled_model(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "171300")
+        self.assertRaises(KeyError, lambda: PanelVersionUpdate.decode(pkt, LegacyDecodeOptions))
 
     def test_sw_version(self):
         cases = [

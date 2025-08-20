@@ -8,7 +8,7 @@ from justbackoff import Backoff
 
 from .alarm import ArmingState, Alarm, ArmingMode
 from .connection import Connection, IP232Connection, Serial232Connection
-from .event import BaseEvent
+from .event import BaseEvent, DecodeOptions
 from .packet import CommandType, Packet
 
 _LOGGER = logging.getLogger(__name__)
@@ -32,6 +32,7 @@ class Client:
         update_interval: int = 60,
         infer_arming_state: bool = False,
         alarm: Optional[Alarm] = None,
+        decode_options: Optional[DecodeOptions] = None,
     ):
         if connection is None:
             if host is not None and port is not None:
@@ -47,6 +48,7 @@ class Client:
             alarm = Alarm(infer_arming_state=infer_arming_state)
 
         self.alarm = alarm
+        self._decode_options = decode_options
         self._on_event_received: Optional[Callable[[BaseEvent], None]] = None
         self._connection = connection
         self._closed = False
@@ -137,7 +139,7 @@ class Client:
                 if len(decoded_data) > 0:
                     try:
                         pkt = Packet.decode(decoded_data)
-                        event = BaseEvent.decode(pkt)
+                        event = BaseEvent.decode(pkt, self._decode_options)
                     except Exception:
                         _LOGGER.warning("Failed to decode packet", exc_info=True)
                         continue
