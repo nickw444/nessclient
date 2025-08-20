@@ -1,3 +1,5 @@
+"""In-memory representation and state handling for alarm entities."""
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Callable, List
@@ -6,6 +8,7 @@ from .event import BaseEvent, ZoneUpdate, ArmingUpdate, SystemStatusEvent
 
 
 class ArmingState(Enum):
+    """High-level arming state of the alarm."""
     UNKNOWN = "UNKNOWN"
     DISARMED = "DISARMED"
     ARMING = "ARMING"
@@ -16,6 +19,7 @@ class ArmingState(Enum):
 
 
 class ArmingMode(Enum):
+    """Mode of arming when the alarm is armed."""
     ARMED_AWAY = "ARMED_AWAY"
     ARMED_HOME = "ARMED_HOME"
     ARMED_DAY = "ARMED_DAY"
@@ -41,6 +45,7 @@ class Alarm:
 
     @dataclass
     class Zone:
+        """Represents a single zone and its state."""
         triggered: Optional[bool]
 
     def __init__(self, infer_arming_state: bool = False) -> None:
@@ -96,7 +101,7 @@ class Alarm:
                 return self._update_arming_state(ArmingState.DISARMED)
 
     def _handle_zone_input_update(self, update: ZoneUpdate) -> None:
-        for i, zone in enumerate(self.zones):
+        for i, _ in enumerate(self.zones):
             zone_id = i + 1
             name = "ZONE_{}".format(zone_id)
             if ZoneUpdate.Zone[name] in update.included_zones:
@@ -104,7 +109,7 @@ class Alarm:
             else:
                 self._update_zone(zone_id, False)
 
-    def _handle_system_status_event(self, event: SystemStatusEvent) -> None:
+    def _handle_system_status_event(self, event: SystemStatusEvent) -> None:  # pylint: disable=too-many-branches
         """
         DISARMED -> ARMED_AWAY -> EXIT_DELAY_START -> EXIT_DELAY_END
          (trip): -> ALARM -> OUTPUT_ON -> ALARM_RESTORE

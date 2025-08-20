@@ -1,3 +1,5 @@
+"""Alarm state machine used by the simulator server."""
+
 import logging
 import threading
 import time
@@ -19,6 +21,7 @@ class Alarm:
     """
 
     class ArmingState(Enum):
+        """States for the simulator alarm."""
         DISARMED = "DISARMED"
         EXIT_DELAY = "EXIT_DELAY"
         ARMED = "ARMED"
@@ -26,6 +29,7 @@ class Alarm:
         TRIPPED = "TRIPPED"
 
     class ArmingMode(Enum):
+        """Arming modes supported by the simulator."""
         ARMED_AWAY = "ARMED_AWAY"
         ARMED_HOME = "ARMED_HOME"
         ARMED_DAY = "ARMED_DAY"

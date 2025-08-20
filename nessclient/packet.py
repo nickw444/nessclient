@@ -1,3 +1,5 @@
+"""Packet encoding/decoding helpers for the Ness protocol."""
+
 import datetime
 import logging
 from dataclasses import dataclass
@@ -8,12 +10,15 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class CommandType(Enum):
+    """Panel command types used in packets."""
     SYSTEM_STATUS = 0x61
     USER_INTERFACE = 0x60
 
 
 @dataclass
 class Packet:
+    """A high-level representation of a Ness serial packet."""
+
     address: Optional[int]
     seq: int
     command: CommandType
@@ -41,13 +46,13 @@ class Packet:
     def length(self) -> int:
         if is_user_interface_req(self.start):
             return len(self.data)
-        else:
-            return int(len(self.data) / 2)
+
+        return int(len(self.data) / 2)
 
     @property
     def checksum(self) -> int:
-        bytes = self.encode(with_checksum=False)
-        total = sum([ord(x) for x in bytes]) & 0xFF
+        encoded = self.encode(with_checksum=False)
+        total = sum(ord(x) for x in encoded) & 0xFF
         return (256 - total) % 256
 
     def encode(self, with_checksum: bool = True) -> str:
@@ -120,7 +125,7 @@ class Packet:
             timestamp = decode_timestamp(data.take_bytes(6))
 
         # TODO(NW): Figure out checksum validation
-        checksum = data.take_hex()  # noqa
+        _checksum = data.take_hex()  # noqa: F841
 
         if not data.is_consumed():
             raise ValueError("Unable to consume all data")
@@ -138,6 +143,8 @@ class Packet:
 
 
 class DataIterator:
+    """Utility to incrementally consume data while decoding a packet."""
+
     def __init__(self, data: str):
         self._data = data
         self._position = 0

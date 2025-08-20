@@ -1,7 +1,9 @@
+"""nessclient CLI entrypoint and command group."""
+
 import logging
+from importlib.metadata import version as importlib_version
 
 import click
-from importlib.metadata import version as importlib_version
 
 from .events import events
 from .send_command import send_command
@@ -35,4 +37,4 @@ cli.add_command(send_command)
 cli.add_command(server)
 
 if __name__ == "__main__":
-    cli()
+    cli()  # pylint: disable=no-value-for-parameter

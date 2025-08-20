@@ -1,3 +1,5 @@
+"""CLI: listen for and print emitted alarm events."""
+
 import asyncio
 import click
 

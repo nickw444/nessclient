@@ -1,3 +1,5 @@
+"""CLI command to run a dummy simulator server."""
+
 import click
 
 from .alarm_server import AlarmServer

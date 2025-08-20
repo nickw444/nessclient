@@ -1,3 +1,5 @@
+"""Event model classes and encode/decode helpers."""
+
 import datetime
 import struct
 from enum import Enum
@@ -23,7 +25,9 @@ def pack_unsigned_short_data_enum(items: List[T]) -> str:
     return packed_value.hex()
 
 
-class BaseEvent(object):
+class BaseEvent:
+    """Base class for decoded/encoded events emitted by the panel."""
+
     def __init__(self, address: Optional[int], timestamp: Optional[datetime.datetime]):
         self.address = address
         self.timestamp = timestamp
@@ -45,7 +49,9 @@ class BaseEvent(object):
 
 
 class SystemStatusEvent(BaseEvent):
+    """Incoming system status events (zones, system, area events)."""
     class EventType(Enum):
+        """System status event types."""
         # Zone/User Events
         UNSEALED = 0x00
         SEALED = 0x01
@@ -89,13 +95,13 @@ class SystemStatusEvent(BaseEvent):
 
     def __init__(
         self,
-        type: "SystemStatusEvent.EventType",
+        type: "SystemStatusEvent.EventType",  # pylint: disable=redefined-builtin
         zone: int,
         area: int,
         address: Optional[int],
         timestamp: Optional[datetime.datetime],
     ) -> None:
-        super(SystemStatusEvent, self).__init__(address=address, timestamp=timestamp)
+        super().__init__(address=address, timestamp=timestamp)
         self.type = type
         self.zone = zone
         self.area = area
@@ -126,7 +132,9 @@ class SystemStatusEvent(BaseEvent):
 
 
 class StatusUpdate(BaseEvent):
+    """A status update response to a user interface request."""
     class RequestID(Enum):
+        """Status update request identifiers."""
         ZONE_INPUT_UNSEALED = 0x0
         ZONE_RADIO_UNSEALED = 0x1
         ZONE_CBUS_UNSEALED = 0x2
@@ -153,11 +161,11 @@ class StatusUpdate(BaseEvent):
         address: Optional[int],
         timestamp: Optional[datetime.datetime],
     ) -> None:
-        super(StatusUpdate, self).__init__(address=address, timestamp=timestamp)
+        super().__init__(address=address, timestamp=timestamp)
         self.request_id = request_id
 
     @classmethod
-    def decode(self, packet: Packet) -> "StatusUpdate":
+    def decode(cls, packet: Packet) -> "StatusUpdate":
         request_id = StatusUpdate.RequestID(int(packet.data[0:2], 16))
         if request_id.name.startswith("ZONE"):
             return ZoneUpdate.decode(packet)
@@ -178,7 +186,9 @@ class StatusUpdate(BaseEvent):
 
 
 class ZoneUpdate(StatusUpdate):
+    """Status update carrying bitfields for zone information."""
     class Zone(Enum):
+        """Bit positions for each zone in update bitfields."""
         ZONE_1 = 0x0100
         ZONE_2 = 0x0200
         ZONE_3 = 0x0400
@@ -203,7 +213,7 @@ class ZoneUpdate(StatusUpdate):
         address: Optional[int],
         timestamp: Optional[datetime.datetime],
     ) -> None:
-        super(ZoneUpdate, self).__init__(
+        super().__init__(
             request_id=request_id, address=address, timestamp=timestamp
         )
         self.included_zones = included_zones
@@ -234,6 +244,7 @@ class ZoneUpdate(StatusUpdate):
 
 
 class MiscellaneousAlarmsUpdate(StatusUpdate):
+    """Status update for miscellaneous alarm conditions."""
     class AlarmType(Enum):
         """
         Note: The ness provided documentation has the byte endianness
@@ -264,7 +275,7 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
         address: Optional[int],
         timestamp: Optional[datetime.datetime],
     ):
-        super(MiscellaneousAlarmsUpdate, self).__init__(
+        super().__init__(
             request_id=StatusUpdate.RequestID.MISCELLANEOUS_ALARMS,
             address=address,
             timestamp=timestamp,
@@ -284,6 +295,7 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
 
 
 class ArmingUpdate(StatusUpdate):
+    """Status update indicating arming-related flags and modes."""
     class ArmingStatus(Enum):
         """
         Note: The ness provided documentation has the byte endianness
@@ -312,7 +324,7 @@ class ArmingUpdate(StatusUpdate):
         address: Optional[int],
         timestamp: Optional[datetime.datetime],
     ):
-        super(ArmingUpdate, self).__init__(
+        super().__init__(
             request_id=StatusUpdate.RequestID.ARMING,
             address=address,
             timestamp=timestamp,
@@ -344,6 +356,7 @@ class ArmingUpdate(StatusUpdate):
 
 
 class OutputsUpdate(StatusUpdate):
+    """Status update conveying various output states (sirens, aux, etc.)."""
     class OutputType(Enum):
         """
         Note: The ness provided documentation has the byte endianness
@@ -377,7 +390,7 @@ class OutputsUpdate(StatusUpdate):
         address: Optional[int],
         timestamp: Optional[datetime.datetime],
     ):
-        super(OutputsUpdate, self).__init__(
+        super().__init__(
             request_id=StatusUpdate.RequestID.OUTPUTS,
             address=address,
             timestamp=timestamp,
@@ -394,7 +407,9 @@ class OutputsUpdate(StatusUpdate):
 
 
 class ViewStateUpdate(StatusUpdate):
+    """Status update for keypad view state changes."""
     class State(Enum):
+        """Available keypad view states."""
         NORMAL = 0xF000
         BRIEF_DAY_CHIME = 0xE000
         HOME = 0xD000
@@ -410,7 +425,7 @@ class ViewStateUpdate(StatusUpdate):
         address: Optional[int],
         timestamp: Optional[datetime.datetime],
     ):
-        super(ViewStateUpdate, self).__init__(
+        super().__init__(
             request_id=StatusUpdate.RequestID.VIEW_STATE,
             address=address,
             timestamp=timestamp,
@@ -428,6 +443,7 @@ class ViewStateUpdate(StatusUpdate):
 
 
 class PanelVersionUpdate(StatusUpdate):
+    """Status update providing panel model and version information."""
     class Model(Enum):
         """Panel model and modem combinations.
 
@@ -456,7 +472,7 @@ class PanelVersionUpdate(StatusUpdate):
         address: Optional[int],
         timestamp: Optional[datetime.datetime],
     ):
-        super(PanelVersionUpdate, self).__init__(
+        super().__init__(
             request_id=StatusUpdate.RequestID.PANEL_VERSION,
             address=address,
             timestamp=timestamp,
@@ -484,7 +500,9 @@ class PanelVersionUpdate(StatusUpdate):
 
 
 class AuxiliaryOutputsUpdate(StatusUpdate):
+    """Status update detailing auxiliary outputs."""
     class OutputType(Enum):
+        """Auxiliary output bit positions."""
         AUX_1 = 0x0001
         AUX_2 = 0x0002
         AUX_3 = 0x0004
@@ -500,7 +518,7 @@ class AuxiliaryOutputsUpdate(StatusUpdate):
         address: Optional[int],
         timestamp: Optional[datetime.datetime],
     ):
-        super(AuxiliaryOutputsUpdate, self).__init__(
+        super().__init__(
             request_id=StatusUpdate.RequestID.AUXILIARY_OUTPUTS,
             address=address,
             timestamp=timestamp,

@@ -1,3 +1,5 @@
+"""CLI: send a raw user command to the panel."""
+
 import asyncio
 
 import click

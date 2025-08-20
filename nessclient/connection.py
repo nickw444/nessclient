@@ -1,3 +1,5 @@
+"""Connection abstractions for TCP/IP and Serial transport."""
+
 import asyncio
 import logging
 from abc import ABC, abstractmethod

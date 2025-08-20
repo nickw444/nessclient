@@ -1,3 +1,5 @@
+"""Simulator server that emits realistic events for testing/CLI."""
+
 import logging
 import random
 import threading
@@ -12,7 +14,8 @@ from ...event import SystemStatusEvent, ArmingUpdate, ZoneUpdate, StatusUpdate
 _LOGGER = logging.getLogger(__name__)
 
 
-class AlarmServer:
+class AlarmServer:  # pylint: disable=too-few-public-methods
+    """Interactive simulator server for generating panel-like events."""
     def __init__(self, host: str, port: int):
         self._alarm = Alarm.create(
             num_zones=8,
@@ -36,7 +39,7 @@ class AlarmServer:
             command = command.upper().strip()
             if command == "D":
                 self._alarm.disarm()
-            elif command == "A" or command == "AA":
+            elif command in ("A", "AA"):
                 self._alarm.arm(Alarm.ArmingMode.ARMED_AWAY)
             elif command == "AH":
                 self._alarm.arm(Alarm.ArmingMode.ARMED_HOME)
@@ -77,10 +80,10 @@ class AlarmServer:
         self._server.write_event(event)
 
     def _handle_command(self, command: str) -> None:
-        _LOGGER.info("Incoming User Command: {}".format(command))
-        if command == "AE" or command == "A1234E":
+        _LOGGER.info("Incoming User Command: %s", command)
+        if command in ("AE", "A1234E"):
             self._alarm.arm()
-        elif command == "HE" or command == "H1234E":
+        elif command in ("HE", "H1234E"):
             self._alarm.arm(Alarm.ArmingMode.ARMED_HOME)
         elif command == "1234E":
             self._alarm.disarm()

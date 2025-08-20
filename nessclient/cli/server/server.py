@@ -1,3 +1,5 @@
+"""Simple threaded TCP server for simulating a Ness panel."""
+
 import logging
 import socket
 import threading
@@ -11,6 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class Server:
+    """Threaded TCP server to accept client connections and echo events."""
     def __init__(self, handle_command: Callable[[str], None]):
         self._handle_command = handle_command
         self._handle_event_lock: threading.Lock = threading.Lock()
@@ -26,7 +29,7 @@ class Server:
             s.bind((host, port))
             s.listen(5)
 
-            _LOGGER.info("Server listening on {}:{}".format(host, port))
+            _LOGGER.info("Server listening on %s:%s", host, port)
             while True:
                 conn, addr = s.accept()
                 threading.Thread(

@@ -1,3 +1,5 @@
+"""High-level client for interacting with a Ness panel."""
+
 import asyncio
 import datetime
 import logging
@@ -72,7 +74,7 @@ class Client:
         return await self.send_command(command)
 
     async def aux(self, output_id: int, state: bool = True) -> None:
-        command = "{}{}{}".format(output_id, output_id, "*" if state else "#")
+        command = f"{output_id}{output_id}{('*' if state else '#')}"
         return await self.send_command(command)
 
     async def update(self) -> None:
@@ -138,7 +140,7 @@ class Client:
                     try:
                         pkt = Packet.decode(decoded_data)
                         event = BaseEvent.decode(pkt)
-                    except Exception:
+                    except Exception:  # pylint: disable=broad-except
                         _LOGGER.warning("Failed to decode packet", exc_info=True)
                         continue
 

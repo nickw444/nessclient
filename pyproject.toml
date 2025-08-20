@@ -35,8 +35,10 @@ dev = [
     "types-pyserial",
     "types-click",
     "ruff",
+    "pylint",
     "pytest",
     "pytest-asyncio",
+    "click",
 ]
 
 [tool.setuptools]
@@ -50,7 +52,23 @@ version_file = "nessclient/_version.py"
 
 [tool.ruff]
 line-length = 90
-extend-exclude = ["venv", "virtualenv", "docs"]
+extend-exclude = ["docs", "nessclient/_version.py"]
 
 [tool.ruff.lint]
 ignore = ["E261", "E203"]
+
+[tool.pylint.main]
+ignore-patterns = ["_version.py"]
+jobs = 0
+
+[tool.pylint.messages_control]
+disable = ["C0116", "C0209", "R1705", "W0223", "R0801"]
+
+[tool.pylint.format]
+max-line-length = 90
+
+[tool.pylint.design]
+max-args = 8
+max-attributes = 9
+max-returns = 10
+max-positional-arguments = 8
