@@ -48,6 +48,10 @@ class Alarm:
         self._zone_state_changed = _zone_state_changed
         self._pending_event: str | None = None
 
+    @property
+    def arming_mode(self) -> "Alarm.ArmingMode | None":
+        return self._arming_mode
+
     @staticmethod
     def create(
         num_zones: int,
