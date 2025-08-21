@@ -3,6 +3,7 @@ from typing import cast
 
 from nessclient.event import (
     ZoneUpdate_1_16,
+    ZoneUpdate_17_32,
     pack_unsigned_short_data_enum,
     ArmingUpdate,
     StatusUpdate,
@@ -48,6 +49,11 @@ class StatusUpdateTestCase(unittest.TestCase):
         pkt = make_packet(CommandType.USER_INTERFACE, "000000")
         event = StatusUpdate.decode(pkt)
         self.assertTrue(isinstance(event, ZoneUpdate_1_16))
+
+    def test_decode_zone_17_32_update(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "200000")
+        event = StatusUpdate.decode(pkt)
+        self.assertTrue(isinstance(event, ZoneUpdate_17_32))
 
     def test_decode_misc_alarms_update(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "130000")
@@ -108,7 +114,7 @@ class ArmingUpdateTestCase(unittest.TestCase):
         )
 
 
-class ZoneUpdateTestCase(unittest.TestCase):
+class ZoneUpdate1To16TestCase(unittest.TestCase):
     def test_encode(self):
         event = ZoneUpdate_1_16(
             included_zones=[ZoneUpdate_1_16.Zone.ZONE_1, ZoneUpdate_1_16.Zone.ZONE_3],
@@ -143,6 +149,62 @@ class ZoneUpdateTestCase(unittest.TestCase):
         self.assertEqual(
             event.included_zones,
             [ZoneUpdate_1_16.Zone.ZONE_3, ZoneUpdate_1_16.Zone.ZONE_5],
+        )
+
+    def test_zone_1_16_excluded_plus_auto(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "190500")
+        event = ZoneUpdate_1_16.decode(pkt)
+        self.assertEqual(
+            event.request_id,
+            ZoneUpdate_1_16.RequestID.ZONE_1_16_EXCLUDED_PLUS_AUTO_EXCLUDED,
+        )
+        self.assertEqual(
+            event.included_zones,
+            [ZoneUpdate_1_16.Zone.ZONE_1, ZoneUpdate_1_16.Zone.ZONE_3],
+        )
+
+
+class ZoneUpdate17To32TestCase(unittest.TestCase):
+    def test_encode(self):
+        event = ZoneUpdate_17_32(
+            included_zones=[
+                ZoneUpdate_17_32.Zone.ZONE_17,
+                ZoneUpdate_17_32.Zone.ZONE_19,
+            ],
+            request_id=StatusUpdate.RequestID.ZONE_17_32_INPUT_UNSEALED,
+            timestamp=None,
+            address=0x00,
+        )
+        pkt = event.encode()
+        self.assertEqual(pkt.command, CommandType.USER_INTERFACE)
+        self.assertEqual(pkt.data, "200500")
+        self.assertTrue(pkt.is_user_interface_resp)
+
+    def test_zone_in_delay_no_zones(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "230000")
+        event = ZoneUpdate_17_32.decode(pkt)
+        self.assertEqual(event.request_id, ZoneUpdate_17_32.RequestID.ZONE_17_32_IN_DELAY)
+        self.assertEqual(event.included_zones, [])
+
+    def test_zone_in_delay_with_zones(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "230500")
+        event = ZoneUpdate_17_32.decode(pkt)
+        self.assertEqual(event.request_id, ZoneUpdate_17_32.RequestID.ZONE_17_32_IN_DELAY)
+        self.assertEqual(
+            event.included_zones,
+            [ZoneUpdate_17_32.Zone.ZONE_17, ZoneUpdate_17_32.Zone.ZONE_19],
+        )
+
+    def test_zone_excluded_plus_auto(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "330500")
+        event = ZoneUpdate_17_32.decode(pkt)
+        self.assertEqual(
+            event.request_id,
+            ZoneUpdate_17_32.RequestID.ZONE_17_32_EXCLUDED_PLUS_AUTO_EXCLUDED,
+        )
+        self.assertEqual(
+            event.included_zones,
+            [ZoneUpdate_17_32.Zone.ZONE_17, ZoneUpdate_17_32.Zone.ZONE_19],
         )
 
 
