@@ -75,7 +75,7 @@ def test_handle_event_zone_update_1_16_callback(alarm):
 
 def test_handle_event_zone_update_1_16_does_not_affect_17_32(alarm):
     # Seed some 17–32 states
-    alarm.zones[16].triggered = True   # zone 17
+    alarm.zones[16].triggered = True  # zone 17
     alarm.zones[20].triggered = False  # zone 21
 
     # Apply a 1–16 update
@@ -154,7 +154,7 @@ def test_handle_event_zone_update_17_32_callback(alarm):
 
 def test_handle_event_zone_update_17_32_does_not_affect_1_16(alarm):
     # Seed some 1–16 states
-    alarm.zones[0].triggered = True   # zone 1
+    alarm.zones[0].triggered = True  # zone 1
     alarm.zones[5].triggered = False  # zone 6
 
     # Apply a 17–32 update
