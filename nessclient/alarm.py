@@ -2,7 +2,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, List
 
-from .event import BaseEvent, ZoneUpdate_1_16, ZoneUpdate_17_32, ArmingUpdate, SystemStatusEvent
+from .event import (
+    BaseEvent,
+    ZoneUpdate_1_16,
+    ZoneUpdate_17_32,
+    ArmingUpdate,
+    SystemStatusEvent,
+)
 
 
 class ArmingState(Enum):
@@ -64,8 +70,8 @@ class Alarm:
         ):
             self._handle_zone_1_16_input_update(event)
         elif (
-                isinstance(event, ZoneUpdate_17_32)
-                and event.request_id == ZoneUpdate_17_32.RequestID.ZONE_17_32_INPUT_UNSEALED
+            isinstance(event, ZoneUpdate_17_32)
+            and event.request_id == ZoneUpdate_17_32.RequestID.ZONE_17_32_INPUT_UNSEALED
         ):
             self._handle_zone_17_32_input_update(event)
         elif isinstance(event, SystemStatusEvent):
@@ -111,13 +117,12 @@ class Alarm:
 
     def _handle_zone_17_32_input_update(self, update: ZoneUpdate_17_32) -> None:
         for i, zone in enumerate(self.zones[16:]):
-            zone_id = i + 1
+            zone_id = i + 17
             name = "ZONE_{}".format(zone_id)
             if ZoneUpdate_17_32.Zone[name] in update.included_zones:
                 self._update_zone(zone_id, True)
             else:
                 self._update_zone(zone_id, False)
-
 
     def _handle_system_status_event(self, event: SystemStatusEvent) -> None:
         """
