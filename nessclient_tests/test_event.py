@@ -266,7 +266,7 @@ class SystemStatusEventTestCase(unittest.TestCase):
         self.assertEqual(event.zone, 0)
         self.assertEqual(event.type, SystemStatusEvent.EventType.EXIT_DELAY_END)
 
-    def test_zone_sealed(self):
+    def test_zone_sealed_with_zone_5(self):
         pkt = make_packet(CommandType.SYSTEM_STATUS, "010500")
         event = SystemStatusEvent.decode(pkt)
         self.assertEqual(event.area, 0)
@@ -285,6 +285,48 @@ class SystemStatusEventTestCase(unittest.TestCase):
         event = SystemStatusEvent.decode(pkt)
         self.assertEqual(event.area, 0)
         self.assertEqual(event.zone, 16)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.UNSEALED)
+
+    def test_zone_sealed_with_zone_17_in_area_1(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "011701")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 1)
+        self.assertEqual(event.zone, 17)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.SEALED)
+
+    def test_zone_unsealed_with_zone_17_in_area_1(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "001701")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 1)
+        self.assertEqual(event.zone, 17)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.UNSEALED)
+
+    def test_zone_sealed_with_zone_17(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "011700")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 17)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.SEALED)
+
+    def test_zone_unsealed_with_zone_17(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "001700")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 17)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.UNSEALED)
+
+    def test_zone_sealed_with_zone_32(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "013200")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 32)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.SEALED)
+
+    def test_zone_unsealed_with_zone_32(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "003200")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 32)
         self.assertEqual(event.type, SystemStatusEvent.EventType.UNSEALED)
 
 
