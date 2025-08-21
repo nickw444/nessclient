@@ -2,7 +2,7 @@ import unittest
 from typing import cast
 
 from nessclient.event import (
-    ZoneUpdate,
+    ZoneUpdate_1_16,
     pack_unsigned_short_data_enum,
     ArmingUpdate,
     StatusUpdate,
@@ -20,7 +20,7 @@ from nessclient.packet import Packet, CommandType
 
 class UtilsTestCase(unittest.TestCase):
     def test_pack_unsigned_short_data_enum(self):
-        value = [ZoneUpdate.Zone.ZONE_1, ZoneUpdate.Zone.ZONE_4]
+        value = [ZoneUpdate_1_16.Zone.ZONE_1, ZoneUpdate_1_16.Zone.ZONE_4]
         self.assertEqual(
             "0900",
             pack_unsigned_short_data_enum(value),
@@ -47,7 +47,7 @@ class StatusUpdateTestCase(unittest.TestCase):
     def test_decode_zone_update(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "000000")
         event = StatusUpdate.decode(pkt)
-        self.assertTrue(isinstance(event, ZoneUpdate))
+        self.assertTrue(isinstance(event, ZoneUpdate_1_16))
 
     def test_decode_misc_alarms_update(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "130000")
@@ -110,9 +110,9 @@ class ArmingUpdateTestCase(unittest.TestCase):
 
 class ZoneUpdateTestCase(unittest.TestCase):
     def test_encode(self):
-        event = ZoneUpdate(
-            included_zones=[ZoneUpdate.Zone.ZONE_1, ZoneUpdate.Zone.ZONE_3],
-            request_id=StatusUpdate.RequestID.ZONE_INPUT_UNSEALED,
+        event = ZoneUpdate_1_16(
+            included_zones=[ZoneUpdate_1_16.Zone.ZONE_1, ZoneUpdate_1_16.Zone.ZONE_3],
+            request_id=StatusUpdate.RequestID.ZONE_1_16_INPUT_UNSEALED,
             timestamp=None,
             address=0x00,
         )
@@ -123,24 +123,26 @@ class ZoneUpdateTestCase(unittest.TestCase):
 
     def test_zone_in_delay_no_zones(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "030000")
-        event = ZoneUpdate.decode(pkt)
-        self.assertEqual(event.request_id, ZoneUpdate.RequestID.ZONE_IN_DELAY)
+        event = ZoneUpdate_1_16.decode(pkt)
+        self.assertEqual(event.request_id, ZoneUpdate_1_16.RequestID.ZONE_1_16_IN_DELAY)
         self.assertEqual(event.included_zones, [])
 
     def test_zone_in_delay_with_zones(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "030500")
-        event = ZoneUpdate.decode(pkt)
-        self.assertEqual(event.request_id, ZoneUpdate.RequestID.ZONE_IN_DELAY)
+        event = ZoneUpdate_1_16.decode(pkt)
+        self.assertEqual(event.request_id, ZoneUpdate_1_16.RequestID.ZONE_1_16_IN_DELAY)
         self.assertEqual(
-            event.included_zones, [ZoneUpdate.Zone.ZONE_1, ZoneUpdate.Zone.ZONE_3]
+            event.included_zones,
+            [ZoneUpdate_1_16.Zone.ZONE_1, ZoneUpdate_1_16.Zone.ZONE_3],
         )
 
     def test_zone_in_alarm_with_zones(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "051400")
-        event = ZoneUpdate.decode(pkt)
-        self.assertEqual(event.request_id, ZoneUpdate.RequestID.ZONE_IN_ALARM)
+        event = ZoneUpdate_1_16.decode(pkt)
+        self.assertEqual(event.request_id, ZoneUpdate_1_16.RequestID.ZONE_1_16_IN_ALARM)
         self.assertEqual(
-            event.included_zones, [ZoneUpdate.Zone.ZONE_3, ZoneUpdate.Zone.ZONE_5]
+            event.included_zones,
+            [ZoneUpdate_1_16.Zone.ZONE_3, ZoneUpdate_1_16.Zone.ZONE_5],
         )
 
 
