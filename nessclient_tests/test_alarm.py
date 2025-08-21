@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 
 from nessclient.alarm import Alarm, ArmingState, ArmingMode
-from nessclient.event import ArmingUpdate, ZoneUpdate, SystemStatusEvent
+from nessclient.event import ArmingUpdate, ZoneUpdate_1_16, SystemStatusEvent
 
 
 def test_state_is_initially_unknown(alarm):
@@ -15,16 +15,16 @@ def test_zones_are_initially_unknown(alarm):
         assert zone.triggered is None
 
 
-def test_16_zones_are_created(alarm):
-    assert len(alarm.zones) == 16
+def test_32_zones_are_created(alarm):
+    assert len(alarm.zones) == 32
 
 
 def test_handle_event_zone_update(alarm):
-    event = ZoneUpdate(
-        included_zones=[ZoneUpdate.Zone.ZONE_1, ZoneUpdate.Zone.ZONE_3],
+    event = ZoneUpdate_1_16(
+        included_zones=[ZoneUpdate_1_16.Zone.ZONE_1, ZoneUpdate_1_16.Zone.ZONE_3],
         timestamp=None,
         address=None,
-        request_id=ZoneUpdate.RequestID.ZONE_INPUT_UNSEALED,
+        request_id=ZoneUpdate_1_16.RequestID.ZONE_1_16_INPUT_UNSEALED,
     )
     alarm.handle_event(event)
     assert alarm.zones[0].triggered is True
@@ -36,11 +36,11 @@ def test_handle_event_zone_update_sealed(alarm):
     alarm.zones[0].triggered = True
     alarm.zones[1].triggered = True
 
-    event = ZoneUpdate(
-        included_zones=[ZoneUpdate.Zone.ZONE_1, ZoneUpdate.Zone.ZONE_3],
+    event = ZoneUpdate_1_16(
+        included_zones=[ZoneUpdate_1_16.Zone.ZONE_1, ZoneUpdate_1_16.Zone.ZONE_3],
         timestamp=None,
         address=None,
-        request_id=ZoneUpdate.RequestID.ZONE_INPUT_UNSEALED,
+        request_id=ZoneUpdate_1_16.RequestID.ZONE_1_16_INPUT_UNSEALED,
     )
     alarm.handle_event(event)
     assert alarm.zones[0].triggered is True
@@ -55,11 +55,11 @@ def test_handle_event_zone_update_callback(alarm):
 
     cb = Mock()
     alarm.on_zone_change(cb)
-    event = ZoneUpdate(
-        included_zones=[ZoneUpdate.Zone.ZONE_1, ZoneUpdate.Zone.ZONE_3],
+    event = ZoneUpdate_1_16(
+        included_zones=[ZoneUpdate_1_16.Zone.ZONE_1, ZoneUpdate_1_16.Zone.ZONE_3],
         timestamp=None,
         address=None,
-        request_id=ZoneUpdate.RequestID.ZONE_INPUT_UNSEALED,
+        request_id=ZoneUpdate_1_16.RequestID.ZONE_1_16_INPUT_UNSEALED,
     )
     alarm.handle_event(event)
     assert cb.call_count == 3
