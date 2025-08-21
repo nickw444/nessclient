@@ -3,7 +3,12 @@ from unittest.mock import Mock
 import pytest
 
 from nessclient.alarm import Alarm, ArmingState, ArmingMode
-from nessclient.event import ArmingUpdate, ZoneUpdate_1_16, SystemStatusEvent
+from nessclient.event import (
+    ArmingUpdate,
+    ZoneUpdate_1_16,
+    ZoneUpdate_17_32,
+    SystemStatusEvent,
+)
 
 
 def test_state_is_initially_unknown(alarm):
@@ -19,7 +24,7 @@ def test_32_zones_are_created(alarm):
     assert len(alarm.zones) == 32
 
 
-def test_handle_event_zone_update(alarm):
+def test_handle_event_zone_update_1_16(alarm):
     event = ZoneUpdate_1_16(
         included_zones=[ZoneUpdate_1_16.Zone.ZONE_1, ZoneUpdate_1_16.Zone.ZONE_3],
         timestamp=None,
@@ -32,7 +37,7 @@ def test_handle_event_zone_update(alarm):
     assert alarm.zones[2].triggered is True
 
 
-def test_handle_event_zone_update_sealed(alarm):
+def test_handle_event_zone_update_1_16_sealed(alarm):
     alarm.zones[0].triggered = True
     alarm.zones[1].triggered = True
 
@@ -48,7 +53,7 @@ def test_handle_event_zone_update_sealed(alarm):
     assert alarm.zones[2].triggered is True
 
 
-def test_handle_event_zone_update_callback(alarm):
+def test_handle_event_zone_update_1_16_callback(alarm):
     for zone in alarm.zones:
         zone.triggered = False
     alarm.zones[3].triggered = True
@@ -66,6 +71,104 @@ def test_handle_event_zone_update_callback(alarm):
     assert cb.call_args_list[0][0] == (1, True)
     assert cb.call_args_list[1][0] == (3, True)
     assert cb.call_args_list[2][0] == (4, False)
+
+
+def test_handle_event_zone_update_1_16_does_not_affect_17_32(alarm):
+    # Seed some 17–32 states
+    alarm.zones[16].triggered = True   # zone 17
+    alarm.zones[20].triggered = False  # zone 21
+
+    # Apply a 1–16 update
+    event = ZoneUpdate_1_16(
+        included_zones=[ZoneUpdate_1_16.Zone.ZONE_1],
+        timestamp=None,
+        address=None,
+        request_id=ZoneUpdate_1_16.RequestID.ZONE_1_16_INPUT_UNSEALED,
+    )
+    alarm.handle_event(event)
+
+    # Zones in 17–32 bank unchanged
+    assert alarm.zones[16].triggered is True
+    assert alarm.zones[20].triggered is False
+
+
+def test_handle_event_zone_update_17_32(alarm):
+    event = ZoneUpdate_17_32(
+        included_zones=[
+            ZoneUpdate_17_32.Zone.ZONE_17,
+            ZoneUpdate_17_32.Zone.ZONE_19,
+        ],
+        timestamp=None,
+        address=None,
+        request_id=ZoneUpdate_17_32.RequestID.ZONE_17_32_INPUT_UNSEALED,
+    )
+    alarm.handle_event(event)
+    assert alarm.zones[16].triggered is True
+    assert alarm.zones[17].triggered is False
+    assert alarm.zones[18].triggered is True
+
+
+def test_handle_event_zone_update_17_32_sealed(alarm):
+    alarm.zones[16].triggered = True  # zone 17
+    alarm.zones[17].triggered = True  # zone 18
+
+    event = ZoneUpdate_17_32(
+        included_zones=[
+            ZoneUpdate_17_32.Zone.ZONE_17,
+            ZoneUpdate_17_32.Zone.ZONE_19,
+        ],
+        timestamp=None,
+        address=None,
+        request_id=ZoneUpdate_17_32.RequestID.ZONE_17_32_INPUT_UNSEALED,
+    )
+    alarm.handle_event(event)
+    assert alarm.zones[16].triggered is True
+    assert alarm.zones[17].triggered is False
+    assert alarm.zones[18].triggered is True
+
+
+def test_handle_event_zone_update_17_32_callback(alarm):
+    # Similar to 1–16 callback test: seed a zone True, others False
+    for z in alarm.zones:
+        z.triggered = False
+    alarm.zones[19].triggered = True  # zone 20
+
+    cb = Mock()
+    alarm.on_zone_change(cb)
+
+    event = ZoneUpdate_17_32(
+        included_zones=[
+            ZoneUpdate_17_32.Zone.ZONE_17,
+            ZoneUpdate_17_32.Zone.ZONE_19,
+        ],
+        timestamp=None,
+        address=None,
+        request_id=ZoneUpdate_17_32.RequestID.ZONE_17_32_INPUT_UNSEALED,
+    )
+    alarm.handle_event(event)
+    assert cb.call_count == 3
+    assert cb.call_args_list[0][0] == (17, True)
+    assert cb.call_args_list[1][0] == (19, True)
+    assert cb.call_args_list[2][0] == (20, False)
+
+
+def test_handle_event_zone_update_17_32_does_not_affect_1_16(alarm):
+    # Seed some 1–16 states
+    alarm.zones[0].triggered = True   # zone 1
+    alarm.zones[5].triggered = False  # zone 6
+
+    # Apply a 17–32 update
+    event = ZoneUpdate_17_32(
+        included_zones=[ZoneUpdate_17_32.Zone.ZONE_17],
+        timestamp=None,
+        address=None,
+        request_id=ZoneUpdate_17_32.RequestID.ZONE_17_32_INPUT_UNSEALED,
+    )
+    alarm.handle_event(event)
+
+    # Zones in 1–16 bank unchanged
+    assert alarm.zones[0].triggered is True
+    assert alarm.zones[5].triggered is False
 
 
 def test_handle_event_arming_update_exit_delay(alarm):
