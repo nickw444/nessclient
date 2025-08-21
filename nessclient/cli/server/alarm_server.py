@@ -13,7 +13,7 @@ from .zone import Zone
 from ...event import (
     SystemStatusEvent,
     ArmingUpdate,
-    ZoneUpdate,
+    ZoneUpdate_1_16,
     StatusUpdate,
     PanelVersionUpdate,
 )
@@ -369,8 +369,8 @@ class AlarmServer:
         self._server.write_event(event)
 
     def _handle_zone_input_unsealed_status_update_request(self) -> None:
-        event = ZoneUpdate(
-            request_id=StatusUpdate.RequestID.ZONE_INPUT_UNSEALED,
+        event = ZoneUpdate_1_16(
+            request_id=StatusUpdate.RequestID.ZONE_1_16_INPUT_UNSEALED,
             included_zones=[
                 get_zone_for_id(z.id)
                 for z in self._alarm.zones
@@ -513,6 +513,6 @@ def toggled_state(state: Zone.State) -> Zone.State:
         return Zone.State.SEALED
 
 
-def get_zone_for_id(zone_id: int) -> ZoneUpdate.Zone:
+def get_zone_for_id(zone_id: int) -> ZoneUpdate_1_16.Zone:
     key = "ZONE_{}".format(zone_id)
-    return ZoneUpdate.Zone[key]
+    return ZoneUpdate_1_16.Zone[key]

@@ -158,3 +158,41 @@ class PacketTestCase(unittest.TestCase):
         event = BaseEvent.decode(pkt)
         print(pkt)
         print(event)
+
+    def test_decode_status_update_response_zone_17_32_none(self):
+        # Zone 17-32 Input Unsealed (ID 0x20), no zones set
+        pkt = Packet.decode("82000360200000ff")
+        self.assertEqual(pkt.start, 0x82)
+        self.assertEqual(pkt.address, 0x00)
+        self.assertEqual(pkt.length, 3)
+        self.assertEqual(pkt.seq, 0x00)
+        self.assertEqual(pkt.command, CommandType.USER_INTERFACE)
+        self.assertEqual(pkt.data, "200000")
+        self.assertIsNone(pkt.timestamp)
+        self.assertTrue(pkt.is_user_interface_resp)
+
+    def test_decode_status_update_response_zone_17_32_in_alarm_zone17(self):
+        # Zone 17-32 In Alarm (ID 0x25), Zone 17 set
+        pkt = Packet.decode("82000360250100aa")
+        self.assertEqual(pkt.data, "250100")
+        self.assertTrue(pkt.is_user_interface_resp)
+
+    def test_decode_status_update_response_zone_23_unsealed_example(self):
+        # From FORM 5 examples in the spec (address 0x07)
+        # Example: Zone 23 unseal (ID 0x20, data 0x4000)
+        pkt = Packet.decode("8207036020400013")
+        self.assertEqual(pkt.start, 0x82)
+        self.assertEqual(pkt.address, 0x07)
+        self.assertEqual(pkt.length, 3)
+        self.assertEqual(pkt.seq, 0x00)
+        self.assertEqual(pkt.command, CommandType.USER_INTERFACE)
+        self.assertEqual(pkt.data, "204000")
+        self.assertTrue(pkt.is_user_interface_resp)
+
+    def test_decode_status_update_response_zone_23_24_unsealed_example(self):
+        # From FORM 5 examples in the spec (address 0x07)
+        # Example: Zones 23 and 24 unseal (ID 0x20, data 0xC000)
+        pkt = Packet.decode("8207036020c00054")
+        self.assertEqual(pkt.address, 0x07)
+        self.assertEqual(pkt.data, "20c000")
+        self.assertTrue(pkt.is_user_interface_resp)
