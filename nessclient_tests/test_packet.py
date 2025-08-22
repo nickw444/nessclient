@@ -4,7 +4,12 @@ import unittest
 from os import path
 
 from nessclient import BaseEvent
+from nessclient.event import SystemStatusEvent, StatusUpdate
 from nessclient.packet import Packet, CommandType
+from .fixtures.real_captured_test_data import (
+    Output_From_Ness_Event_Data_Real_Packets,
+    Output_From_Ness_Status_Update_Real_Packets,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -158,3 +163,19 @@ class PacketTestCase(unittest.TestCase):
         event = BaseEvent.decode(pkt)
         print(pkt)
         print(event)
+
+
+class PacketTestRealPackets(unittest.TestCase):
+    def test_decode_encode_real_event_packets(self):
+        for pktdata in Output_From_Ness_Event_Data_Real_Packets:
+            pkt = Packet.decode(pktdata.decode("ascii").strip())
+            event = BaseEvent.decode(pkt)
+            self.assertTrue(isinstance(event, SystemStatusEvent))
+            self.assertEqual(event.encode().encode().encode("ascii") + b"\r\n", pktdata)
+
+    def test_decode_encode_real_status_packets(self):
+        for pktdata in Output_From_Ness_Status_Update_Real_Packets:
+            pkt = Packet.decode(pktdata.decode("ascii").strip())
+            event = BaseEvent.decode(pkt)
+            self.assertTrue(isinstance(event, StatusUpdate))
+            self.assertEqual(event.encode().encode().encode("ascii") + b"\r\n", pktdata)
