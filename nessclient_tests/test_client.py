@@ -56,12 +56,30 @@ async def test_aux_off(connection, client):
 @pytest.mark.asyncio
 async def test_update(connection, client):
     await client.update()
-    assert connection.write.call_count == 2
+    # When panel model unknown, client probes S17 then continues with S00/S14
+    assert connection.write.call_count == 3
     commands = {
         get_data(connection.write.call_args_list[0][0][0]),
         get_data(connection.write.call_args_list[1][0][0]),
+        get_data(connection.write.call_args_list[2][0][0]),
     }
-    assert commands == {b"S00", b"S14"}
+    assert commands == {b"S17", b"S00", b"S14"}
+
+
+@pytest.mark.asyncio
+async def test_update_d32x_sends_s20(connection, client):
+    # Simulate that the client already knows it's a D32X
+    from nessclient.event import PanelVersionUpdate
+
+    client._panel_model = PanelVersionUpdate.Model.D32X  # type: ignore[attr-defined]
+    await client.update()
+    assert connection.write.call_count == 3
+    commands = {
+        get_data(connection.write.call_args_list[0][0][0]),
+        get_data(connection.write.call_args_list[1][0][0]),
+        get_data(connection.write.call_args_list[2][0][0]),
+    }
+    assert commands == {b"S00", b"S20", b"S14"}
 
 
 @pytest.mark.asyncio

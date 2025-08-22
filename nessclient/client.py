@@ -8,7 +8,7 @@ from justbackoff import Backoff
 
 from .alarm import ArmingState, Alarm, ArmingMode
 from .connection import Connection, IP232Connection, Serial232Connection
-from .event import BaseEvent, DecodeOptions
+from .event import BaseEvent, DecodeOptions, PanelVersionUpdate
 from .packet import CommandType, Packet
 
 _LOGGER = logging.getLogger(__name__)
@@ -56,6 +56,9 @@ class Client:
         self._connect_lock = asyncio.Lock()
         self._last_recv: datetime.datetime | None = None
         self._update_interval = update_interval
+        self._panel_model: PanelVersionUpdate.Model | None = None
+        # Async event to coordinate waiting for panel model discovery
+        self._panel_model_event: asyncio.Event = asyncio.Event()
 
     async def arm_away(self, code: str | None = None) -> None:
         command = "A{}E".format(code if code else "")
@@ -79,10 +82,18 @@ class Client:
 
     async def update(self) -> None:
         """Force update of alarm status and zones"""
-        _LOGGER.debug("Requesting state update from server (S00, S14)")
+        cmds = []
+        if self.alarm.panel_model is None:
+            cmds.append(self.send_command("S17")) # VERSION - SW
+
+        _LOGGER.debug("Requesting state update from server (S00, S20, S14)")
         await asyncio.gather(
-            # List unsealed Zones
+            *cmds,
+            # List unsealed Zones (Zone 1-16)
             self.send_command("S00"),
+            # List unsealed Zones (Zone 17-32) - Note seems to be OK to unconditionally
+            # send to non-D32X panels
+            self.send_command("S20"),
             # Arming status update
             self.send_command("S14"),
         )
@@ -183,6 +194,13 @@ class Client:
     ) -> Callable[[int, bool], None]:
         self.alarm.on_zone_change(f)
         return f
+
+    async def get_panel_version(
+            self,
+            f: Callable[[PanelVersionUpdate.Model, str], None]
+    ):
+        pass
+        # self.alarm.on_panel_version_update(f)
 
     def on_event_received(
         self, f: Callable[[BaseEvent], None]

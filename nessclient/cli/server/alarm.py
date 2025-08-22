@@ -42,7 +42,7 @@ class Alarm:
         _zone_state_changed: Callable[[int, Zone.State], None],
     ):
         self.state = state
-        self.zones = zones
+        self._zones = zones
         self._arming_mode: Alarm.ArmingMode | None = None
         self._alarm_state_changed = _alarm_state_changed
         self._zone_state_changed = _zone_state_changed

@@ -14,6 +14,7 @@ from ...event import (
     SystemStatusEvent,
     ArmingUpdate,
     ZoneUpdate_1_16,
+    ZoneUpdate_17_32,
     StatusUpdate,
     PanelVersionUpdate,
 )
@@ -31,7 +32,7 @@ class AlarmServer:
         panel_minor_version: int,
     ):
         self._alarm = Alarm.create(
-            num_zones=16,
+            num_zones=(32 if panel_model == PanelVersionUpdate.Model.D32X else 16),
             alarm_state_changed=self._alarm_state_changed,
             zone_state_changed=self._zone_state_changed,
         )
@@ -354,6 +355,8 @@ class AlarmServer:
             self._alarm.disarm()
         elif command == "S00":
             self._handle_zone_input_unsealed_status_update_request()
+        elif command == "S20":
+            self._handle_zone_17_32_input_unsealed_status_update_request()
         elif command == "S14":
             self._handle_arming_status_update_request()
         elif command == "S17":
@@ -369,18 +372,56 @@ class AlarmServer:
         self._server.write_event(event)
 
     def _handle_zone_input_unsealed_status_update_request(self) -> None:
+        # Only include zones 1–16
+        included = []
+        for z in self._alarm.zones[:16]:
+            if z.state == Zone.State.UNSEALED:
+                included.append(get_zone_for_id(z.id))
         event = ZoneUpdate_1_16(
             request_id=StatusUpdate.RequestID.ZONE_1_16_INPUT_UNSEALED,
-            included_zones=[
-                get_zone_for_id(z.id)
-                for z in self._alarm.zones
-                if z.state == Zone.State.UNSEALED
-            ],
+            included_zones=included,
             address=0x00,
             timestamp=None,
         )
         self._log_tx_event(event)
         self._server.write_event(event)
+        # Also emit current zone states as SystemStatusEvent for this bank
+        for z in self._alarm.zones[:16]:
+            sevt = SystemStatusEvent(
+                type=get_zone_state_event_type(z.state),
+                zone=z.id,
+                area=0,
+                timestamp=None,
+                address=0,
+            )
+            self._log_tx_event(sevt)
+            self._server.write_event(sevt)
+
+    def _handle_zone_17_32_input_unsealed_status_update_request(self) -> None:
+        # Only include zones 17–32 (if present)
+        included: List[ZoneUpdate_17_32.Zone] = []
+        for z in self._alarm.zones[16:32]:
+            if z.state == Zone.State.UNSEALED:
+                included.append(get_zone_for_id_17_32(z.id))
+        event = ZoneUpdate_17_32(
+            request_id=StatusUpdate.RequestID.ZONE_17_32_INPUT_UNSEALED,
+            included_zones=included,
+            address=0x00,
+            timestamp=None,
+        )
+        self._log_tx_event(event)
+        self._server.write_event(event)
+        # Also emit current zone states as SystemStatusEvent for this bank
+        for z in self._alarm.zones[16:32]:
+            sevt = SystemStatusEvent(
+                type=get_zone_state_event_type(z.state),
+                zone=z.id,
+                area=0,
+                timestamp=None,
+                address=0,
+            )
+            self._log_tx_event(sevt)
+            self._server.write_event(sevt)
 
     def _handle_panel_version_update_request(self) -> None:
         event = PanelVersionUpdate(
@@ -516,3 +557,8 @@ def toggled_state(state: Zone.State) -> Zone.State:
 def get_zone_for_id(zone_id: int) -> ZoneUpdate_1_16.Zone:
     key = "ZONE_{}".format(zone_id)
     return ZoneUpdate_1_16.Zone[key]
+
+
+def get_zone_for_id_17_32(zone_id: int) -> ZoneUpdate_17_32.Zone:
+    key = "ZONE_{}".format(zone_id)
+    return ZoneUpdate_17_32.Zone[key]

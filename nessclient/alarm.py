@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, List
 
+from event import PanelVersionUpdate
 from .event import (
     BaseEvent,
     ZoneUpdate_1_16,
@@ -52,9 +53,14 @@ class Alarm:
     def __init__(self, infer_arming_state: bool = False) -> None:
         self._infer_arming_state = infer_arming_state
         self.arming_state: ArmingState = ArmingState.UNKNOWN
-        self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(32)]
+
+        self.panel_model: PanelVersionUpdate.Model | None = None
+        self.panel_version: str | None = None
+
+        self._zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(32)]
 
         self._arming_mode: ArmingMode | None = None
+
 
         self._on_state_change: Callable[[ArmingState, ArmingMode | None], None] | None = (
             None
@@ -76,6 +82,9 @@ class Alarm:
             self._handle_zone_17_32_input_update(event)
         elif isinstance(event, SystemStatusEvent):
             self._handle_system_status_event(event)
+        elif isinstance(event, PanelVersionUpdate):
+            self.panel_model = event.model
+            self.panel_version = f'{event.major_version}.{event.minor_version}'
 
     def _handle_arming_update(self, update: ArmingUpdate) -> None:
         if update.status == [ArmingUpdate.ArmingStatus.AREA_1_ARMED]:

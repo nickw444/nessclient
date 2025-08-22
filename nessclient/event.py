@@ -128,7 +128,8 @@ class SystemStatusEvent(BaseEvent):
         )
 
     def encode(self) -> Packet:
-        data = "{:02x}{:02x}{:02x}".format(self.type.value, self.zone, self.area)
+        # Per spec, System Status DATA is: EVENT (hex), ID (decimal), AREA (hex)
+        data = "{:02x}{:02d}{:02x}".format(self.type.value, self.zone, self.area)
         return Packet(
             address=self.address,
             seq=0x00,
