@@ -5,6 +5,9 @@ import pytest
 from nessclient import Client
 from nessclient.alarm import Alarm
 from nessclient.connection import Connection
+from nessclient.event import StatusUpdate, BaseEvent
+from nessclient.packet import Packet, CommandType
+import asyncio
 
 
 def get_data(pkt: bytes) -> bytes:
@@ -124,6 +127,132 @@ def test_on_zone_change_callback_is_registered(client, alarm):
 async def test_close(connection, client):
     await client.close()
     assert connection.close.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_send_command_and_wait_sends_payload(connection, client):
+    # Start, allow send to occur
+    task = asyncio.create_task(client.send_command_and_wait("S14", timeout=1.0))
+    await asyncio.sleep(0)
+    # Verify write and payload
+    assert connection.write.call_count == 1
+    assert get_data(connection.write.call_args[0][0]) == b"S14"
+    # Complete the task by dispatching a matching response (no assertions here)
+    pkt = Packet(
+        address=0x00,
+        seq=0x00,
+        command=CommandType.USER_INTERFACE,
+        data="140000",
+        timestamp=None,
+        is_user_interface_resp=True,
+    )
+    client._dispatch_event(BaseEvent.decode(pkt), pkt)
+    await task
+
+
+@pytest.mark.asyncio
+async def test_send_command_and_wait_resolves_on_response(connection, client):
+    task = asyncio.create_task(client.send_command_and_wait("S14", timeout=1.0))
+    # Allow registration of the waiter
+    await asyncio.sleep(0)
+    # Simulate incoming USER_INTERFACE response for request id 14
+    pkt = Packet(
+        address=0x00,
+        seq=0x00,
+        command=CommandType.USER_INTERFACE,
+        data="140000",
+        timestamp=None,
+        is_user_interface_resp=True,
+    )
+    event = BaseEvent.decode(pkt)
+    client._dispatch_event(event, pkt)
+    result = await task
+    assert isinstance(result, StatusUpdate)
+    assert result.request_id == StatusUpdate.RequestID.ARMING
+
+
+@pytest.mark.asyncio
+async def test_send_command_and_wait_times_out(connection, client):
+    with pytest.raises(asyncio.TimeoutError):
+        await client.send_command_and_wait("S14", timeout=0.01)
+
+
+@pytest.mark.asyncio
+async def test_send_command_and_wait_raises_for_non_status(connection, client):
+    with pytest.raises(ValueError):
+        await client.send_command_and_wait("A1234E", timeout=0.01)
+
+
+@pytest.mark.asyncio
+async def test_multiple_waiters_resolve_together(connection, client):
+    # Two concurrent S14 waits
+    t1 = asyncio.create_task(client.send_command_and_wait("S14", timeout=1.0))
+    t2 = asyncio.create_task(client.send_command_and_wait("S14", timeout=1.0))
+
+    # Ensure two commands were sent
+    await asyncio.sleep(0)
+    assert connection.write.call_count == 2
+
+    # Single response should resolve both waiters
+    pkt = Packet(
+        address=0x00,
+        seq=0x00,
+        command=CommandType.USER_INTERFACE,
+        data="140001",
+        timestamp=None,
+        is_user_interface_resp=True,
+    )
+    e = BaseEvent.decode(pkt)
+    client._dispatch_event(e, pkt)
+
+    r1 = await t1
+    r2 = await t2
+    assert isinstance(r1, StatusUpdate) and isinstance(r2, StatusUpdate)
+    assert r1.request_id == StatusUpdate.RequestID.ARMING
+    assert r2.request_id == StatusUpdate.RequestID.ARMING
+
+
+@pytest.mark.asyncio
+async def test_followup_response_for_same_id_is_handled(connection, client):
+    # Two concurrent S14 waiters resolve together on first response
+    t1 = asyncio.create_task(client.send_command_and_wait("S14", timeout=1.0))
+    t2 = asyncio.create_task(client.send_command_and_wait("S14", timeout=1.0))
+    await asyncio.sleep(0)
+    assert connection.write.call_count == 2
+
+    pkt1 = Packet(
+        address=0x00,
+        seq=0x00,
+        command=CommandType.USER_INTERFACE,
+        data="140000",
+        timestamp=None,
+        is_user_interface_resp=True,
+    )
+    e1 = BaseEvent.decode(pkt1)
+    client._dispatch_event(e1, pkt1)
+    r1 = await t1
+    r2 = await t2
+    assert isinstance(r1, StatusUpdate) and isinstance(r2, StatusUpdate)
+
+    # Start a new waiter after the first response; it should be resolved by a
+    # follow-up response for the same request id.
+    t3 = asyncio.create_task(client.send_command_and_wait("S14", timeout=1.0))
+    await asyncio.sleep(0)
+    assert connection.write.call_count == 3
+
+    pkt2 = Packet(
+        address=0x00,
+        seq=0x00,
+        command=CommandType.USER_INTERFACE,
+        data="140001",
+        timestamp=None,
+        is_user_interface_resp=True,
+    )
+    e2 = BaseEvent.decode(pkt2)
+    client._dispatch_event(e2, pkt2)
+    r3 = await t3
+    assert isinstance(r3, StatusUpdate)
+    assert r3.request_id == StatusUpdate.RequestID.ARMING
 
 
 @pytest.fixture

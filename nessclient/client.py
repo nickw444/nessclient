@@ -2,13 +2,13 @@ import asyncio
 import datetime
 import logging
 from asyncio import sleep
-from typing import Callable
+from typing import Callable, Dict
 
 from justbackoff import Backoff
 
 from .alarm import ArmingState, Alarm, ArmingMode
 from .connection import Connection, IP232Connection, Serial232Connection
-from .event import BaseEvent, DecodeOptions
+from .event import BaseEvent, DecodeOptions, StatusUpdate
 from .packet import CommandType, Packet
 
 _LOGGER = logging.getLogger(__name__)
@@ -56,6 +56,10 @@ class Client:
         self._connect_lock = asyncio.Lock()
         self._last_recv: datetime.datetime | None = None
         self._update_interval = update_interval
+        # Track pending USER_INTERFACE status request futures keyed by request id
+        # Only a single Future is retained per request id; concurrent waiters share it.
+        self._pending_ui_requests: Dict[int, asyncio.Future[StatusUpdate]] = {}
+        self._pending_ui_lock = asyncio.Lock()
 
     async def arm_away(self, code: str | None = None) -> None:
         command = "A{}E".format(code if code else "")
@@ -118,6 +122,41 @@ class Client:
         _LOGGER.debug("Sending payload: %s", repr(payload))
         return await self._connection.write(payload.encode("ascii"))
 
+    async def send_command_and_wait(
+        self, command: str, timeout: float | None = 5.0
+    ) -> StatusUpdate:
+        """Send a command and await a matching USER_INTERFACE response.
+
+        - Requires the command to be a status request (SXX). If not, raises a
+          ValueError because those commands do not elicit a status response.
+        - Resolves when a matching USER_INTERFACE response arrives, else times out.
+        """
+        waiter_req_id: int | None = None
+        try:
+            if len(command) >= 3 and command[0].upper() == "S":
+                waiter_req_id = int(command[1:3], 16)
+        except Exception:
+            waiter_req_id = None
+
+        if waiter_req_id is None:
+            raise ValueError(f"Command does not expect a status response: '{command}'")
+
+        loop = asyncio.get_running_loop()
+        async with self._pending_ui_lock:
+            existing = self._pending_ui_requests.get(waiter_req_id)
+            if existing is None or existing.done():
+                fut: asyncio.Future[StatusUpdate] = loop.create_future()
+                self._pending_ui_requests[waiter_req_id] = fut
+            else:
+                fut = existing
+
+        try:
+            await self.send_command(command)
+            return await asyncio.wait_for(fut, timeout=timeout)
+        finally:
+            # Do not clear mapping here; dispatcher pops the future on resolution.
+            pass
+
     async def _recv_loop(self) -> None:
         while not self._closed:
             await self._connect()
@@ -144,16 +183,46 @@ class Client:
                         _LOGGER.warning("Failed to decode packet", exc_info=True)
                         continue
 
-                    if self._on_event_received is not None:
-                        self._on_event_received(event)
-
-                    self.alarm.handle_event(event)
+                    self._dispatch_event(event, pkt)
 
     def _should_reconnect(self) -> bool:
         now = datetime.datetime.now()
         return self._last_recv is not None and self._last_recv < now - datetime.timedelta(
             seconds=self._update_interval + 30
         )
+
+    def _dispatch_event(self, event: BaseEvent, pkt: Packet) -> None:
+        """Internal dispatcher for decoded events.
+
+        - Completes any pending USER_INTERFACE status request futures.
+        - Invokes the user callback and updates the Alarm.
+        """
+        # Resolve pending status requests if applicable
+        if isinstance(event, StatusUpdate):
+            req_id = int(event.request_id.value)
+            ev: StatusUpdate = event
+
+            if self._pending_ui_requests.get(req_id):
+
+                async def _resolve() -> None:
+                    fut: asyncio.Future[StatusUpdate] | None = None
+                    async with self._pending_ui_lock:
+                        fut = self._pending_ui_requests.pop(req_id, None)
+                    if fut is not None and not fut.done():
+                        try:
+                            fut.set_result(ev)
+                        except Exception:
+                            pass
+
+                asyncio.create_task(_resolve())
+
+        if self._on_event_received is not None:
+            try:
+                self._on_event_received(event)
+            except Exception:
+                _LOGGER.warning("on_event_received callback raised", exc_info=True)
+
+        self.alarm.handle_event(event)
 
     async def _update_loop(self) -> None:
         """Schedule a state update to keep the connection alive"""
