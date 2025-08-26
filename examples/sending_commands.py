@@ -20,5 +20,9 @@ loop.run_until_complete(client.aux(2))
 # output status
 loop.run_until_complete(client.send_command("S15"))
 
+# Await a status request and receive the decoded response
+resp = loop.run_until_complete(client.send_command_and_wait("S14", timeout=5.0))
+print("Arming status response:", resp)
+
 client.close()
 loop.close()
