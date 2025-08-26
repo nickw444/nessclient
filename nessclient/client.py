@@ -6,6 +6,7 @@ from typing import Callable, Dict
 
 from justbackoff import Backoff
 
+from .event import PanelVersionUpdate
 from .alarm import ArmingState, Alarm, ArmingMode
 from .connection import Connection, IP232Connection, Serial232Connection
 from .event import BaseEvent, DecodeOptions, StatusUpdate
@@ -51,6 +52,7 @@ class Client:
         self._decode_options = decode_options
         self._on_event_received: Callable[[BaseEvent], None] | None = None
         self._connection = connection
+        self._model_probe_attempted = False
         self._closed = False
         self._backoff = Backoff()
         self._connect_lock = asyncio.Lock()
@@ -83,13 +85,43 @@ class Client:
 
     async def update(self) -> None:
         """Force update of alarm status and zones"""
-        _LOGGER.debug("Requesting state update from server (S00, S14)")
-        await asyncio.gather(
-            # List unsealed Zones
-            self.send_command("S00"),
-            # Arming status update
-            self.send_command("S14"),
-        )
+        if not self._model_probe_attempted:
+            self._model_probe_attempted = True
+            await self._probe_panel_model()
+
+        if len(self.alarm.zones) > 16:
+            _LOGGER.debug("Requesting state update from server (S00, S20, S14)")
+            await asyncio.gather(
+                # List unsealed Zones 1-16
+                self.send_command("S00"),
+                # List unsealed Zones 17-32
+                self.send_command("S20"),
+                # Arming status update
+                self.send_command("S14"),
+            )
+        else:
+            _LOGGER.debug("Requesting state update from server (S00, S14)")
+            await asyncio.gather(
+                # List unsealed Zones
+                self.send_command("S00"),
+                # Arming status update
+                self.send_command("S14"),
+            )
+
+    async def _probe_panel_model(self) -> None:
+        _LOGGER.debug("Requesting panel model probe from server (S17)")
+        try:
+            resp = await self.send_command_and_wait("S17")
+            if isinstance(resp, PanelVersionUpdate):
+                _LOGGER.debug("Panel model probe from server (S17)")
+                self.alarm.panel_model = resp.model
+                self.alarm.panel_version = resp.version
+            else:
+                _LOGGER.warning(
+                    "Panel model probe returned unexpected response: %s", resp
+                )
+        except Exception:
+            _LOGGER.warning("Panel model probe failed", exc_info=True)
 
     async def _connect(self) -> None:
         async with self._connect_lock:
