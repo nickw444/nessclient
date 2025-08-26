@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, List
+
 from .event import (
     BaseEvent,
     ZoneUpdate_1_16,
