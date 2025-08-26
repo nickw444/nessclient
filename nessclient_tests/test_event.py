@@ -151,6 +151,18 @@ class ZoneUpdate1To16TestCase(unittest.TestCase):
             [ZoneUpdate_1_16.Zone.ZONE_3, ZoneUpdate_1_16.Zone.ZONE_5],
         )
 
+    def test_zone_radio_unsealed_with_zones(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "010500")
+        event = ZoneUpdate_1_16.decode(pkt)
+        self.assertEqual(
+            event.request_id,
+            ZoneUpdate_1_16.RequestID.ZONE_1_16_RADIO_UNSEALED,
+        )
+        self.assertEqual(
+            event.included_zones,
+            [ZoneUpdate_1_16.Zone.ZONE_1, ZoneUpdate_1_16.Zone.ZONE_3],
+        )
+
     def test_zone_1_16_excluded_plus_auto(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "190500")
         event = ZoneUpdate_1_16.decode(pkt)
@@ -199,6 +211,18 @@ class ZoneUpdate17To32TestCase(unittest.TestCase):
         pkt = make_packet(CommandType.USER_INTERFACE, "250500")
         event = ZoneUpdate_17_32.decode(pkt)
         self.assertEqual(event.request_id, ZoneUpdate_17_32.RequestID.ZONE_17_32_IN_ALARM)
+        self.assertEqual(
+            event.included_zones,
+            [ZoneUpdate_17_32.Zone.ZONE_17, ZoneUpdate_17_32.Zone.ZONE_19],
+        )
+
+    def test_zone_radio_unsealed_with_zones(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "210500")
+        event = ZoneUpdate_17_32.decode(pkt)
+        self.assertEqual(
+            event.request_id,
+            ZoneUpdate_17_32.RequestID.ZONE_17_32_RADIO_UNSEALED,
+        )
         self.assertEqual(
             event.included_zones,
             [ZoneUpdate_17_32.Zone.ZONE_17, ZoneUpdate_17_32.Zone.ZONE_19],
@@ -484,6 +508,69 @@ class SystemStatusEventTestCase(unittest.TestCase):
         self.assertEqual(event.area, 0)
         self.assertEqual(event.zone, 1)
         self.assertEqual(event.type, SystemStatusEvent.EventType.OUTPUT_OFF)
+
+    def test_manual_exclude_with_zone_5_area_1(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "040501")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 1)
+        self.assertEqual(event.zone, 5)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.MANUAL_EXCLUDE)
+
+    def test_manual_include_with_zone_5_area_1(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "050501")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 1)
+        self.assertEqual(event.zone, 5)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.MANUAL_INCLUDE)
+
+    def test_auto_exclude_with_zone_5_area_1(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "060501")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 1)
+        self.assertEqual(event.zone, 5)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.AUTO_EXCLUDE)
+
+    def test_auto_include_with_zone_5_area_1(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "070501")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 1)
+        self.assertEqual(event.zone, 5)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.AUTO_INCLUDE)
+
+    def test_armed_home(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "250103")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 3)
+        self.assertEqual(event.zone, 1)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.ARMED_HOME)
+
+    def test_armed_day(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "260004")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 4)
+        self.assertEqual(event.zone, 0)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.ARMED_DAY)
+
+    def test_armed_night(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "270000")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 0)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.ARMED_NIGHT)
+
+    def test_armed_vacation(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "280000")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 0)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.ARMED_VACATION)
+
+    def test_armed_highest(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "2e0000")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 0)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.ARMED_HIGHEST)
 
 
 Rev16DecodeOptions = DecodeOptions(
