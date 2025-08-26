@@ -39,6 +39,19 @@ The CLI exposes several high level commands:
 
 Run `ness-cli COMMAND --help` for full options on each command.
 
+### Capturing raw packets
+
+When reporting issues it can be helpful to provide the raw ASCII packets
+exchanged with the panel. The `events` command accepts a `--logfile` option that
+records each transmitted (`TX`) and received (`RX`) packet:
+
+```sh
+ness-cli events --logfile packets.log
+```
+
+This works in both normal and `--interactive` modes. Include the generated log
+file with bug reports to assist with troubleshooting.
+
 ## API Documentation
 You can find the full API documentation [here](https://nessclient.readthedocs.io/en/latest/api.html)
 
