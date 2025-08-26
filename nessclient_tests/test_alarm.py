@@ -204,6 +204,9 @@ def test_handle_event_system_status_sealed_zone_calls_callback(alarm):
     assert cb.call_args[0] == (1, False)
 
 
+## D32X-specific 32-zone tests removed for this branch
+
+
 def test_handle_event_system_status_alarm(alarm):
     event = SystemStatusEvent(
         address=None,
