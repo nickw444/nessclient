@@ -4,10 +4,13 @@ import textwrap
 from collections import deque
 from contextlib import suppress
 from datetime import datetime
+from typing import TextIO
 
 from ..alarm import ArmingMode, ArmingState
 from ..client import Client
+from ..connection import IP232Connection, Serial232Connection
 from ..event import BaseEvent, PanelVersionUpdate
+from .logging_connection import LoggingConnection
 
 
 async def interactive_ui(
@@ -17,12 +20,24 @@ async def interactive_ui(
     update_interval: int,
     infer_arming_state: bool,
     serial_tty: str | None,
+    packet_logfile: str | None,
 ) -> None:
     """Run an interactive TUI for the alarm."""
+    log_fp: TextIO | None = open(packet_logfile, "a") if packet_logfile else None
+    connection = None
+    if log_fp is not None:
+        base_conn = (
+            IP232Connection(host=host, port=port)
+            if serial_tty is None
+            else Serial232Connection(tty_path=serial_tty)
+        )
+        connection = LoggingConnection(base_conn, log_fp)
+
     client = Client(
-        host=host if serial_tty is None else None,
-        port=port if serial_tty is None else None,
-        serial_tty=serial_tty,
+        connection=connection,
+        host=host if connection is None and serial_tty is None else None,
+        port=port if connection is None and serial_tty is None else None,
+        serial_tty=serial_tty if connection is None else None,
         infer_arming_state=infer_arming_state,
         update_interval=update_interval,
     )
@@ -258,6 +273,8 @@ async def interactive_ui(
         with suppress(asyncio.CancelledError):
             await keepalive_task
         await client.close()
+        if log_fp is not None:
+            log_fp.close()
         curses.nocbreak()
         stdscr.keypad(False)
         curses.echo()
