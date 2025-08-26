@@ -5,13 +5,31 @@ import pytest
 from nessclient import Client
 from nessclient.alarm import Alarm
 from nessclient.connection import Connection
-from nessclient.event import StatusUpdate, BaseEvent
+from nessclient.event import StatusUpdate, BaseEvent, PanelVersionUpdate
 from nessclient.packet import Packet, CommandType
 import asyncio
 
 
 def get_data(pkt: bytes) -> bytes:
     return pkt[7:-4]
+
+
+def panel_version_response(
+    model: PanelVersionUpdate.Model,
+    major: int = 8,
+    minor: int = 7,
+) -> PanelVersionUpdate:
+    """Construct a PanelVersionUpdate event for PANEL_VERSION (S17).
+
+    Returns an event instance directly to avoid encode/decode roundtrips.
+    """
+    return PanelVersionUpdate(
+        model=model,
+        major_version=major,
+        minor_version=minor,
+        address=0x00,
+        timestamp=None,
+    )
 
 
 @pytest.mark.asyncio
@@ -57,14 +75,129 @@ async def test_aux_off(connection, client):
 
 
 @pytest.mark.asyncio
-async def test_update(connection, client):
-    await client.update()
-    assert connection.write.call_count == 2
-    commands = {
-        get_data(connection.write.call_args_list[0][0][0]),
+async def test_update(connection, client: Client, alarm: Alarm):
+    # Simulate a 16-zone panel via probe (D16X) using the shared client/alarm mocks.
+    # Configure the alarm mock to reflect 16 zones.
+    alarm.zones = [object()] * 16
+
+    # Start update; it should send S17 first (probe)
+    task = asyncio.create_task(client.update())
+    await asyncio.sleep(0)
+    assert connection.write.call_count == 1
+    assert get_data(connection.write.call_args_list[0][0][0]) == b"S17"
+
+    # Respond with a D16X panel version (16 zones)
+    event = panel_version_response(PanelVersionUpdate.Model.D16X, 8, 7)
+    client._dispatch_event(event, None)
+
+    # Allow update to continue and complete
+    await task
+
+    # After probe, update should send only S00 and S14
+    assert connection.write.call_count == 3
+    followup = {
         get_data(connection.write.call_args_list[1][0][0]),
+        get_data(connection.write.call_args_list[2][0][0]),
     }
-    assert commands == {b"S00", b"S14"}
+    assert followup == {b"S00", b"S14"}
+
+    # Subsequent updates should not probe again; only S00 and S14
+    await client.update()
+    assert connection.write.call_count == 5
+    followup2 = {
+        get_data(connection.write.call_args_list[3][0][0]),
+        get_data(connection.write.call_args_list[4][0][0]),
+    }
+    assert followup2 == {b"S00", b"S14"}
+    # Probe (S17) should have been sent exactly once
+    all_cmds = [get_data(c[0][0]) for c in connection.write.call_args_list]
+    assert all_cmds.count(b"S17") == 1
+
+
+@pytest.mark.asyncio
+async def test_update_d32x_model(connection, client: Client, alarm: Alarm):
+    # Simulate a 32-zone panel via probe (D32X) using the shared client/alarm mocks.
+    # Configure the alarm mock to reflect 32 zones.
+    alarm.zones = [object()] * 32
+
+    # Start update; it should send S17 first (probe)
+    task = asyncio.create_task(client.update())
+    await asyncio.sleep(0)
+    assert connection.write.call_count == 1
+    assert get_data(connection.write.call_args_list[0][0][0]) == b"S17"
+
+    # Respond with a D32X panel version (32 zones)
+    event = panel_version_response(PanelVersionUpdate.Model.D32X, 8, 7)
+    client._dispatch_event(event, None)
+
+    # Allow update to continue and complete
+    await task
+
+    # After probe, update should send S00, S20 and S14
+    assert connection.write.call_count == 4
+    followup = {
+        get_data(connection.write.call_args_list[1][0][0]),
+        get_data(connection.write.call_args_list[2][0][0]),
+        get_data(connection.write.call_args_list[3][0][0]),
+    }
+    assert followup == {b"S00", b"S20", b"S14"}
+
+    # Subsequent updates should not probe again; S00, S20, S14 only
+    await client.update()
+    assert connection.write.call_count == 7
+    followup2 = {
+        get_data(connection.write.call_args_list[4][0][0]),
+        get_data(connection.write.call_args_list[5][0][0]),
+        get_data(connection.write.call_args_list[6][0][0]),
+    }
+    assert followup2 == {b"S00", b"S20", b"S14"}
+    # Probe (S17) should have been sent exactly once
+    all_cmds = [get_data(c[0][0]) for c in connection.write.call_args_list]
+    assert all_cmds.count(b"S17") == 1
+
+
+@pytest.mark.asyncio
+async def test_update_probe_timeout_unknown_model(
+    connection, client: Client, alarm: Alarm
+):
+    # Simulate no panel response to S17 probe; client should proceed and not probe again
+    # Ensure zones behave like 32 by default when model unknown
+    alarm.zones = [object()] * 32
+
+    # Patch send_command_and_wait to send S17 then timeout
+    orig_send_command = client.send_command
+
+    async def fake_scaw(command: str, timeout: float | None = 5.0):
+        await orig_send_command(command)
+        raise asyncio.TimeoutError()
+
+    client.send_command_and_wait = fake_scaw  # type: ignore[assignment]
+
+    # First update: should write S17 then, after timeout, proceed with zone/status requests.
+    await client.update()
+
+    # Expect 4 writes: S17, then S00, S20, S14 (unknown model defaults to 32 zones)
+    assert connection.write.call_count == 4
+    first = get_data(connection.write.call_args_list[0][0][0])
+    assert first == b"S17"
+    followup = {
+        get_data(connection.write.call_args_list[1][0][0]),
+        get_data(connection.write.call_args_list[2][0][0]),
+        get_data(connection.write.call_args_list[3][0][0]),
+    }
+    assert followup == {b"S00", b"S20", b"S14"}
+
+    # Second update: should not probe again; only S00, S20, S14
+    await client.update()
+    assert connection.write.call_count == 7
+    followup2 = {
+        get_data(connection.write.call_args_list[4][0][0]),
+        get_data(connection.write.call_args_list[5][0][0]),
+        get_data(connection.write.call_args_list[6][0][0]),
+    }
+    assert followup2 == {b"S00", b"S20", b"S14"}
+    all_cmds = [get_data(c[0][0]) for c in connection.write.call_args_list]
+    assert all_cmds.count(b"S17") == 1
 
 
 @pytest.mark.asyncio
