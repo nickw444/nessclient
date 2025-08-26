@@ -307,6 +307,68 @@ def test_handle_event_system_status_sealed_zone_calls_callback(alarm):
     assert cb.call_args[0] == (1, False)
 
 
+def test_handle_event_system_status_unsealed_zone_32(alarm):
+    alarm.zones[31].triggered = False
+
+    event = SystemStatusEvent(
+        address=None,
+        timestamp=None,
+        type=SystemStatusEvent.EventType.UNSEALED,
+        area=0,
+        zone=32,
+    )
+    alarm.handle_event(event)
+    assert alarm.zones[31].triggered is True
+
+
+def test_handle_event_system_status_unsealed_zone_32_calls_callback(alarm):
+    alarm.zones[31].triggered = False
+
+    cb = Mock()
+    alarm.on_zone_change(cb)
+    event = SystemStatusEvent(
+        address=None,
+        timestamp=None,
+        type=SystemStatusEvent.EventType.UNSEALED,
+        area=0,
+        zone=32,
+    )
+    alarm.handle_event(event)
+    assert cb.call_count == 1
+    assert cb.call_args[0] == (32, True)
+
+
+def test_handle_event_system_status_sealed_zone_32(alarm):
+    alarm.zones[31].triggered = True
+
+    event = SystemStatusEvent(
+        address=None,
+        timestamp=None,
+        type=SystemStatusEvent.EventType.SEALED,
+        area=0,
+        zone=32,
+    )
+    alarm.handle_event(event)
+    assert alarm.zones[31].triggered is False
+
+
+def test_handle_event_system_status_sealed_zone_32_calls_callback(alarm):
+    alarm.zones[31].triggered = True
+
+    cb = Mock()
+    alarm.on_zone_change(cb)
+    event = SystemStatusEvent(
+        address=None,
+        timestamp=None,
+        type=SystemStatusEvent.EventType.SEALED,
+        area=0,
+        zone=32,
+    )
+    alarm.handle_event(event)
+    assert cb.call_count == 1
+    assert cb.call_args[0] == (32, False)
+
+
 def test_handle_event_system_status_alarm(alarm):
     event = SystemStatusEvent(
         address=None,

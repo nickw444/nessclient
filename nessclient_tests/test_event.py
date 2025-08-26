@@ -195,6 +195,15 @@ class ZoneUpdate17To32TestCase(unittest.TestCase):
             [ZoneUpdate_17_32.Zone.ZONE_17, ZoneUpdate_17_32.Zone.ZONE_19],
         )
 
+    def test_zone_in_alarm_with_zones(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "250500")
+        event = ZoneUpdate_17_32.decode(pkt)
+        self.assertEqual(event.request_id, ZoneUpdate_17_32.RequestID.ZONE_17_32_IN_ALARM)
+        self.assertEqual(
+            event.included_zones,
+            [ZoneUpdate_17_32.Zone.ZONE_17, ZoneUpdate_17_32.Zone.ZONE_19],
+        )
+
     def test_zone_excluded_plus_auto(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "330500")
         event = ZoneUpdate_17_32.decode(pkt)
