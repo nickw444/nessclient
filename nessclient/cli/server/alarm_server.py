@@ -54,7 +54,6 @@ class AlarmServer:
 
     def start(self) -> None:
         self._server.start(host=self._host, port=self._port)
-        self._start_simulation()
         curses.wrapper(self._run_ui)
 
     def _run_ui(self, stdscr: Any) -> None:
