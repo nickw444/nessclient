@@ -338,6 +338,41 @@ class SystemStatusEventTestCase(unittest.TestCase):
         self.assertEqual(event.zone, 32)
         self.assertEqual(event.type, SystemStatusEvent.EventType.UNSEALED)
 
+    def test_zone_alarm_with_zone_5_area_1(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "020501")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 1)
+        self.assertEqual(event.zone, 5)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.ALARM)
+
+    def test_tamper_unsealed_with_zone_5_radio(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "080591")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0x91)
+        self.assertEqual(event.zone, 5)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.TAMPER_UNSEALED)
+
+    def test_power_failure(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "100000")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 0)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.POWER_FAILURE)
+
+    def test_entry_delay_start(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "200501")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 1)
+        self.assertEqual(event.zone, 5)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.ENTRY_DELAY_START)
+
+    def test_output_on(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "310100")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 1)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.OUTPUT_ON)
+
 
 Rev16DecodeOptions = DecodeOptions(
     panel_version_update_model_mapper=PanelVersionUpdate.ModelRev16Mapper
