@@ -80,8 +80,6 @@ async def interactive_ui(
     # Initial update and panel version request
     _add_log(logs, "TX", "Update")
     await client.update()
-    _add_log(logs, "TX", "S17 (Panel Version)")
-    await client.send_command("S17")
 
     stdscr = curses.initscr()
     curses.noecho()
