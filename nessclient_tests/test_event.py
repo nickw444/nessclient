@@ -175,6 +175,29 @@ class ZoneUpdate1To16TestCase(unittest.TestCase):
             [ZoneUpdate_1_16.Zone.ZONE_1, ZoneUpdate_1_16.Zone.ZONE_3],
         )
 
+    def test_zone_1_16_additional_requests_with_zones(self):
+        cases = [
+            ("000500", ZoneUpdate_1_16.RequestID.ZONE_1_16_INPUT_UNSEALED),
+            ("020500", ZoneUpdate_1_16.RequestID.ZONE_1_16_CBUS_UNSEALED),
+            ("040500", ZoneUpdate_1_16.RequestID.ZONE_1_16_IN_DOUBLE_TRIGGER),
+            ("060500", ZoneUpdate_1_16.RequestID.ZONE_1_16_EXCLUDED),
+            ("070500", ZoneUpdate_1_16.RequestID.ZONE_1_16_AUTO_EXCLUDED),
+            ("080500", ZoneUpdate_1_16.RequestID.ZONE_1_16_SUPERVISION_FAIL_PENDING),
+            ("090500", ZoneUpdate_1_16.RequestID.ZONE_1_16_SUPERVISION_FAIL),
+            ("100500", ZoneUpdate_1_16.RequestID.ZONE_1_16_DOORS_OPEN),
+            ("110500", ZoneUpdate_1_16.RequestID.ZONE_1_16_DETECTOR_LOW_BATTERY),
+            ("120500", ZoneUpdate_1_16.RequestID.ZONE_1_16_DETECTOR_TAMPER),
+        ]
+        for data, request in cases:
+            with self.subTest(request=request):
+                pkt = make_packet(CommandType.USER_INTERFACE, data)
+                event = ZoneUpdate_1_16.decode(pkt)
+                self.assertEqual(event.request_id, request)
+                self.assertEqual(
+                    event.included_zones,
+                    [ZoneUpdate_1_16.Zone.ZONE_1, ZoneUpdate_1_16.Zone.ZONE_3],
+                )
+
 
 class ZoneUpdate17To32TestCase(unittest.TestCase):
     def test_encode(self):
@@ -239,6 +262,35 @@ class ZoneUpdate17To32TestCase(unittest.TestCase):
             event.included_zones,
             [ZoneUpdate_17_32.Zone.ZONE_17, ZoneUpdate_17_32.Zone.ZONE_19],
         )
+
+    def test_zone_17_32_additional_requests_with_zones(self):
+        cases = [
+            ("200500", ZoneUpdate_17_32.RequestID.ZONE_17_32_INPUT_UNSEALED),
+            ("220500", ZoneUpdate_17_32.RequestID.ZONE_17_32_CBUS_UNSEALED),
+            ("240500", ZoneUpdate_17_32.RequestID.ZONE_17_32_IN_DOUBLE_TRIGGER),
+            ("260500", ZoneUpdate_17_32.RequestID.ZONE_17_32_EXCLUDED),
+            ("270500", ZoneUpdate_17_32.RequestID.ZONE_17_32_AUTO_EXCLUDED),
+            (
+                "280500",
+                ZoneUpdate_17_32.RequestID.ZONE_17_32_SUPERVISION_FAIL_PENDING,
+            ),
+            ("290500", ZoneUpdate_17_32.RequestID.ZONE_17_32_SUPERVISION_FAIL),
+            ("300500", ZoneUpdate_17_32.RequestID.ZONE_17_32_DOORS_OPEN),
+            (
+                "310500",
+                ZoneUpdate_17_32.RequestID.ZONE_17_32_DETECTOR_LOW_BATTERY,
+            ),
+            ("320500", ZoneUpdate_17_32.RequestID.ZONE_17_32_DETECTOR_TAMPER),
+        ]
+        for data, request in cases:
+            with self.subTest(request=request):
+                pkt = make_packet(CommandType.USER_INTERFACE, data)
+                event = ZoneUpdate_17_32.decode(pkt)
+                self.assertEqual(event.request_id, request)
+                self.assertEqual(
+                    event.included_zones,
+                    [ZoneUpdate_17_32.Zone.ZONE_17, ZoneUpdate_17_32.Zone.ZONE_19],
+                )
 
 
 class ViewStateUpdateTestCase(unittest.TestCase):
