@@ -258,6 +258,118 @@ class SystemStatusEventTestCase(unittest.TestCase):
         self.assertEqual(event.zone, 1)
         self.assertEqual(event.type, SystemStatusEvent.EventType.OUTPUT_ON)
 
+    def test_alarm_restore_with_zone_5_area_1(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "030501")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 1)
+        self.assertEqual(event.zone, 5)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.ALARM_RESTORE)
+
+    def test_tamper_normal_with_zone_5_radio(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "090591")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0x91)
+        self.assertEqual(event.zone, 5)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.TAMPER_NORMAL)
+
+    def test_power_normal(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "110000")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 0)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.POWER_NORMAL)
+
+    def test_battery_failure(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "120000")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 0)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.BATTERY_FAILURE)
+
+    def test_battery_normal(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "130000")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 0)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.BATTERY_NORMAL)
+
+    def test_report_failure(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "140000")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 0)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.REPORT_FAILURE)
+
+    def test_report_normal(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "150000")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 0)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.REPORT_NORMAL)
+
+    def test_supervision_failure_zone_5(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "160500")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 5)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.SUPERVISION_FAILURE)
+
+    def test_supervision_normal_zone_5(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "170500")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 5)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.SUPERVISION_NORMAL)
+
+    def test_real_time_clock(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "190000")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 0)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.REAL_TIME_CLOCK)
+
+    def test_entry_delay_end(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "210501")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 1)
+        self.assertEqual(event.zone, 5)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.ENTRY_DELAY_END)
+
+    def test_exit_delay_start(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "220501")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 1)
+        self.assertEqual(event.zone, 5)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.EXIT_DELAY_START)
+
+    def test_armed_away(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "240101")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 1)
+        self.assertEqual(event.zone, 1)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.ARMED_AWAY)
+
+    def test_disarmed(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "2f0101")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 1)
+        self.assertEqual(event.zone, 1)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.DISARMED)
+
+    def test_arming_delayed(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "300101")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 1)
+        self.assertEqual(event.zone, 1)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.ARMING_DELAYED)
+
+    def test_output_off(self):
+        pkt = make_packet(CommandType.SYSTEM_STATUS, "320100")
+        event = SystemStatusEvent.decode(pkt)
+        self.assertEqual(event.area, 0)
+        self.assertEqual(event.zone, 1)
+        self.assertEqual(event.type, SystemStatusEvent.EventType.OUTPUT_OFF)
+
 
 Rev16DecodeOptions = DecodeOptions(
     panel_version_update_model_mapper=PanelVersionUpdate.ModelRev16Mapper
