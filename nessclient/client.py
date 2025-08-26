@@ -5,7 +5,6 @@ from asyncio import sleep
 from typing import Callable, Dict
 
 from justbackoff import Backoff
-
 from .alarm import ArmingState, Alarm, ArmingMode
 from .connection import Connection, IP232Connection, Serial232Connection
 from .event import BaseEvent, DecodeOptions, StatusUpdate
