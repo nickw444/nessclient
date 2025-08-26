@@ -67,7 +67,7 @@ class Alarm:
 
     @property
     def zones(self) -> List[Zone]:
-        if self.panel_model == PanelVersionUpdate.Model.D32X:
+        if self.panel_model is None or self.panel_model == PanelVersionUpdate.Model.D32X:
             return self._zones
 
         return self._zones[:16]
