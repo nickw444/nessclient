@@ -212,6 +212,49 @@ async def test_multiple_waiters_resolve_together(connection, client):
     assert r2.request_id == StatusUpdate.RequestID.ARMING
 
 
+@pytest.mark.asyncio
+async def test_followup_response_for_same_id_is_handled(connection, client):
+    # Two concurrent S14 waiters resolve together on first response
+    t1 = asyncio.create_task(client.send_command_and_wait("S14", timeout=1.0))
+    t2 = asyncio.create_task(client.send_command_and_wait("S14", timeout=1.0))
+    await asyncio.sleep(0)
+    assert connection.write.call_count == 2
+
+    pkt1 = Packet(
+        address=0x00,
+        seq=0x00,
+        command=CommandType.USER_INTERFACE,
+        data="140000",
+        timestamp=None,
+        is_user_interface_resp=True,
+    )
+    e1 = BaseEvent.decode(pkt1)
+    client._dispatch_event(e1, pkt1)
+    r1 = await t1
+    r2 = await t2
+    assert isinstance(r1, StatusUpdate) and isinstance(r2, StatusUpdate)
+
+    # Start a new waiter after the first response; it should be resolved by a
+    # follow-up response for the same request id.
+    t3 = asyncio.create_task(client.send_command_and_wait("S14", timeout=1.0))
+    await asyncio.sleep(0)
+    assert connection.write.call_count == 3
+
+    pkt2 = Packet(
+        address=0x00,
+        seq=0x00,
+        command=CommandType.USER_INTERFACE,
+        data="140001",
+        timestamp=None,
+        is_user_interface_resp=True,
+    )
+    e2 = BaseEvent.decode(pkt2)
+    client._dispatch_event(e2, pkt2)
+    r3 = await t3
+    assert isinstance(r3, StatusUpdate)
+    assert r3.request_id == StatusUpdate.RequestID.ARMING
+
+
 @pytest.fixture
 def alarm() -> Alarm:
     return Mock()
