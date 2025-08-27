@@ -3,7 +3,12 @@ from unittest.mock import Mock
 import pytest
 
 from nessclient.alarm import Alarm, ArmingState, ArmingMode
-from nessclient.event import ArmingUpdate, ZoneUpdate, SystemStatusEvent
+from nessclient.event import (
+    ArmingUpdate,
+    ZoneUpdate,
+    SystemStatusEvent,
+    AuxiliaryOutputsUpdate,
+)
 
 
 def test_state_is_initially_unknown(alarm):
@@ -13,6 +18,11 @@ def test_state_is_initially_unknown(alarm):
 def test_zones_are_initially_unknown(alarm):
     for zone in alarm.zones:
         assert zone.triggered is None
+
+
+def test_outputs_are_initially_unknown(alarm):
+    for output in alarm.outputs:
+        assert output.triggered is None
 
 
 def test_16_zones_are_created(alarm):
@@ -66,6 +76,38 @@ def test_handle_event_zone_update_callback(alarm):
     assert cb.call_args_list[0][0] == (1, True)
     assert cb.call_args_list[1][0] == (3, True)
     assert cb.call_args_list[2][0] == (4, False)
+
+
+def test_handle_event_aux_output_update(alarm):
+    event = AuxiliaryOutputsUpdate(
+        outputs=[
+            AuxiliaryOutputsUpdate.OutputType.AUX_1,
+            AuxiliaryOutputsUpdate.OutputType.AUX_3,
+        ],
+        address=None,
+        timestamp=None,
+    )
+    alarm.handle_event(event)
+    assert alarm.outputs[0].triggered is True
+    assert alarm.outputs[1].triggered is False
+    assert alarm.outputs[2].triggered is True
+
+
+def test_handle_event_aux_output_update_callback(alarm):
+    for o in alarm.outputs:
+        o.triggered = False
+    alarm.outputs[0].triggered = True
+    cb = Mock()
+    alarm.on_output_change(cb)
+    event = AuxiliaryOutputsUpdate(
+        outputs=[AuxiliaryOutputsUpdate.OutputType.AUX_2],
+        address=None,
+        timestamp=None,
+    )
+    alarm.handle_event(event)
+    assert cb.call_count == 2
+    assert cb.call_args_list[0][0] == (1, False)
+    assert cb.call_args_list[1][0] == (2, True)
 
 
 def test_handle_event_arming_update_exit_delay(alarm):

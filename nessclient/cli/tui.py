@@ -153,6 +153,26 @@ async def interactive_ui(
                 )
                 y += 1
 
+            for i, output in enumerate(client.alarm.outputs, start=1):
+                if y >= zone_inner_h - 1:
+                    break
+                trig = output.triggered
+                if trig is None:
+                    status = "UNKNOWN"
+                    attr = curses.A_DIM | curses.color_pair(3)
+                else:
+                    if trig:
+                        status = "ON"
+                        attr = curses.A_NORMAL | curses.color_pair(1)
+                    else:
+                        status = "OFF"
+                        attr = curses.A_NORMAL | curses.color_pair(2)
+                out_line = f"O{i:02d}: {status}"
+                zone_win.addnstr(
+                    y, 2, out_line.ljust(zone_inner_w - 4), zone_inner_w - 4, attr
+                )
+                y += 1
+
             # Logs/messages pane
             logs_h = top_h - 1
             log_win = stdscr.derwin(logs_h, logs_w, 1, zones_w)

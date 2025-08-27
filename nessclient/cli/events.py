@@ -67,6 +67,10 @@ def events(
     def on_zone_change(zone: int, triggered: bool) -> None:
         print(f"Zone {zone} changed to {triggered}")
 
+    @client.on_output_change
+    def on_output_change(output: int, state: bool) -> None:
+        print(f"Output {output} changed to {state}")
+
     @client.on_state_change
     def on_state_change(state: ArmingState, arming_mode: ArmingMode | None) -> None:
         print(f"Alarm state changed to {state} (mode: {arming_mode})")

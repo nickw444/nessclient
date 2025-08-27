@@ -6,6 +6,7 @@ from enum import Enum
 from typing import List, Callable
 
 from .zone import Zone
+from .output import Output
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,12 +41,17 @@ class Alarm:
             [ArmingState, ArmingState, ArmingMode | None], None
         ],
         _zone_state_changed: Callable[[int, Zone.State], None],
+        _output_state_changed: Callable[[int, Output.State], None] | None = None,
     ):
         self.state = state
         self.zones = zones
+        self.outputs: List[Output] = [
+            Output(id=i + 1, state=Output.State.OFF) for i in range(8)
+        ]
         self._arming_mode: Alarm.ArmingMode | None = None
         self._alarm_state_changed = _alarm_state_changed
         self._zone_state_changed = _zone_state_changed
+        self._output_state_changed = _output_state_changed
         self._pending_event: str | None = None
 
     @property
@@ -59,12 +65,14 @@ class Alarm:
             [ArmingState, ArmingState, ArmingMode | None], None
         ],
         zone_state_changed: Callable[[int, Zone.State], None],
+        output_state_changed: Callable[[int, Output.State], None] | None = None,
     ) -> "Alarm":
         return Alarm(
             state=Alarm.ArmingState.DISARMED,
             zones=Alarm._generate_zones(num_zones),
             _alarm_state_changed=alarm_state_changed,
             _zone_state_changed=zone_state_changed,
+            _output_state_changed=output_state_changed,
         )
 
     @staticmethod
@@ -73,6 +81,12 @@ class Alarm:
         for i in range(num_zones):
             rv.append(Zone(id=i + 1, state=Zone.State.SEALED))
         return rv
+
+    def update_output(self, output_id: int, state: Output.State) -> None:
+        output = next(o for o in self.outputs if o.id == output_id)
+        output.state = state
+        if self._output_state_changed is not None:
+            self._output_state_changed(output_id, state)
 
     def arm(self, mode: ArmingMode = ArmingMode.ARMED_AWAY) -> None:
         self._update_state(Alarm.ArmingState.EXIT_DELAY, mode)

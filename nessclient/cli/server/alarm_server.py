@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any, Deque, Iterator, List, Optional
 
 from .alarm import Alarm
+from .output import Output
 from .server import Server, get_zone_state_event_type
 from .zone import Zone
 from ...event import (
@@ -16,6 +17,8 @@ from ...event import (
     ZoneUpdate,
     StatusUpdate,
     PanelVersionUpdate,
+    OutputsUpdate,
+    AuxiliaryOutputsUpdate,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,6 +37,7 @@ class AlarmServer:
             num_zones=16,
             alarm_state_changed=self._alarm_state_changed,
             zone_state_changed=self._zone_state_changed,
+            output_state_changed=self._output_state_changed,
         )
         self._server = Server(
             handle_command=self._handle_command,
@@ -145,6 +149,18 @@ class AlarmServer:
             elif z.state == Zone.State.UNSEALED:
                 attr |= curses.color_pair(2)
             # TRIPPED isn't a zone state; ALARM reflects global, but keep red for emphasis where useful
+            win.addnstr(y, 2, label.ljust(win_width - 4), win_width - 4, attr)
+            y += 1
+
+        for o in self._alarm.outputs:
+            if y >= win_height - 1:
+                break
+            label = f"O{o.id:>2}: {o.state.value}"
+            attr = curses.A_NORMAL
+            if o.state == Output.State.ON:
+                attr |= curses.color_pair(1)
+            else:
+                attr |= curses.color_pair(2)
             win.addnstr(y, 2, label.ljust(win_width - 4), win_width - 4, attr)
             y += 1
 
@@ -343,6 +359,26 @@ class AlarmServer:
         self._log_tx_event(event)
         self._server.write_event(event)
 
+    def _output_state_changed(self, output_id: int, state: Output.State) -> None:
+        outputs = [
+            get_output_for_id(o.id)
+            for o in self._alarm.outputs
+            if o.state == Output.State.ON and o.id <= 4
+        ]
+        event = OutputsUpdate(outputs=outputs, address=0x00, timestamp=None)
+        self._log_tx_event(event)
+        self._server.write_event(event)
+        aux_outputs = [
+            get_aux_output_for_id(o.id)
+            for o in self._alarm.outputs
+            if o.state == Output.State.ON
+        ]
+        aux_event = AuxiliaryOutputsUpdate(
+            outputs=aux_outputs, address=0x00, timestamp=None
+        )
+        self._log_tx_event(aux_event)
+        self._server.write_event(aux_event)
+
     def _handle_command(self, command: str) -> None:
         _LOGGER.info("Incoming User Command: {}".format(command))
         if command == "AE" or command == "A1234E":
@@ -355,8 +391,21 @@ class AlarmServer:
             self._handle_zone_input_unsealed_status_update_request()
         elif command == "S14":
             self._handle_arming_status_update_request()
+        elif command == "S15":
+            self._handle_outputs_status_update_request()
         elif command == "S17":
             self._handle_panel_version_update_request()
+        elif command == "S18":
+            self._handle_aux_output_status_update_request()
+        elif (
+            len(command) == 3
+            and command[0].isdigit()
+            and command[0] == command[1]
+            and command[2] in ("*", "#")
+        ):
+            output_id = int(command[0])
+            state = Output.State.ON if command[2] == "*" else Output.State.OFF
+            self._alarm.update_output(output_id, state)
 
     def _handle_arming_status_update_request(self) -> None:
         event = ArmingUpdate(
@@ -386,6 +435,32 @@ class AlarmServer:
             model=self._panel_model,
             major_version=self._panel_major_version,
             minor_version=self._panel_minor_version,
+            address=0x00,
+            timestamp=None,
+        )
+        self._log_tx_event(event)
+        self._server.write_event(event)
+
+    def _handle_outputs_status_update_request(self) -> None:
+        event = OutputsUpdate(
+            outputs=[
+                get_output_for_id(o.id)
+                for o in self._alarm.outputs
+                if o.state == Output.State.ON and o.id <= 4
+            ],
+            address=0x00,
+            timestamp=None,
+        )
+        self._log_tx_event(event)
+        self._server.write_event(event)
+
+    def _handle_aux_output_status_update_request(self) -> None:
+        event = AuxiliaryOutputsUpdate(
+            outputs=[
+                get_aux_output_for_id(o.id)
+                for o in self._alarm.outputs
+                if o.state == Output.State.ON
+            ],
             address=0x00,
             timestamp=None,
         )
@@ -515,3 +590,13 @@ def toggled_state(state: Zone.State) -> Zone.State:
 def get_zone_for_id(zone_id: int) -> ZoneUpdate.Zone:
     key = "ZONE_{}".format(zone_id)
     return ZoneUpdate.Zone[key]
+
+
+def get_output_for_id(output_id: int) -> OutputsUpdate.OutputType:
+    key = f"AUX{output_id}"
+    return OutputsUpdate.OutputType[key]
+
+
+def get_aux_output_for_id(output_id: int) -> AuxiliaryOutputsUpdate.OutputType:
+    key = f"AUX_{output_id}"
+    return AuxiliaryOutputsUpdate.OutputType[key]

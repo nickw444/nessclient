@@ -253,6 +253,12 @@ class Client:
         self.alarm.on_zone_change(f)
         return f
 
+    def on_output_change(
+        self, f: Callable[[int, bool], None]
+    ) -> Callable[[int, bool], None]:
+        self.alarm.on_output_change(f)
+        return f
+
     def on_event_received(
         self, f: Callable[[BaseEvent], None]
     ) -> Callable[[BaseEvent], None]:

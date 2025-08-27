@@ -2,7 +2,14 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, List
 
-from .event import BaseEvent, ZoneUpdate, ArmingUpdate, SystemStatusEvent
+from .event import (
+    AuxiliaryOutputsUpdate,
+    BaseEvent,
+    OutputsUpdate,
+    ZoneUpdate,
+    ArmingUpdate,
+    SystemStatusEvent,
+)
 
 
 class ArmingState(Enum):
@@ -43,10 +50,17 @@ class Alarm:
     class Zone:
         triggered: bool | None
 
+    @dataclass
+    class Output:
+        triggered: bool | None
+
     def __init__(self, infer_arming_state: bool = False) -> None:
         self._infer_arming_state = infer_arming_state
         self.arming_state: ArmingState = ArmingState.UNKNOWN
         self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(16)]
+        self.outputs: List[Alarm.Output] = [
+            Alarm.Output(triggered=None) for _ in range(8)
+        ]
 
         self._arming_mode: ArmingMode | None = None
 
@@ -54,6 +68,7 @@ class Alarm:
             None
         )
         self._on_zone_change: Callable[[int, bool], None] | None = None
+        self._on_output_change: Callable[[int, bool], None] | None = None
 
     def handle_event(self, event: BaseEvent) -> None:
         if isinstance(event, ArmingUpdate):
@@ -65,6 +80,10 @@ class Alarm:
             self._handle_zone_input_update(event)
         elif isinstance(event, SystemStatusEvent):
             self._handle_system_status_event(event)
+        elif isinstance(event, OutputsUpdate):
+            self._handle_outputs_update(event)
+        elif isinstance(event, AuxiliaryOutputsUpdate):
+            self._handle_aux_outputs_update(event)
 
     def _handle_arming_update(self, update: ArmingUpdate) -> None:
         if update.status == [ArmingUpdate.ArmingStatus.AREA_1_ARMED]:
@@ -143,6 +162,18 @@ class Alarm:
         elif event.type == SystemStatusEvent.EventType.ARMING_DELAYED:
             pass
 
+    def _handle_outputs_update(self, update: OutputsUpdate) -> None:
+        for i in range(1, min(len(self.outputs), 4) + 1):
+            key = f"AUX{i}"
+            triggered = getattr(OutputsUpdate.OutputType, key) in update.outputs
+            self._update_output(i, triggered)
+
+    def _handle_aux_outputs_update(self, update: AuxiliaryOutputsUpdate) -> None:
+        for i in range(1, len(self.outputs) + 1):
+            key = f"AUX_{i}"
+            triggered = getattr(AuxiliaryOutputsUpdate.OutputType, key) in update.outputs
+            self._update_output(i, triggered)
+
     def _update_arming_state(self, state: ArmingState) -> None:
         if self.arming_state != state:
             self.arming_state = state
@@ -156,6 +187,13 @@ class Alarm:
             if self._on_zone_change is not None:
                 self._on_zone_change(zone_id, state)
 
+    def _update_output(self, output_id: int, state: bool) -> None:
+        output = self.outputs[output_id - 1]
+        if output.triggered != state:
+            output.triggered = state
+            if self._on_output_change is not None:
+                self._on_output_change(output_id, state)
+
     def on_state_change(
         self, f: Callable[[ArmingState, ArmingMode | None], None]
     ) -> None:
@@ -163,3 +201,6 @@ class Alarm:
 
     def on_zone_change(self, f: Callable[[int, bool], None]) -> None:
         self._on_zone_change = f
+
+    def on_output_change(self, f: Callable[[int, bool], None]) -> None:
+        self._on_output_change = f
