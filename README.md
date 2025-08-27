@@ -44,7 +44,7 @@ ness-cli --help
 
 The CLI exposes several high level commands:
 
-- `events` – listen for alarm events emitted by a connected panel. Use `--interactive` for a terminal UI with live zone status and event logs.
+- `events` – listen for alarm events emitted by a connected panel in a terminal UI with live zone status and event logs.
 - `send` – send a raw command to the panel.
 - `server` – run a dummy panel server, useful for local development when an alarm panel isn't available.
 - `version` – print the installed package version.
@@ -72,8 +72,7 @@ records each transmitted (`TX`) and received (`RX`) packet:
 ness-cli events --logfile packets.log
 ```
 
-This works in both normal and `--interactive` modes. Include the generated log
-file with bug reports to assist with troubleshooting.
+Include the generated log file with bug reports to assist with troubleshooting.
 
 ## API Documentation
 You can find the full API documentation [here](https://nessclient.readthedocs.io/en/latest/api.html)
