@@ -2,7 +2,7 @@ import asyncio
 import datetime
 import logging
 from asyncio import sleep
-from typing import Callable, Dict, cast
+from typing import Callable, Dict
 
 from justbackoff import Backoff
 
@@ -88,9 +88,8 @@ class Client:
         - Otherwise, sends `S17` and returns the parsed PanelVersionUpdate
           as a `PanelInfo` tuple.
         """
-        cached = getattr(self.alarm, "panel_info", None)
-        if cached is not None:
-            return cast(PanelInfo, cached)
+        if self.alarm.panel_info is not None:
+            return self.alarm.panel_info
 
         resp = await self.send_command_and_wait("S17")
         if isinstance(resp, PanelVersionUpdate):

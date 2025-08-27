@@ -87,9 +87,7 @@ async def test_get_panel_info_cached_returns_without_io(
     connection, client: Client, alarm: Alarm
 ):
     # If panel_info is already known, get_panel_info returns it and performs no I/O
-    alarm.panel_info = PanelInfo(  # type: ignore[attr-defined]
-        model=PanelVersionUpdate.Model.D16X, version="8.7"
-    )
+    alarm.panel_info = PanelInfo(model=PanelVersionUpdate.Model.D16X, version="8.7")
 
     info = await client.get_panel_info()
     assert info.model == PanelVersionUpdate.Model.D16X
@@ -103,7 +101,7 @@ async def test_get_panel_info_probes_when_missing(
     connection, client: Client, alarm: Alarm
 ):
     # With no cached info, get_panel_info should send S17 and return parsed info
-    alarm.panel_info = None  # type: ignore[attr-defined]
+    alarm.panel_info = None
 
     # Patch send_command_and_wait to send S17 then return a PanelVersionUpdate
     orig_send_command = client.send_command

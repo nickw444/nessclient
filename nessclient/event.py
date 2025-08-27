@@ -469,7 +469,6 @@ class PanelVersionUpdate(StatusUpdate):
         # DPlus panel variants
         DPLUS8 = "DPLUS8"
 
-
     """Panel model and modem combinations prior to documentation revision 16.
 
     Previous documentation revisions did not specify explicit examples beyond:

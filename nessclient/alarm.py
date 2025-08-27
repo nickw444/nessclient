@@ -59,6 +59,7 @@ class Alarm:
         self._infer_arming_state = infer_arming_state
         self.arming_state: ArmingState = ArmingState.UNKNOWN
         self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(16)]
+        self.panel_info: PanelInfo | None = None
 
         self._arming_mode: ArmingMode | None = None
 
@@ -77,6 +78,8 @@ class Alarm:
             self._handle_zone_input_update(event)
         elif isinstance(event, SystemStatusEvent):
             self._handle_system_status_event(event)
+        elif isinstance(event, PanelVersionUpdate):
+            self.panel_info = PanelInfo(model=event.model, version=event.version)
 
     def _handle_arming_update(self, update: ArmingUpdate) -> None:
         if update.status == [ArmingUpdate.ArmingStatus.AREA_1_ARMED]:
