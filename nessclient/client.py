@@ -2,13 +2,13 @@ import asyncio
 import datetime
 import logging
 from asyncio import sleep
-from typing import Callable, Dict
+from typing import Callable, Dict, cast
 
 from justbackoff import Backoff
 
-from .alarm import ArmingState, Alarm, ArmingMode
+from .alarm import ArmingState, Alarm, ArmingMode, PanelInfo
 from .connection import Connection, IP232Connection, Serial232Connection
-from .event import BaseEvent, DecodeOptions, StatusUpdate
+from .event import BaseEvent, DecodeOptions, StatusUpdate, PanelVersionUpdate
 from .packet import CommandType, Packet
 
 _LOGGER = logging.getLogger(__name__)
@@ -80,6 +80,23 @@ class Client:
     async def aux(self, output_id: int, state: bool = True) -> None:
         command = "{}{}{}".format(output_id, output_id, "*" if state else "#")
         return await self.send_command(command)
+
+    async def get_panel_info(self) -> PanelInfo:
+        """Fetch and return panel information (model and version).
+
+        - Returns cached info if already known by the Alarm instance.
+        - Otherwise, sends `S17` and returns the parsed PanelVersionUpdate
+          as a `PanelInfo` tuple.
+        """
+        cached = getattr(self.alarm, "panel_info", None)
+        if cached is not None:
+            return cast(PanelInfo, cached)
+
+        resp = await self.send_command_and_wait("S17")
+        if isinstance(resp, PanelVersionUpdate):
+            # Alarm will also receive and may cache this via handle_event.
+            return PanelInfo(model=resp.model, version=resp.version)
+        raise RuntimeError(f"Unexpected response to S17: {resp}")
 
     async def update(self) -> None:
         """Force update of alarm status and zones"""

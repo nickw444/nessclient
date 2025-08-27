@@ -2,7 +2,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, List
 
-from .event import BaseEvent, ZoneUpdate, ArmingUpdate, SystemStatusEvent
+from .event import (
+    BaseEvent,
+    ZoneUpdate,
+    ArmingUpdate,
+    SystemStatusEvent,
+    PanelVersionUpdate,
+)
 
 
 class ArmingState(Enum):
@@ -22,6 +28,12 @@ class ArmingMode(Enum):
     ARMED_NIGHT = "ARMED_NIGHT"
     ARMED_VACATION = "ARMED_VACATION"
     ARMED_HIGHEST = "ARMED_HIGHEST"
+
+
+@dataclass
+class PanelInfo:
+    model: PanelVersionUpdate.Model
+    version: str
 
 
 class Alarm:
