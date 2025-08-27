@@ -61,11 +61,6 @@ async def interactive_ui(
         # Also show the event object's repr (deserialized form)
         _add_log(logs, "EVT", repr(event))
 
-        if isinstance(event, PanelVersionUpdate):
-            panel_version = (
-                f"{event.model.name} {event.major_version}.{event.minor_version}"
-            )
-
     @client.on_zone_change
     def on_zone_change(zone: int, triggered: bool) -> None:
         # Do not append zone status updates to the events feed; the
@@ -77,9 +72,15 @@ async def interactive_ui(
         _add_log(logs, "RX", f"State: {state.value} Mode: {arming_mode}")
 
     keepalive_task = asyncio.create_task(client.keepalive())
-    # Initial update and panel version request
+    # Initial update and panel info request
     _add_log(logs, "TX", "Update")
     await client.update()
+    try:
+        info = await client.get_panel_info()
+        panel_version = f"{info.model.name} {info.version}"
+        _add_log(logs, "RX", f"Panel: {panel_version}")
+    except Exception as e:
+        _add_log(logs, "RX", f"Failed to probe panel info: {e}")
 
     stdscr = curses.initscr()
     curses.noecho()
