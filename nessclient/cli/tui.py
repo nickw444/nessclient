@@ -9,7 +9,7 @@ from typing import TextIO
 from ..alarm import ArmingMode, ArmingState
 from ..client import Client
 from ..connection import IP232Connection, Serial232Connection
-from ..event import BaseEvent, PanelVersionUpdate
+from ..event import BaseEvent
 from .logging_connection import LoggingConnection
 
 
