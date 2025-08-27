@@ -27,12 +27,13 @@ class AlarmServer:
         self,
         host: str,
         port: int,
+        num_zones: int,
         panel_model: PanelVersionUpdate.Model,
         panel_major_version: int,
         panel_minor_version: int,
     ):
         self._alarm = Alarm.create(
-            num_zones=(32 if panel_model == PanelVersionUpdate.Model.D32X else 16),
+            num_zones=num_zones,
             alarm_state_changed=self._alarm_state_changed,
             zone_state_changed=self._zone_state_changed,
         )

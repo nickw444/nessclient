@@ -89,24 +89,21 @@ class Client:
             self._model_probe_attempted = True
             await self._probe_panel_model()
 
-        if len(self.alarm.zones) > 16:
-            _LOGGER.debug("Requesting state update from server (S00, S20, S14)")
-            await asyncio.gather(
-                # List unsealed Zones 1-16
-                self.send_command("S00"),
-                # List unsealed Zones 17-32
-                self.send_command("S20"),
-                # Arming status update
-                self.send_command("S14"),
-            )
-        else:
-            _LOGGER.debug("Requesting state update from server (S00, S14)")
-            await asyncio.gather(
-                # List unsealed Zones
-                self.send_command("S00"),
-                # Arming status update
-                self.send_command("S14"),
-            )
+        _LOGGER.debug("Requesting state update from server (S00, S20, S14)")
+        await asyncio.gather(
+            # List unsealed Zones 1-16
+            self.send_command("S00"),
+            # List unsealed Zones 17-32
+            # Note: Request this for all panels. Many panels can exceed 16 zones
+            # via expansion modules, but the ASCII protocol does not provide a
+            # reliable way to detect expansion presence. Panels tested tolerate
+            # S20 when only 8/16 zones are configured and simply return an empty
+            # set for zones 17–32. The extra status request is negligible
+            # overhead and guarantees we observe zones 17–32 whenever they exist.
+            self.send_command("S20"),
+            # Arming status update
+            self.send_command("S14"),
+        )
 
     async def _probe_panel_model(self) -> None:
         _LOGGER.debug("Requesting panel model probe from server (S17)")

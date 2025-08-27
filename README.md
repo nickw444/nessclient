@@ -39,6 +39,17 @@ The CLI exposes several high level commands:
 
 Run `ness-cli COMMAND --help` for full options on each command.
 
+#### Server zones
+
+The dummy server can simulate a configurable number of zones independent of the panel model. Use `--zones` to set the count (1–32):
+
+```
+ness-cli server --zones 24 --panel-model D8X --panel-version 8.7
+```
+
+- `S00` status includes unsealed zones in 1–16 (or fewer if the configured count is < 16).
+- `S20` always responds: it returns an empty set when the configured count is ≤ 16; otherwise it reports unsealed zones in 17–N.
+
 ### Capturing raw packets
 
 When reporting issues it can be helpful to provide the raw ASCII packets

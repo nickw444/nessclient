@@ -53,7 +53,10 @@ class Alarm:
     def __init__(self, infer_arming_state: bool = False) -> None:
         self._infer_arming_state = infer_arming_state
         self.arming_state: ArmingState = ArmingState.UNKNOWN
-        self._zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(32)]
+        # Always expose all 32 zones irrespective of panel model, as some panels
+        # can be "expanded" to support more zones, but there is no API/command
+        # to query the existence of these zones.
+        self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(32)]
 
         self.panel_model: PanelVersionUpdate.Model | None = None
         self.panel_version: str | None = None
@@ -64,13 +67,6 @@ class Alarm:
             None
         )
         self._on_zone_change: Callable[[int, bool], None] | None = None
-
-    @property
-    def zones(self) -> List[Zone]:
-        if self.panel_model is None or self.panel_model == PanelVersionUpdate.Model.D32X:
-            return self._zones
-
-        return self._zones[:16]
 
     def handle_event(self, event: BaseEvent) -> None:
         if isinstance(event, ArmingUpdate):
