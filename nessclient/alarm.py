@@ -4,7 +4,8 @@ from typing import Callable, List
 
 from .event import (
     BaseEvent,
-    ZoneUpdate,
+    ZoneUpdate_1_16,
+    ZoneUpdate_17_32,
     ArmingUpdate,
     SystemStatusEvent,
     PanelVersionUpdate,
@@ -58,7 +59,10 @@ class Alarm:
     def __init__(self, infer_arming_state: bool = False) -> None:
         self._infer_arming_state = infer_arming_state
         self.arming_state: ArmingState = ArmingState.UNKNOWN
-        self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(16)]
+        # Always expose all 32 zones irrespective of panel model, as some panels
+        # can be "expanded" to support more zones, but there is no API/command
+        # to query the existence of these zones.
+        self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(32)]
         self.panel_info: PanelInfo | None = None
 
         self._arming_mode: ArmingMode | None = None
@@ -72,10 +76,15 @@ class Alarm:
         if isinstance(event, ArmingUpdate):
             self._handle_arming_update(event)
         elif (
-            isinstance(event, ZoneUpdate)
-            and event.request_id == ZoneUpdate.RequestID.ZONE_INPUT_UNSEALED
+            isinstance(event, ZoneUpdate_1_16)
+            and event.request_id == ZoneUpdate_1_16.RequestID.ZONE_1_16_INPUT_UNSEALED
         ):
-            self._handle_zone_input_update(event)
+            self._handle_zone_1_16_input_update(event)
+        elif (
+            isinstance(event, ZoneUpdate_17_32)
+            and event.request_id == ZoneUpdate_17_32.RequestID.ZONE_17_32_INPUT_UNSEALED
+        ):
+            self._handle_zone_17_32_input_update(event)
         elif isinstance(event, SystemStatusEvent):
             self._handle_system_status_event(event)
         elif isinstance(event, PanelVersionUpdate):
@@ -110,11 +119,20 @@ class Alarm:
                 #  handles other arming modes.
                 return self._update_arming_state(ArmingState.DISARMED)
 
-    def _handle_zone_input_update(self, update: ZoneUpdate) -> None:
-        for i, zone in enumerate(self.zones):
+    def _handle_zone_1_16_input_update(self, update: ZoneUpdate_1_16) -> None:
+        for i, zone in enumerate(self.zones[:16]):
             zone_id = i + 1
             name = "ZONE_{}".format(zone_id)
-            if ZoneUpdate.Zone[name] in update.included_zones:
+            if ZoneUpdate_1_16.Zone[name] in update.included_zones:
+                self._update_zone(zone_id, True)
+            else:
+                self._update_zone(zone_id, False)
+
+    def _handle_zone_17_32_input_update(self, update: ZoneUpdate_17_32) -> None:
+        for i, zone in enumerate(self.zones[16:]):
+            zone_id = i + 17
+            name = "ZONE_{}".format(zone_id)
+            if ZoneUpdate_17_32.Zone[name] in update.included_zones:
                 self._update_zone(zone_id, True)
             else:
                 self._update_zone(zone_id, False)

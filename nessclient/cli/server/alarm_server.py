@@ -13,7 +13,8 @@ from .zone import Zone
 from ...event import (
     SystemStatusEvent,
     ArmingUpdate,
-    ZoneUpdate,
+    ZoneUpdate_1_16,
+    ZoneUpdate_17_32,
     StatusUpdate,
     PanelVersionUpdate,
 )
@@ -26,12 +27,13 @@ class AlarmServer:
         self,
         host: str,
         port: int,
+        num_zones: int,
         panel_model: PanelVersionUpdate.Model,
         panel_major_version: int,
         panel_minor_version: int,
     ):
         self._alarm = Alarm.create(
-            num_zones=16,
+            num_zones=num_zones,
             alarm_state_changed=self._alarm_state_changed,
             zone_state_changed=self._zone_state_changed,
         )
@@ -352,7 +354,9 @@ class AlarmServer:
         elif command == "1234E":
             self._alarm.disarm()
         elif command == "S00":
-            self._handle_zone_input_unsealed_status_update_request()
+            self._handle_zone_1_16_input_unsealed_status_update_request()
+        elif command == "S20":
+            self._handle_zone_17_32_input_unsealed_status_update_request()
         elif command == "S14":
             self._handle_arming_status_update_request()
         elif command == "S17":
@@ -367,12 +371,26 @@ class AlarmServer:
         self._log_tx_event(event)
         self._server.write_event(event)
 
-    def _handle_zone_input_unsealed_status_update_request(self) -> None:
-        event = ZoneUpdate(
-            request_id=StatusUpdate.RequestID.ZONE_INPUT_UNSEALED,
+    def _handle_zone_1_16_input_unsealed_status_update_request(self) -> None:
+        event = ZoneUpdate_1_16(
+            request_id=StatusUpdate.RequestID.ZONE_1_16_INPUT_UNSEALED,
             included_zones=[
-                get_zone_for_id(z.id)
-                for z in self._alarm.zones
+                get_zone_for_id_1_16(z.id)
+                for z in self._alarm.zones[:16]
+                if z.state == Zone.State.UNSEALED
+            ],
+            address=0x00,
+            timestamp=None,
+        )
+        self._log_tx_event(event)
+        self._server.write_event(event)
+
+    def _handle_zone_17_32_input_unsealed_status_update_request(self) -> None:
+        event = ZoneUpdate_17_32(
+            request_id=StatusUpdate.RequestID.ZONE_17_32_INPUT_UNSEALED,
+            included_zones=[
+                get_zone_for_id_17_32(z.id)
+                for z in self._alarm.zones[16:32]
                 if z.state == Zone.State.UNSEALED
             ],
             address=0x00,
@@ -512,6 +530,11 @@ def toggled_state(state: Zone.State) -> Zone.State:
         return Zone.State.SEALED
 
 
-def get_zone_for_id(zone_id: int) -> ZoneUpdate.Zone:
+def get_zone_for_id_1_16(zone_id: int) -> ZoneUpdate_1_16.Zone:
     key = "ZONE_{}".format(zone_id)
-    return ZoneUpdate.Zone[key]
+    return ZoneUpdate_1_16.Zone[key]
+
+
+def get_zone_for_id_17_32(zone_id: int) -> ZoneUpdate_17_32.Zone:
+    key = "ZONE_{}".format(zone_id)
+    return ZoneUpdate_17_32.Zone[key]

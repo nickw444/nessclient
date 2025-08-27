@@ -75,7 +75,16 @@ def events(
     def on_event_received(event: BaseEvent) -> None:
         print(event)
 
+    async def _init_panel_info() -> None:
+        try:
+            info = await client.get_panel_info()
+            print(f"Panel: {info.model.name} {info.version}")
+        except Exception as e:
+            # Non-fatal; continue receiving events
+            print(f"Failed to probe panel info: {e}")
+
     loop.create_task(client.keepalive())
     loop.create_task(client.update())
+    loop.create_task(_init_panel_info())
 
     loop.run_forever()

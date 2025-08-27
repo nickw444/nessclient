@@ -14,6 +14,24 @@ def get_data(pkt: bytes) -> bytes:
     return pkt[7:-4]
 
 
+def panel_version_response(
+    model: PanelVersionUpdate.Model,
+    major: int = 8,
+    minor: int = 7,
+) -> PanelVersionUpdate:
+    """Construct a PanelVersionUpdate event for PANEL_VERSION (S17).
+
+    Returns an event instance directly to avoid encode/decode roundtrips.
+    """
+    return PanelVersionUpdate(
+        model=model,
+        major_version=major,
+        minor_version=minor,
+        address=0x00,
+        timestamp=None,
+    )
+
+
 @pytest.mark.asyncio
 async def test_arm_away(connection, client):
     await client.arm_away("1234")
@@ -57,29 +75,16 @@ async def test_aux_off(connection, client):
 
 
 @pytest.mark.asyncio
-async def test_update(connection, client):
+async def test_update(connection, client: Client, alarm: Alarm):
+    # Update should send S00, S20 and S14
     await client.update()
-    assert connection.write.call_count == 2
+    assert connection.write.call_count == 3
     commands = {
         get_data(connection.write.call_args_list[0][0][0]),
         get_data(connection.write.call_args_list[1][0][0]),
+        get_data(connection.write.call_args_list[2][0][0]),
     }
-    assert commands == {b"S00", b"S14"}
-
-
-def panel_version_response(
-    model: PanelVersionUpdate.Model,
-    major: int = 8,
-    minor: int = 7,
-) -> PanelVersionUpdate:
-    """Construct a PanelVersionUpdate event for PANEL_VERSION (S17)."""
-    return PanelVersionUpdate(
-        model=model,
-        major_version=major,
-        minor_version=minor,
-        address=0x00,
-        timestamp=None,
-    )
+    assert commands == {b"S00", b"S20", b"S14"}
 
 
 @pytest.mark.asyncio
