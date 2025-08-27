@@ -545,6 +545,9 @@ class PanelVersionUpdate(StatusUpdate):
         # D32X panel variants
         D32X = "D32X"
 
+        # DPlus panel variants
+        DPLUS8 = "DPLUS8"
+
     """Panel model and modem combinations prior to documentation revision 16.
 
     Previous documentation revisions did not specify explicit examples beyond:
@@ -605,6 +608,8 @@ class PanelVersionUpdate(StatusUpdate):
         0x10: Model.D16X,
         0x14: Model.D16X_CEL_3G,
         0x15: Model.D16X_CEL_4G,
+        # DPlus based panels
+        0x16: Model.DPLUS8
     }
 
     def __init__(
