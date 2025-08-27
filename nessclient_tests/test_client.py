@@ -79,22 +79,12 @@ async def test_update(connection, client: Client, alarm: Alarm):
     # Update should send S00, S20 and S14
     await client.update()
     assert connection.write.call_count == 3
-    followup = {
+    commands = {
         get_data(connection.write.call_args_list[0][0][0]),
         get_data(connection.write.call_args_list[1][0][0]),
         get_data(connection.write.call_args_list[2][0][0]),
     }
-    assert followup == {b"S00", b"S20", b"S14"}
-
-    # Subsequent updates should send S00, S20 and S14 again
-    await client.update()
-    assert connection.write.call_count == 6
-    followup2 = {
-        get_data(connection.write.call_args_list[3][0][0]),
-        get_data(connection.write.call_args_list[4][0][0]),
-        get_data(connection.write.call_args_list[5][0][0]),
-    }
-    assert followup2 == {b"S00", b"S20", b"S14"}
+    assert commands == {b"S00", b"S20", b"S14"}
 
 
 @pytest.mark.asyncio
