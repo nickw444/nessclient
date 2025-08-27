@@ -52,7 +52,6 @@ class Client:
         self._decode_options = decode_options
         self._on_event_received: Callable[[BaseEvent], None] | None = None
         self._connection = connection
-        self._model_probe_attempted = False
         self._closed = False
         self._backoff = Backoff()
         self._connect_lock = asyncio.Lock()
