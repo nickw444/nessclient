@@ -376,8 +376,8 @@ class AlarmServer:
             request_id=StatusUpdate.RequestID.ZONE_1_16_INPUT_UNSEALED,
             included_zones=[
                 get_zone_for_id_1_16(z.id)
-                for z in self._alarm.zones
-                if 1 <= z.id <= 16 and z.state == Zone.State.UNSEALED
+                for z in self._alarm.zones[:16]
+                if z.state == Zone.State.UNSEALED
             ],
             address=0x00,
             timestamp=None,
@@ -390,8 +390,8 @@ class AlarmServer:
             request_id=StatusUpdate.RequestID.ZONE_17_32_INPUT_UNSEALED,
             included_zones=[
                 get_zone_for_id_17_32(z.id)
-                for z in self._alarm.zones
-                if 17 <= z.id <= 32 and z.state == Zone.State.UNSEALED
+                for z in self._alarm.zones[16:32]
+                if z.state == Zone.State.UNSEALED
             ],
             address=0x00,
             timestamp=None,
