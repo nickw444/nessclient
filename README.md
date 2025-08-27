@@ -7,6 +7,18 @@
 
 
 A python implementation/abstraction of the [Ness D8x / D16x Serial Interface ASCII protocol](./D8-32X%20Serial%20Protocol%20Public.pdf)
+
+## Supported Models
+
+- D8X
+- D8X_CEL_3G
+- D8X_CEL_4G
+- D16X
+- D16X_CEL_3G
+- D16X_CEL_4G
+- D32X
+- DPLUS8
+
 ## Installing nessclient
 
 `nessclient` is available directly from pip:
