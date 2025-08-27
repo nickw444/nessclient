@@ -3,9 +3,9 @@ from unittest.mock import Mock, AsyncMock
 import pytest
 
 from nessclient import Client
-from nessclient.alarm import Alarm
+from nessclient.alarm import Alarm, PanelInfo
 from nessclient.connection import Connection
-from nessclient.event import StatusUpdate, BaseEvent
+from nessclient.event import StatusUpdate, BaseEvent, PanelVersionUpdate
 from nessclient.packet import Packet, CommandType
 import asyncio
 
@@ -65,6 +65,61 @@ async def test_update(connection, client):
         get_data(connection.write.call_args_list[1][0][0]),
     }
     assert commands == {b"S00", b"S14"}
+
+
+def panel_version_response(
+    model: PanelVersionUpdate.Model,
+    major: int = 8,
+    minor: int = 7,
+) -> PanelVersionUpdate:
+    """Construct a PanelVersionUpdate event for PANEL_VERSION (S17)."""
+    return PanelVersionUpdate(
+        model=model,
+        major_version=major,
+        minor_version=minor,
+        address=0x00,
+        timestamp=None,
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_panel_info_cached_returns_without_io(
+    connection, client: Client, alarm: Alarm
+):
+    # If panel_info is already known, get_panel_info returns it and performs no I/O
+    alarm.panel_info = PanelInfo(model=PanelVersionUpdate.Model.D16X, version="8.7")
+
+    info = await client.get_panel_info()
+    assert info.model == PanelVersionUpdate.Model.D16X
+    assert info.version == "8.7"
+    # No writes should have occurred
+    assert connection.write.call_count == 0
+
+
+@pytest.mark.asyncio
+async def test_get_panel_info_probes_when_missing(
+    connection, client: Client, alarm: Alarm
+):
+    # With no cached info, get_panel_info should send S17 and return parsed info
+    alarm.panel_info = None
+
+    # Patch send_command_and_wait to send S17 then return a PanelVersionUpdate
+    orig_send_command = client.send_command
+
+    async def fake_scaw(command: str, timeout: float | None = 5.0):
+        await orig_send_command(command)
+        return panel_version_response(PanelVersionUpdate.Model.D32X, 8, 7)
+
+    client.send_command_and_wait = fake_scaw  # type: ignore[assignment]
+
+    info = await client.get_panel_info()
+    # Ensure S17 was sent
+    assert connection.write.call_count == 1
+    first = get_data(connection.write.call_args_list[0][0][0])
+    assert first == b"S17"
+    # Info returned should match the fake response
+    assert info.model == PanelVersionUpdate.Model.D32X
+    assert info.version == "8.7"
 
 
 @pytest.mark.asyncio

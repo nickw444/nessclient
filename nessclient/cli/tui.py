@@ -9,7 +9,7 @@ from typing import TextIO
 from ..alarm import ArmingMode, ArmingState
 from ..client import Client
 from ..connection import IP232Connection, Serial232Connection
-from ..event import BaseEvent, PanelVersionUpdate
+from ..event import BaseEvent
 from .logging_connection import LoggingConnection
 
 
@@ -49,7 +49,6 @@ async def interactive_ui(
 
     @client.on_event_received
     def on_event_received(event: BaseEvent) -> None:
-        nonlocal panel_version
         # Log as RX with short type/value
         try:
             pkt = event.encode()
@@ -60,11 +59,6 @@ async def interactive_ui(
 
         # Also show the event object's repr (deserialized form)
         _add_log(logs, "EVT", repr(event))
-
-        if isinstance(event, PanelVersionUpdate):
-            panel_version = (
-                f"{event.model.name} {event.major_version}.{event.minor_version}"
-            )
 
     @client.on_zone_change
     def on_zone_change(zone: int, triggered: bool) -> None:
@@ -77,11 +71,15 @@ async def interactive_ui(
         _add_log(logs, "RX", f"State: {state.value} Mode: {arming_mode}")
 
     keepalive_task = asyncio.create_task(client.keepalive())
-    # Initial update and panel version request
+    # Initial update and panel info request
     _add_log(logs, "TX", "Update")
     await client.update()
-    _add_log(logs, "TX", "S17 (Panel Version)")
-    await client.send_command("S17")
+    try:
+        info = await client.get_panel_info()
+        panel_version = f"{info.model.name} {info.version}"
+        _add_log(logs, "RX", f"Panel: {panel_version}")
+    except Exception as e:
+        _add_log(logs, "RX", f"Failed to probe panel info: {e}")
 
     stdscr = curses.initscr()
     curses.noecho()
