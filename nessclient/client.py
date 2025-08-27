@@ -82,19 +82,18 @@ class Client:
         return await self.send_command(command)
 
     async def get_panel_info(self) -> PanelInfo:
-        """Fetch and return panel information (model and version).
-
-        - Returns cached info if already known by the Alarm instance.
-        - Otherwise, sends `S17` and returns the parsed PanelVersionUpdate
-          as a `PanelInfo` tuple.
-        """
+        """Fetch and return panel information (model and version)."""
+        # Return panel info if we already know it.
         if self.alarm.panel_info is not None:
             return self.alarm.panel_info
 
         resp = await self.send_command_and_wait("S17")
         if isinstance(resp, PanelVersionUpdate):
-            # Alarm will also receive and may cache this via handle_event.
+            # The event dispatcher will also dispatch the event to the alarm
+            # entity which will handle the PanelVersionUpdate internally to set
+            # the panel_info property.
             return PanelInfo(model=resp.model, version=resp.version)
+
         raise RuntimeError(f"Unexpected response to S17: {resp}")
 
     async def update(self) -> None:
