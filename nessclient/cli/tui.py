@@ -49,7 +49,6 @@ async def interactive_ui(
 
     @client.on_event_received
     def on_event_received(event: BaseEvent) -> None:
-        nonlocal panel_version
         # Log as RX with short type/value
         try:
             pkt = event.encode()

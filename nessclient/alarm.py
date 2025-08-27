@@ -2,13 +2,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, List
 
-from .event import PanelVersionUpdate
 from .event import (
     BaseEvent,
     ZoneUpdate_1_16,
     ZoneUpdate_17_32,
     ArmingUpdate,
     SystemStatusEvent,
+    PanelVersionUpdate,
 )
 
 

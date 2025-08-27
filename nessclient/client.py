@@ -6,10 +6,9 @@ from typing import Callable, Dict
 
 from justbackoff import Backoff
 
-from .event import PanelVersionUpdate
 from .alarm import ArmingState, Alarm, ArmingMode, PanelInfo
 from .connection import Connection, IP232Connection, Serial232Connection
-from .event import BaseEvent, DecodeOptions, StatusUpdate
+from .event import BaseEvent, DecodeOptions, StatusUpdate, PanelVersionUpdate
 from .packet import CommandType, Packet
 
 _LOGGER = logging.getLogger(__name__)
