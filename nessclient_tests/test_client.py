@@ -76,48 +76,7 @@ async def test_aux_off(connection, client):
 
 @pytest.mark.asyncio
 async def test_update(connection, client: Client, alarm: Alarm):
-    # Simulate a 16-zone panel via probe (D16X) using the shared client/alarm mocks.
-    # Configure the alarm mock to reflect 16 zones.
-    alarm.zones = [object()] * 16
-
-    # Start update; it should send S17 first (probe)
-    task = asyncio.create_task(client.update())
-    await asyncio.sleep(0)
-    assert connection.write.call_count == 1
-    assert get_data(connection.write.call_args_list[0][0][0]) == b"S17"
-
-    # Respond with a D16X panel version (16 zones)
-    event = panel_version_response(PanelVersionUpdate.Model.D16X, 8, 7)
-    client._dispatch_event(event, None)
-
-    # Allow update to continue and complete
-    await task
-
-    # After probe, update should send only S00 and S14
-    assert connection.write.call_count == 3
-    followup = {
-        get_data(connection.write.call_args_list[1][0][0]),
-        get_data(connection.write.call_args_list[2][0][0]),
-    }
-    assert followup == {b"S00", b"S14"}
-
-    # Subsequent updates should not probe again; only S00 and S14
-    await client.update()
-    assert connection.write.call_count == 5
-    followup2 = {
-        get_data(connection.write.call_args_list[3][0][0]),
-        get_data(connection.write.call_args_list[4][0][0]),
-    }
-    assert followup2 == {b"S00", b"S14"}
-    # Probe (S17) should have been sent exactly once
-    all_cmds = [get_data(c[0][0]) for c in connection.write.call_args_list]
-    assert all_cmds.count(b"S17") == 1
-
-
-@pytest.mark.asyncio
-async def test_update_d32x_model(connection, client: Client, alarm: Alarm):
-    # Simulate a 32-zone panel via probe (D32X) using the shared client/alarm mocks.
-    # Configure the alarm mock to reflect 32 zones.
+    # Reflect real alarm behavior: always have 32 zones available
     alarm.zones = [object()] * 32
 
     # Start update; it should send S17 first (probe)
@@ -126,8 +85,8 @@ async def test_update_d32x_model(connection, client: Client, alarm: Alarm):
     assert connection.write.call_count == 1
     assert get_data(connection.write.call_args_list[0][0][0]) == b"S17"
 
-    # Respond with a D32X panel version (32 zones)
-    event = panel_version_response(PanelVersionUpdate.Model.D32X, 8, 7)
+    # Respond with a panel version (model choice is irrelevant to flow)
+    event = panel_version_response(PanelVersionUpdate.Model.D16X, 8, 7)
     client._dispatch_event(event, None)
 
     # Allow update to continue and complete
