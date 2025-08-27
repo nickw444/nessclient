@@ -1,10 +1,16 @@
+import asyncio
+
 import pytest
 from unittest.mock import AsyncMock, Mock, call
 
 from nessclient.alarm import Alarm, ArmingMode, ArmingState
 from nessclient.client import Client
 from nessclient.connection import Connection
-from nessclient.event import SystemStatusEvent
+from nessclient.event import (
+    PanelVersionUpdate,
+    StatusUpdate,
+    SystemStatusEvent,
+)
 
 
 @pytest.mark.asyncio
@@ -91,8 +97,56 @@ async def test_update_emits_ascii_payloads(
 ) -> None:
     await client.update()
     connection.write.assert_any_call(b"8300360S00E9\r\n")
+    connection.write.assert_any_call(b"8300360S20E7\r\n")
     connection.write.assert_any_call(b"8300360S14E4\r\n")
-    assert connection.write.await_count == 2
+    assert connection.write.await_count == 3
+
+
+@pytest.mark.asyncio
+async def test_send_command_emits_ascii_payload(
+    client: Client,
+    connection: Connection,
+) -> None:
+    await client.send_command("S30")
+    connection.write.assert_called_once_with(b"8300360S30E6\r\n")
+
+
+@pytest.mark.asyncio
+async def test_send_command_and_wait_returns_status_update(
+    client: Client,
+    connection: Connection,
+) -> None:
+    ascii_payload = "8200036014000048"
+    _prepare_ascii(client, connection, ascii_payload)
+
+    task = asyncio.create_task(client.send_command_and_wait("S14"))
+    await asyncio.sleep(0)
+    await client._recv_loop()
+    resp = await task
+
+    connection.write.assert_called_once_with(b"8300360S14E4\r\n")
+    assert isinstance(resp, StatusUpdate)
+    assert resp.request_id == StatusUpdate.RequestID.ARMING
+
+
+@pytest.mark.asyncio
+async def test_get_panel_info_emits_ascii_payload(
+    client: Client,
+    connection: Connection,
+    alarm: Alarm,
+) -> None:
+    ascii_payload = "8200036017008736"
+    _prepare_ascii(client, connection, ascii_payload)
+
+    task = asyncio.create_task(client.get_panel_info())
+    await asyncio.sleep(0)
+    await client._recv_loop()
+    info = await task
+
+    connection.write.assert_called_once_with(b"8300360S17E1\r\n")
+    assert info.version == "8.7"
+    assert info.model == PanelVersionUpdate.Model.D16X
+    assert alarm.panel_info == info
 
 
 @pytest.mark.asyncio
@@ -157,7 +211,7 @@ def client(connection: Connection, alarm: Alarm) -> Client:
     return Client(connection=connection, alarm=alarm)
 
 
-async def _feed_ascii(client: Client, connection: Connection, ascii_payload: str) -> None:
+def _prepare_ascii(client: Client, connection: Connection, ascii_payload: str) -> None:
     connection.connected = False
 
     async def connect() -> bool:
@@ -176,4 +230,8 @@ async def _feed_ascii(client: Client, connection: Connection, ascii_payload: str
 
     connection.read.side_effect = read
     client._closed = False
+
+
+async def _feed_ascii(client: Client, connection: Connection, ascii_payload: str) -> None:
+    _prepare_ascii(client, connection, ascii_payload)
     await client._recv_loop()
