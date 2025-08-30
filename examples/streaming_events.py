@@ -26,15 +26,22 @@ async def main() -> None:
         async for output_id, active in output_changes:
             print(f"Output {output_id} changed to {active}")
 
+    tasks = [
+        asyncio.create_task(client.keepalive()),
+        asyncio.create_task(print_events()),
+        asyncio.create_task(print_state_changes()),
+        asyncio.create_task(print_zone_changes()),
+        asyncio.create_task(print_output_changes()),
+    ]
+
     try:
-        await asyncio.gather(
-            client.keepalive(),
-            print_events(),
-            print_state_changes(),
-            print_zone_changes(),
-            print_output_changes(),
-        )
+        # Allow handlers to start, then request an initial state update.
+        await asyncio.sleep(0)
+        await client.update()
+        await asyncio.gather(*tasks)
     finally:
+        for t in tasks:
+            t.cancel()
         await events.aclose()
         await state_changes.aclose()
         await zone_changes.aclose()
