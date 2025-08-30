@@ -22,6 +22,8 @@ class Client:
     :param infer_arming_state: Infer the `DISARMED` arming state only via
         system status events. This works around a bug with some panels
         (`<v5.8`) which emit `update.status = []` when they are armed.
+    :param validate_checksums: Verify packet checksums and drop malformed
+        packets when enabled.
     """
 
     def __init__(

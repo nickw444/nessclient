@@ -29,3 +29,15 @@ ness-cli events --logfile packets.log
 ```
 
 Include the generated file when raising an issue to help diagnose problems.
+
+### Checksum validation
+
+Packet checksums can be validated to drop malformed messages. Pass
+`--validate-checksum` to the `events` command to enable verification:
+
+```sh
+ness-cli events --host PANEL_HOST --port PORT --validate-checksum
+```
+
+The same flag is available on the `server` command to verify incoming
+packets from clients.
