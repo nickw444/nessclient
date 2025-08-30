@@ -197,6 +197,24 @@ async def test_event_received_callback_invoked(
     assert event.zone == 3
 
 
+@pytest.mark.asyncio
+async def test_stream_events_receives_event(
+    client: Client, connection: Connection, alarm: Alarm
+) -> None:
+    """Integration: stream_events yields when a system status packet arrives."""
+    stream = client.stream_events()
+    task = asyncio.create_task(stream.__anext__())
+
+    # Feed a SystemStatusEvent: Zone 3 unsealed
+    await _feed_ascii(client, connection, "87020361000301080510234500E5")
+
+    event = await asyncio.wait_for(task, 1.0)
+    assert isinstance(event, SystemStatusEvent)
+    assert event.type == SystemStatusEvent.EventType.UNSEALED
+    assert event.zone == 3
+    await stream.aclose()
+
+
 @pytest.fixture
 def alarm() -> Alarm:
     return Alarm()
