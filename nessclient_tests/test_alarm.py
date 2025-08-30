@@ -488,8 +488,6 @@ async def test_state_changes_stream(alarm):
     stream = alarm.stream_state_changes()
     task = asyncio.create_task(stream.__anext__())
     # Drive via public API using a system status event
-    from nessclient.event import SystemStatusEvent
-
     alarm.handle_event(
         SystemStatusEvent(
             type=SystemStatusEvent.EventType.ENTRY_DELAY_START,
@@ -509,8 +507,6 @@ async def test_state_changes_stream(alarm):
 async def test_zone_changes_stream(alarm):
     stream = alarm.stream_zone_changes()
     task = asyncio.create_task(stream.__anext__())
-    from nessclient.event import SystemStatusEvent
-
     alarm.handle_event(
         SystemStatusEvent(
             type=SystemStatusEvent.EventType.UNSEALED,
