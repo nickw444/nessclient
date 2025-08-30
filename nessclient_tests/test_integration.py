@@ -10,6 +10,7 @@ from nessclient.event import (
     PanelVersionUpdate,
     StatusUpdate,
     SystemStatusEvent,
+    BaseEvent,
 )
 
 
@@ -47,6 +48,36 @@ async def test_arming_events_update_alarm_state(
     # User 1 disarmed at 23:46 on 10/5/2008
     await _feed_ascii(client, connection, "870203612F01010805102346005C")
     assert alarm.arming_state == ArmingState.DISARMED
+
+
+@pytest.mark.asyncio
+async def test_invalid_checksum_dropped_when_validation_enabled(
+    connection: Connection, alarm: Alarm
+) -> None:
+    client = Client(connection=connection, alarm=alarm, validate_checksums=True)
+    events: list[BaseEvent] = []
+
+    @client.on_event_received
+    def on_event(event: BaseEvent) -> None:
+        events.append(event)
+
+    await _feed_ascii(client, connection, "8700036100070018092118370975")
+    assert events == []
+
+
+@pytest.mark.asyncio
+async def test_invalid_checksum_processed_when_validation_disabled(
+    connection: Connection, alarm: Alarm
+) -> None:
+    client = Client(connection=connection, alarm=alarm, validate_checksums=False)
+    events: list[BaseEvent] = []
+
+    @client.on_event_received
+    def on_event(event: BaseEvent) -> None:
+        events.append(event)
+
+    await _feed_ascii(client, connection, "8700036100070018092118370975")
+    assert len(events) == 1
 
 
 @pytest.mark.asyncio

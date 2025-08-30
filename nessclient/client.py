@@ -34,6 +34,7 @@ class Client:
         infer_arming_state: bool = False,
         alarm: Alarm | None = None,
         decode_options: DecodeOptions | None = None,
+        validate_checksums: bool = False,
     ):
         if connection is None:
             if host is not None and port is not None:
@@ -50,6 +51,7 @@ class Client:
 
         self.alarm = alarm
         self._decode_options = decode_options
+        self._validate_checksums = validate_checksums
         self._on_event_received: Callable[[BaseEvent], None] | None = None
         self._event_subscribers: List[asyncio.Queue[BaseEvent]] = []
         self._connection = connection
@@ -212,7 +214,9 @@ class Client:
                 _LOGGER.debug("Decoding data: '%s'", decoded_data)
                 if len(decoded_data) > 0:
                     try:
-                        pkt = Packet.decode(decoded_data)
+                        pkt = Packet.decode(
+                            decoded_data, validate_checksum=self._validate_checksums
+                        )
                         event = BaseEvent.decode(pkt, self._decode_options)
                     except Exception:
                         _LOGGER.warning("Failed to decode packet", exc_info=True)

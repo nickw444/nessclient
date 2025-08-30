@@ -33,6 +33,7 @@ class AlarmServer:
         panel_model: PanelVersionUpdate.Model,
         panel_major_version: int,
         panel_minor_version: int,
+        validate_checksums: bool,
     ):
         self._alarm = Alarm.create(
             num_zones=num_zones,
@@ -44,6 +45,7 @@ class AlarmServer:
             handle_command=self._handle_command,
             log_callback=self._on_server_log,
             rx_callback=self._on_server_rx,
+            validate_checksums=validate_checksums,
         )
         self._host = host
         self._port = port

@@ -23,6 +23,11 @@ from .server import DEFAULT_PORT
 @click.option("--update-interval", type=int, default=60)
 @click.option("--infer-arming-state/--no-infer-arming-state")
 @click.option("--logfile", type=click.Path(), help="Write raw TX/RX packets to file")
+@click.option(
+    "--validate-checksum",
+    is_flag=True,
+    help="Validate packet checksums",
+)
 def events(
     host: str,
     port: int,
@@ -30,6 +35,7 @@ def events(
     infer_arming_state: bool,
     serial_tty: str | None,
     logfile: str | None,
+    validate_checksum: bool,
 ) -> None:
     asyncio.run(
         interactive_ui(
@@ -39,6 +45,7 @@ def events(
             infer_arming_state=infer_arming_state,
             serial_tty=serial_tty,
             packet_logfile=logfile,
+            validate_checksum=validate_checksum,
         )
     )
 
@@ -51,6 +58,7 @@ async def interactive_ui(
     infer_arming_state: bool,
     serial_tty: str | None,
     packet_logfile: str | None,
+    validate_checksum: bool,
 ) -> None:
     """Run an interactive TUI for the alarm."""
     log_fp: TextIO | None = open(packet_logfile, "a") if packet_logfile else None
@@ -70,6 +78,7 @@ async def interactive_ui(
         serial_tty=serial_tty if connection is None else None,
         infer_arming_state=infer_arming_state,
         update_interval=update_interval,
+        validate_checksums=validate_checksum,
     )
 
     panel_version: str | None = None

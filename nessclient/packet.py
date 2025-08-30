@@ -70,7 +70,7 @@ class Packet:
         return data
 
     @classmethod
-    def decode(cls, _data: str) -> "Packet":
+    def decode(cls, _data: str, *, validate_checksum: bool = True) -> "Packet":
         """
         Packets are ASCII encoded data. Packet layout is as follows:
 
@@ -118,11 +118,12 @@ class Packet:
             timestamp = decode_timestamp(data.take_bytes(6))
 
         checksum = data.take_hex()
-        expected = calculate_checksum(start, _data[:-2])
-        if checksum != expected:
-            raise ValueError(
-                f"Checksum mismatch: expected {expected:02x} got {checksum:02x}"
-            )
+        if validate_checksum:
+            expected = calculate_checksum(start, _data[:-2])
+            if checksum != expected:
+                raise ValueError(
+                    f"Checksum mismatch: expected {expected:02x} got {checksum:02x}"
+                )
 
         if not data.is_consumed():
             raise ValueError("Unable to consume all data")

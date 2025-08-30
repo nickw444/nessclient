@@ -17,10 +17,13 @@ class Server:
         handle_command: Callable[[str], None],
         log_callback: Optional[Callable[[str], None]] = None,
         rx_callback: Optional[Callable[[str, Optional[Packet]], None]] = None,
+        *,
+        validate_checksums: bool = False,
     ):
         self._handle_command = handle_command
         self._log_callback = log_callback
         self._rx_callback = rx_callback
+        self._validate_checksums = validate_checksums
         self._handle_event_lock: threading.Lock = threading.Lock()
         self._clients_lock: threading.Lock = threading.Lock()
         self._clients: List[socket.socket] = []
@@ -99,7 +102,7 @@ class Server:
     def _handle_incoming_line(self, line: str) -> None:
         _LOGGER.debug("Received incoming line: %s", line)
         try:
-            pkt = Packet.decode(line)
+            pkt = Packet.decode(line, validate_checksum=self._validate_checksums)
             _LOGGER.debug("Packet is: %s", pkt)
             if self._rx_callback is not None:
                 try:

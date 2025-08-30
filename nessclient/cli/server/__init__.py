@@ -21,8 +21,18 @@ DEFAULT_PORT = 65432
     default=PanelVersionUpdate.Model.D8X.name,
 )
 @click.option("--panel-version", default="0.0")
+@click.option(
+    "--validate-checksum",
+    is_flag=True,
+    help="Validate packet checksums",
+)
 def server(
-    host: str, port: int, zones: int, panel_model: str, panel_version: str
+    host: str,
+    port: int,
+    zones: int,
+    panel_model: str,
+    panel_version: str,
+    validate_checksum: bool,
 ) -> None:
     major_str, minor_str = panel_version.split(".")
     s = AlarmServer(
@@ -32,5 +42,6 @@ def server(
         panel_model=PanelVersionUpdate.Model[panel_model],
         panel_major_version=int(major_str),
         panel_minor_version=int(minor_str),
+        validate_checksums=validate_checksum,
     )
     s.start()
