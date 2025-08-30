@@ -15,5 +15,6 @@ This repository uses [uv](https://docs.astral.sh/uv/) for dependency management 
 
 ## Testing
 - Run the test suite with `uv run pytest`.
+- Test modules must use static imports; avoid importing within individual test cases.
 
 These commands should be executed and pass before committing any changes.
