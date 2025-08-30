@@ -9,6 +9,7 @@ from .event import (
     ArmingUpdate,
     SystemStatusEvent,
     PanelVersionUpdate,
+    AuxiliaryOutputsUpdate,
 )
 
 
@@ -56,6 +57,10 @@ class Alarm:
     class Zone:
         triggered: bool | None
 
+    @dataclass
+    class AuxOutput:
+        active: bool
+
     def __init__(self, infer_arming_state: bool = False) -> None:
         self._infer_arming_state = infer_arming_state
         self.arming_state: ArmingState = ArmingState.UNKNOWN
@@ -63,6 +68,9 @@ class Alarm:
         # can be "expanded" to support more zones, but there is no API/command
         # to query the existence of these zones.
         self.zones: List[Alarm.Zone] = [Alarm.Zone(triggered=None) for _ in range(32)]
+        self.aux_outputs: List[Alarm.AuxOutput] = [
+            Alarm.AuxOutput(active=False) for _ in range(8)
+        ]
         self.panel_info: PanelInfo | None = None
 
         self._arming_mode: ArmingMode | None = None
@@ -71,6 +79,7 @@ class Alarm:
             None
         )
         self._on_zone_change: Callable[[int, bool], None] | None = None
+        self._on_aux_output_change: Callable[[int, bool], None] | None = None
 
     def handle_event(self, event: BaseEvent) -> None:
         if isinstance(event, ArmingUpdate):
@@ -89,6 +98,8 @@ class Alarm:
             self._handle_system_status_event(event)
         elif isinstance(event, PanelVersionUpdate):
             self.panel_info = PanelInfo(model=event.model, version=event.version)
+        elif isinstance(event, AuxiliaryOutputsUpdate):
+            self._handle_auxiliary_outputs_update(event)
 
     def _handle_arming_update(self, update: ArmingUpdate) -> None:
         if update.status == [ArmingUpdate.ArmingStatus.AREA_1_ARMED]:
@@ -136,6 +147,12 @@ class Alarm:
                 self._update_zone(zone_id, True)
             else:
                 self._update_zone(zone_id, False)
+
+    def _handle_auxiliary_outputs_update(self, update: AuxiliaryOutputsUpdate) -> None:
+        active = set(update.outputs)
+        for i in range(1, len(self.aux_outputs) + 1):
+            enum = AuxiliaryOutputsUpdate.OutputType[f"AUX_{i}"]
+            self._update_aux_output(i, enum in active)
 
     def _handle_system_status_event(self, event: SystemStatusEvent) -> None:
         """
@@ -189,6 +206,13 @@ class Alarm:
             if self._on_zone_change is not None:
                 self._on_zone_change(zone_id, state)
 
+    def _update_aux_output(self, output_id: int, state: bool) -> None:
+        output = self.aux_outputs[output_id - 1]
+        if output.active != state:
+            output.active = state
+            if self._on_aux_output_change is not None:
+                self._on_aux_output_change(output_id, state)
+
     def on_state_change(
         self, f: Callable[[ArmingState, ArmingMode | None], None]
     ) -> None:
@@ -196,3 +220,6 @@ class Alarm:
 
     def on_zone_change(self, f: Callable[[int, bool], None]) -> None:
         self._on_zone_change = f
+
+    def on_aux_output_change(self, f: Callable[[int, bool], None]) -> None:
+        self._on_aux_output_change = f

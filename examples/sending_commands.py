@@ -18,7 +18,7 @@ async def main() -> None:
         # Send disarm command via library abstraction
         await client.disarm("1234")
         # Send aux control command for output 2 via library abstraction
-        await client.aux(2)
+        await client.aux_output(2)
         # Send custom command
         # In this instance, we are sending a status update command to view
         # output status

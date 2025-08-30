@@ -704,6 +704,19 @@ class AuxiliaryOutputsUpdate(StatusUpdate):
         )
         self.outputs = outputs
 
+    def encode(self) -> Packet:
+        data = "{:02x}{}".format(
+            self.request_id.value, pack_unsigned_short_data_enum(self.outputs)
+        )
+        return Packet(
+            address=self.address,
+            seq=0x00,
+            command=CommandType.USER_INTERFACE,
+            data=data,
+            timestamp=None,
+            is_user_interface_resp=True,
+        )
+
     @classmethod
     def decode(
         cls, packet: Packet, options: DecodeOptions | None = None
