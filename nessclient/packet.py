@@ -45,9 +45,8 @@ class Packet:
 
     @property
     def checksum(self) -> int:
-        bytes = self.encode(with_checksum=False)
-        total = sum([ord(x) for x in bytes]) & 0xFF
-        return (256 - total) % 256
+        raw = self.encode(with_checksum=False)
+        return calculate_checksum(self.start, raw)
 
     def encode(self, with_checksum: bool = True) -> str:
         data = ""
@@ -118,8 +117,12 @@ class Packet:
         if has_timestamp(start):
             timestamp = decode_timestamp(data.take_bytes(6))
 
-        # TODO(NW): Figure out checksum validation
-        checksum = data.take_hex()  # noqa
+        checksum = data.take_hex()
+        expected = calculate_checksum(start, _data[:-2])
+        if checksum != expected:
+            raise ValueError(
+                f"Checksum mismatch: expected {expected:02x} got {checksum:02x}"
+            )
 
         if not data.is_consumed():
             raise ValueError("Unable to consume all data")
@@ -180,6 +183,25 @@ def is_user_interface_req(start: int) -> bool:
 
 def is_user_interface_resp(start: int) -> bool:
     return start == 0x82
+
+
+def calculate_checksum(start: int, raw: str) -> int:
+    """Calculate packet checksum.
+
+    For user interface requests (start byte 0x83) the checksum is the one's
+    complement of the sum of the ASCII values prior to conversion to hex. For
+    all other packets the checksum is calculated on the hexadecimal byte values
+    before ASCII encoding.
+    """
+
+    if is_user_interface_req(start):
+        total = sum(ord(c) for c in raw)
+    else:
+        total = 0
+        for i in range(0, len(raw), 2):
+            total += int(raw[i : i + 2], 16)
+
+    return (0x100 - (total & 0xFF)) & 0xFF
 
 
 def decode_timestamp(data: str) -> datetime.datetime:

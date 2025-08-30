@@ -18,7 +18,7 @@ async def test_ascii_payload_updates_alarm_state(
     client: Client, connection: Connection, alarm: Alarm
 ) -> None:
     # Example taken from protocol specification: Duress event
-    ascii_payload = "870203610201840612010743008D"
+    ascii_payload = "8702036102018406120107430029"
     await _feed_ascii(client, connection, ascii_payload)
     assert alarm.arming_state == ArmingState.TRIGGERED
 
@@ -28,11 +28,11 @@ async def test_zone_events_update_zone_state(
     client: Client, connection: Connection, alarm: Alarm
 ) -> None:
     # Zone 3 unsealed at 23:45 on 10/5/2008
-    await _feed_ascii(client, connection, "87020361000301080510234500E5")
+    await _feed_ascii(client, connection, "870203610003010805102345008A")
     assert alarm.zones[2].triggered is True
 
     # Zone 3 sealed one minute later
-    await _feed_ascii(client, connection, "87020361010301080510234600E3")
+    await _feed_ascii(client, connection, "8702036101030108051023460088")
     assert alarm.zones[2].triggered is False
 
 
@@ -41,11 +41,11 @@ async def test_arming_events_update_alarm_state(
     client: Client, connection: Connection, alarm: Alarm
 ) -> None:
     # User 1 initiated arming away at 23:45 on 10/5/2008
-    await _feed_ascii(client, connection, "87020361240101080510234500E1")
+    await _feed_ascii(client, connection, "8702036124010108051023450068")
     assert alarm.arming_state == ArmingState.ARMING
 
     # User 1 disarmed at 23:46 on 10/5/2008
-    await _feed_ascii(client, connection, "870203612F0101080510234600CE")
+    await _feed_ascii(client, connection, "870203612F01010805102346005C")
     assert alarm.arming_state == ArmingState.DISARMED
 
 
@@ -117,7 +117,7 @@ async def test_send_command_and_wait_returns_status_update(
     client: Client,
     connection: Connection,
 ) -> None:
-    ascii_payload = "8200036014000048"
+    ascii_payload = "8200036014000007"
     _prepare_ascii(client, connection, ascii_payload)
 
     task = asyncio.create_task(client.send_command_and_wait("S14"))
@@ -136,7 +136,7 @@ async def test_get_panel_info_emits_ascii_payload(
     connection: Connection,
     alarm: Alarm,
 ) -> None:
-    ascii_payload = "8200036017008736"
+    ascii_payload = "820003601700877D"
     _prepare_ascii(client, connection, ascii_payload)
 
     task = asyncio.create_task(client.get_panel_info())
@@ -157,8 +157,8 @@ async def test_state_change_callback_invoked(
     callback = Mock()
     client.on_state_change(callback)
 
-    await _feed_ascii(client, connection, "87020361240101080510234500E1")
-    await _feed_ascii(client, connection, "870203612F0101080510234600CE")
+    await _feed_ascii(client, connection, "8702036124010108051023450068")
+    await _feed_ascii(client, connection, "870203612F01010805102346005C")
 
     assert callback.call_count == 2
     assert callback.call_args_list == [
@@ -174,8 +174,8 @@ async def test_zone_change_callback_invoked(
     callback = Mock()
     client.on_zone_change(callback)
 
-    await _feed_ascii(client, connection, "87020361000301080510234500E5")
-    await _feed_ascii(client, connection, "87020361010301080510234600E3")
+    await _feed_ascii(client, connection, "870203610003010805102345008A")
+    await _feed_ascii(client, connection, "8702036101030108051023460088")
 
     assert callback.call_count == 2
     assert callback.call_args_list == [call(3, True), call(3, False)]
@@ -188,7 +188,7 @@ async def test_event_received_callback_invoked(
     callback = Mock()
     client.on_event_received(callback)
 
-    await _feed_ascii(client, connection, "87020361000301080510234500E5")
+    await _feed_ascii(client, connection, "870203610003010805102345008A")
 
     assert callback.call_count == 1
     event = callback.call_args[0][0]
@@ -206,7 +206,7 @@ async def test_stream_events_receives_event(
     task = asyncio.create_task(stream.__anext__())
 
     # Feed a SystemStatusEvent: Zone 3 unsealed
-    await _feed_ascii(client, connection, "87020361000301080510234500E5")
+    await _feed_ascii(client, connection, "870203610003010805102345008A")
 
     event = await asyncio.wait_for(task, 1.0)
     assert isinstance(event, SystemStatusEvent)
@@ -223,7 +223,7 @@ async def test_stream_state_changes_receives_item(
     task = asyncio.create_task(stream.__anext__())
 
     # EXIT_DELAY_START -> ArmingState.EXIT_DELAY
-    await _feed_ascii(client, connection, "87020361220101080510234500E1")
+    await _feed_ascii(client, connection, "870203612201010805102345006A")
 
     state, mode = await asyncio.wait_for(task, 1.0)
     assert state == ArmingState.EXIT_DELAY
@@ -239,7 +239,7 @@ async def test_stream_zone_changes_receives_item(
     task = asyncio.create_task(stream.__anext__())
 
     # Zone 3 unsealed
-    await _feed_ascii(client, connection, "87020361000301080510234500E5")
+    await _feed_ascii(client, connection, "870203610003010805102345008A")
 
     zone_id, triggered = await asyncio.wait_for(task, 1.0)
     assert zone_id == 3
@@ -255,7 +255,7 @@ async def test_stream_aux_output_changes_receives_item(
     task = asyncio.create_task(stream.__anext__())
 
     # USER_INTERFACE response for AUX outputs: AUX_3 active (0x0004)
-    await _feed_ascii(client, connection, "82000360180004AA")
+    await _feed_ascii(client, connection, "82000360180004FF")
 
     output_id, active = await asyncio.wait_for(task, 1.0)
     assert output_id == 3

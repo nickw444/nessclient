@@ -15,10 +15,7 @@ def fixture_path(fixture_name: str):
 
 class PacketTestCase(unittest.TestCase):
     def test_decode_encode_identity(self):
-        cases = [
-            # '8700036100070018092118370677',
-            "8300c6012345678912EE7"
-        ]
+        cases = ["8700036100070018092118370677", "8300c6012345678912EE7"]
 
         for case in cases:
             pkt = Packet.decode(case)
@@ -54,7 +51,11 @@ class PacketTestCase(unittest.TestCase):
             pkt.timestamp,
             datetime.datetime(year=2018, month=9, day=21, hour=18, minute=37, second=9),
         )
-        # self.assertEqual(pkt.checksum, 0x74)
+        self.assertEqual(pkt.checksum, 0x74)
+
+    def test_invalid_checksum_raises(self):
+        with self.assertRaises(ValueError):
+            Packet.decode("8700036100070018092118370975")
 
     def test_decode_with_address_and_time(self):
         pkt = Packet.decode("8709036101050018122709413536")
@@ -111,7 +112,7 @@ class PacketTestCase(unittest.TestCase):
             ),
         )
         self.assertEqual(pkt.length, 3)
-        self.assertEqual(pkt.encode(), "87000360000100180510153255E3")
+        self.assertEqual(pkt.encode(), "870003600001001805101532554C")
 
     def test_decode_status_update_response(self):
         """
@@ -125,7 +126,7 @@ class PacketTestCase(unittest.TestCase):
         self.assertEqual(pkt.command, CommandType.USER_INTERFACE)
         self.assertEqual(pkt.data, "070000")
         self.assertIsNone(pkt.timestamp)
-        # self.assertEqual(pkt.checksum, 0x14)
+        self.assertEqual(pkt.checksum, 0x14)
 
     def test_bad_timestamp(self):
         pkt = Packet.decode("8700036100070019022517600057")
@@ -161,7 +162,7 @@ class PacketTestCase(unittest.TestCase):
 
     def test_decode_status_update_response_zone_17_32_none(self):
         # Zone 17-32 Input Unsealed (ID 0x20), no zones set
-        pkt = Packet.decode("82000360200000ff")
+        pkt = Packet.decode("82000360200000FB")
         self.assertEqual(pkt.start, 0x82)
         self.assertEqual(pkt.address, 0x00)
         self.assertEqual(pkt.length, 3)
@@ -173,14 +174,14 @@ class PacketTestCase(unittest.TestCase):
 
     def test_decode_status_update_response_zone_17_32_in_alarm_zone17(self):
         # Zone 17-32 In Alarm (ID 0x25), Zone 17 set
-        pkt = Packet.decode("82000360250100aa")
+        pkt = Packet.decode("82000360250100F5")
         self.assertEqual(pkt.data, "250100")
         self.assertTrue(pkt.is_user_interface_resp)
 
     def test_decode_status_update_response_zone_23_unsealed_example(self):
         # From FORM 5 examples in the spec (address 0x07)
         # Example: Zone 23 unseal (ID 0x20, data 0x4000)
-        pkt = Packet.decode("8207036020400013")
+        pkt = Packet.decode("82070360204000B4")
         self.assertEqual(pkt.start, 0x82)
         self.assertEqual(pkt.address, 0x07)
         self.assertEqual(pkt.length, 3)
@@ -192,7 +193,7 @@ class PacketTestCase(unittest.TestCase):
     def test_decode_status_update_response_zone_23_24_unsealed_example(self):
         # From FORM 5 examples in the spec (address 0x07)
         # Example: Zones 23 and 24 unseal (ID 0x20, data 0xC000)
-        pkt = Packet.decode("8207036020c00054")
+        pkt = Packet.decode("8207036020c00034")
         self.assertEqual(pkt.address, 0x07)
         self.assertEqual(pkt.data, "20c000")
         self.assertTrue(pkt.is_user_interface_resp)
