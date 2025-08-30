@@ -37,6 +37,19 @@ async def test_zone_events_update_zone_state(
 
 
 @pytest.mark.asyncio
+async def test_zone_23_events_update_zone_state(
+    client: Client, connection: Connection, alarm: Alarm
+) -> None:
+    # Zone 23 unsealed at 23:45 on 10/5/2008
+    await _feed_ascii(client, connection, "87020361002301080510234500E3")
+    assert alarm.zones[22].triggered is True
+
+    # Zone 23 sealed one minute later
+    await _feed_ascii(client, connection, "87020361012301080510234600E1")
+    assert alarm.zones[22].triggered is False
+
+
+@pytest.mark.asyncio
 async def test_arming_events_update_alarm_state(
     client: Client, connection: Connection, alarm: Alarm
 ) -> None:
@@ -47,6 +60,36 @@ async def test_arming_events_update_alarm_state(
     # User 1 disarmed at 23:46 on 10/5/2008
     await _feed_ascii(client, connection, "870203612F0101080510234600CE")
     assert alarm.arming_state == ArmingState.DISARMED
+
+
+@pytest.mark.asyncio
+async def test_armed_vacation_event_updates_alarm_state(
+    client: Client, connection: Connection, alarm: Alarm
+) -> None:
+    callback = Mock()
+    client.on_state_change(callback)
+
+    await _feed_ascii(client, connection, "87020361280101080510234500DD")
+    assert alarm._arming_mode == ArmingMode.ARMED_VACATION
+
+    assert callback.call_args_list == [
+        call(ArmingState.ARMING, ArmingMode.ARMED_VACATION),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_armed_highest_event_updates_alarm_state(
+    client: Client, connection: Connection, alarm: Alarm
+) -> None:
+    callback = Mock()
+    client.on_state_change(callback)
+
+    await _feed_ascii(client, connection, "870203612E0101080510234500D0")
+    assert alarm._arming_mode == ArmingMode.ARMED_HIGHEST
+
+    assert callback.call_args_list == [
+        call(ArmingState.ARMING, ArmingMode.ARMED_HIGHEST),
+    ]
 
 
 @pytest.mark.asyncio

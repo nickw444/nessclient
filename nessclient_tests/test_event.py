@@ -151,6 +151,18 @@ class ZoneUpdate1To16TestCase(unittest.TestCase):
             [ZoneUpdate_1_16.Zone.ZONE_3, ZoneUpdate_1_16.Zone.ZONE_5],
         )
 
+    def test_zone_detector_low_battery_with_zones(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "110500")
+        event = ZoneUpdate_1_16.decode(pkt)
+        self.assertEqual(
+            event.request_id,
+            ZoneUpdate_1_16.RequestID.ZONE_1_16_DETECTOR_LOW_BATTERY,
+        )
+        self.assertEqual(
+            event.included_zones,
+            [ZoneUpdate_1_16.Zone.ZONE_1, ZoneUpdate_1_16.Zone.ZONE_3],
+        )
+
     def test_zone_1_16_excluded_plus_auto(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "190500")
         event = ZoneUpdate_1_16.decode(pkt)
@@ -190,6 +202,18 @@ class ZoneUpdate17To32TestCase(unittest.TestCase):
         pkt = make_packet(CommandType.USER_INTERFACE, "230500")
         event = ZoneUpdate_17_32.decode(pkt)
         self.assertEqual(event.request_id, ZoneUpdate_17_32.RequestID.ZONE_17_32_IN_DELAY)
+        self.assertEqual(
+            event.included_zones,
+            [ZoneUpdate_17_32.Zone.ZONE_17, ZoneUpdate_17_32.Zone.ZONE_19],
+        )
+
+    def test_zone_detector_low_battery_with_zones(self):
+        pkt = make_packet(CommandType.USER_INTERFACE, "310500")
+        event = ZoneUpdate_17_32.decode(pkt)
+        self.assertEqual(
+            event.request_id,
+            ZoneUpdate_17_32.RequestID.ZONE_17_32_DETECTOR_LOW_BATTERY,
+        )
         self.assertEqual(
             event.included_zones,
             [ZoneUpdate_17_32.Zone.ZONE_17, ZoneUpdate_17_32.Zone.ZONE_19],
