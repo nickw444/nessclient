@@ -215,6 +215,54 @@ async def test_stream_events_receives_event(
     await stream.aclose()
 
 
+@pytest.mark.asyncio
+async def test_stream_state_changes_receives_item(
+    client: Client, connection: Connection, alarm: Alarm
+) -> None:
+    stream = client.stream_state_changes()
+    task = asyncio.create_task(stream.__anext__())
+
+    # EXIT_DELAY_START -> ArmingState.EXIT_DELAY
+    await _feed_ascii(client, connection, "87020361220101080510234500E1")
+
+    state, mode = await asyncio.wait_for(task, 1.0)
+    assert state == ArmingState.EXIT_DELAY
+    assert mode is None
+    await stream.aclose()
+
+
+@pytest.mark.asyncio
+async def test_stream_zone_changes_receives_item(
+    client: Client, connection: Connection, alarm: Alarm
+) -> None:
+    stream = client.stream_zone_changes()
+    task = asyncio.create_task(stream.__anext__())
+
+    # Zone 3 unsealed
+    await _feed_ascii(client, connection, "87020361000301080510234500E5")
+
+    zone_id, triggered = await asyncio.wait_for(task, 1.0)
+    assert zone_id == 3
+    assert triggered is True
+    await stream.aclose()
+
+
+@pytest.mark.asyncio
+async def test_stream_aux_output_changes_receives_item(
+    client: Client, connection: Connection, alarm: Alarm
+) -> None:
+    stream = client.stream_aux_output_changes()
+    task = asyncio.create_task(stream.__anext__())
+
+    # USER_INTERFACE response for AUX outputs: AUX_3 active (0x0004)
+    await _feed_ascii(client, connection, "82000360180004AA")
+
+    output_id, active = await asyncio.wait_for(task, 1.0)
+    assert output_id == 3
+    assert active is True
+    await stream.aclose()
+
+
 @pytest.fixture
 def alarm() -> Alarm:
     return Alarm()
