@@ -239,7 +239,7 @@ async def interactive_ui(
             input_win.addstr(0, 2, " Input ", curses.A_BOLD)
             legend = [
                 "Commands: a=arm_away h=arm_home d [code] u=update q=quit",
-                "o <n> [on/off] to control outputs",
+                "o <n> to toggle outputs",
                 "Arrow/PgUp/PgDn/Home/End to scroll messages",
             ]
             for i, line in enumerate(legend):
@@ -298,17 +298,21 @@ async def interactive_ui(
                             parts = lower.split()
                             if len(parts) >= 2 and parts[1].isdigit():
                                 output_id = int(parts[1])
-                                state = True
-                                if len(parts) >= 3:
-                                    state = parts[2] not in {"off", "0", "false"}
-                                _add_log(
-                                    logs,
-                                    "TX",
-                                    f"Output {output_id} {'ON' if state else 'OFF'}",
-                                )
-                                await client.aux_output(output_id, state)
+                                if 1 <= output_id <= len(client.alarm.aux_outputs):
+                                    current = client.alarm.aux_outputs[
+                                        output_id - 1
+                                    ].active
+                                    new_state = not current
+                                    _add_log(
+                                        logs,
+                                        "TX",
+                                        f"Output {output_id} {'ON' if new_state else 'OFF'}",
+                                    )
+                                    await client.aux_output(output_id, new_state)
+                                else:
+                                    status_message = f"Invalid output: {output_id}"
                             else:
-                                status_message = "Usage: o <output> [on/off]"
+                                status_message = "Usage: o <output>"
                         else:
                             status_message = f"Unknown command: {cmd}"
                 elif ch in (curses.KEY_BACKSPACE, 127, 8):
