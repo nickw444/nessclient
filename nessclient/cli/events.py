@@ -239,7 +239,7 @@ async def interactive_ui(
             input_win.addstr(0, 2, " Input ", curses.A_BOLD)
             legend = [
                 "Commands: a=arm_away h=arm_home d [code] u=update q=quit",
-                "o <n> to toggle outputs",
+                "o<n> or o <n> to toggle outputs",
                 "Arrow/PgUp/PgDn/Home/End to scroll messages",
             ]
             for i, line in enumerate(legend):
@@ -295,9 +295,9 @@ async def interactive_ui(
                             _add_log(logs, "TX", "Update")
                             await client.update()
                         elif lower.startswith("o"):
-                            parts = lower.split()
-                            if len(parts) >= 2 and parts[1].isdigit():
-                                output_id = int(parts[1])
+                            num_str = lower[1:].strip()
+                            if num_str.isdigit():
+                                output_id = int(num_str)
                                 if 1 <= output_id <= len(client.alarm.aux_outputs):
                                     current = client.alarm.aux_outputs[
                                         output_id - 1
@@ -312,7 +312,7 @@ async def interactive_ui(
                                 else:
                                     status_message = f"Invalid output: {output_id}"
                             else:
-                                status_message = "Usage: o <output>"
+                                status_message = "Usage: o<n> or o <n>"
                         else:
                             status_message = f"Unknown command: {cmd}"
                 elif ch in (curses.KEY_BACKSPACE, 127, 8):

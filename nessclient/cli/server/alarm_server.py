@@ -192,7 +192,7 @@ class AlarmServer:
         legend_lines = [
             "Commands: a=away h=home n=night v=vac d=disarm t=trip s=sim on/off",
             f"Toggle zone: number then Enter (1-{len(self._alarm.zones)})  "
-            f"Toggle output: o <n> (1-{len(self._alarm.aux_outputs)})  q=quit",
+            f"Toggle output: o<n> or o <n> (1-{len(self._alarm.aux_outputs)})  q=quit",
         ]
         for i, line in enumerate(legend_lines):
             if 1 + i >= win_height - 2:
@@ -312,10 +312,10 @@ class AlarmServer:
             self._toggle_simulation(False)
             return
         if lc.startswith("o"):
-            parts = lc.split()
             output_id: int | None = None
-            if len(parts) == 2 and parts[1].isdigit():
-                output_id = int(parts[1])
+            num_str = lc[1:].strip()
+            if num_str.isdigit():
+                output_id = int(num_str)
             if output_id is not None:
                 out = next(
                     (o for o in self._alarm.aux_outputs if o.id == output_id), None
@@ -327,7 +327,7 @@ class AlarmServer:
                 else:
                     self._set_status(f"Invalid output: {output_id}")
             else:
-                self._set_status("Usage: o <output>")
+                self._set_status("Usage: o<n> or o <n>")
             return
         if lc.isdigit():
             zone_id = int(lc)
