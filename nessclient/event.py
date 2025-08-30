@@ -128,7 +128,7 @@ class SystemStatusEvent(BaseEvent):
         )
 
     def encode(self) -> Packet:
-        data = "{:02x}{:02x}{:02x}".format(self.type.value, self.zone, self.area)
+        data = "{:02x}{:02d}{:02x}".format(self.type.value, self.zone, self.area)
         return Packet(
             address=self.address,
             seq=0x00,
@@ -141,25 +141,42 @@ class SystemStatusEvent(BaseEvent):
 
 class StatusUpdate(BaseEvent):
     class RequestID(Enum):
-        ZONE_INPUT_UNSEALED = 0x0
-        ZONE_RADIO_UNSEALED = 0x1
-        ZONE_CBUS_UNSEALED = 0x2
-        ZONE_IN_DELAY = 0x3
-        ZONE_IN_DOUBLE_TRIGGER = 0x4
-        ZONE_IN_ALARM = 0x5
-        ZONE_EXCLUDED = 0x6
-        ZONE_AUTO_EXCLUDED = 0x7
-        ZONE_SUPERVISION_FAIL_PENDING = 0x8
-        ZONE_SUPERVISION_FAIL = 0x9
-        ZONE_DOORS_OPEN = 0x10
-        ZONE_DETECTOR_LOW_BATTERY = 0x11
-        ZONE_DETECTOR_TAMPER = 0x12
+        ZONE_1_16_INPUT_UNSEALED = 0x0
+        ZONE_1_16_RADIO_UNSEALED = 0x1
+        ZONE_1_16_CBUS_UNSEALED = 0x2
+        ZONE_1_16_IN_DELAY = 0x3
+        ZONE_1_16_IN_DOUBLE_TRIGGER = 0x4
+        ZONE_1_16_IN_ALARM = 0x5
+        ZONE_1_16_EXCLUDED = 0x6
+        ZONE_1_16_AUTO_EXCLUDED = 0x7
+        ZONE_1_16_SUPERVISION_FAIL_PENDING = 0x8
+        ZONE_1_16_SUPERVISION_FAIL = 0x9
+        ZONE_1_16_DOORS_OPEN = 0x10
+        ZONE_1_16_DETECTOR_LOW_BATTERY = 0x11
+        ZONE_1_16_DETECTOR_TAMPER = 0x12
         MISCELLANEOUS_ALARMS = 0x13
         ARMING = 0x14
         OUTPUTS = 0x15
         VIEW_STATE = 0x16
         PANEL_VERSION = 0x17
         AUXILIARY_OUTPUTS = 0x18
+        ZONE_1_16_EXCLUDED_PLUS_AUTO_EXCLUDED = 0x19
+        # DPLUS 32-zone panels introduce parallel request IDs for zones 17–32.
+        # Values follow the spec IDs directly as hex.
+        ZONE_17_32_INPUT_UNSEALED = 0x20
+        ZONE_17_32_RADIO_UNSEALED = 0x21
+        ZONE_17_32_CBUS_UNSEALED = 0x22
+        ZONE_17_32_IN_DELAY = 0x23
+        ZONE_17_32_IN_DOUBLE_TRIGGER = 0x24
+        ZONE_17_32_IN_ALARM = 0x25
+        ZONE_17_32_EXCLUDED = 0x26
+        ZONE_17_32_AUTO_EXCLUDED = 0x27
+        ZONE_17_32_SUPERVISION_FAIL_PENDING = 0x28
+        ZONE_17_32_SUPERVISION_FAIL = 0x29
+        ZONE_17_32_DOORS_OPEN = 0x30
+        ZONE_17_32_DETECTOR_LOW_BATTERY = 0x31
+        ZONE_17_32_DETECTOR_TAMPER = 0x32
+        ZONE_17_32_EXCLUDED_PLUS_AUTO_EXCLUDED = 0x33
 
     def __init__(
         self,
@@ -175,8 +192,10 @@ class StatusUpdate(BaseEvent):
         self, packet: Packet, options: DecodeOptions | None = None
     ) -> "StatusUpdate":
         request_id = StatusUpdate.RequestID(int(packet.data[0:2], 16))
-        if request_id.name.startswith("ZONE"):
-            return ZoneUpdate.decode(packet, options)
+        if request_id.name.startswith("ZONE_1_16"):
+            return ZoneUpdate_1_16.decode(packet, options)
+        elif request_id.name.startswith("ZONE_17_32"):
+            return ZoneUpdate_17_32.decode(packet, options)
         elif request_id == StatusUpdate.RequestID.MISCELLANEOUS_ALARMS:
             return MiscellaneousAlarmsUpdate.decode(packet, options)
         elif request_id == StatusUpdate.RequestID.ARMING:
@@ -193,7 +212,7 @@ class StatusUpdate(BaseEvent):
             raise ValueError("Unhandled request_id case: {}".format(request_id))
 
 
-class ZoneUpdate(StatusUpdate):
+class ZoneUpdate_1_16(StatusUpdate):
     class Zone(Enum):
         ZONE_1 = 0x0100
         ZONE_2 = 0x0200
@@ -214,22 +233,82 @@ class ZoneUpdate(StatusUpdate):
 
     def __init__(
         self,
-        included_zones: List["ZoneUpdate.Zone"],
+        included_zones: List["ZoneUpdate_1_16.Zone"],
         request_id: "StatusUpdate.RequestID",
         address: int | None,
         timestamp: datetime.datetime | None,
     ) -> None:
-        super(ZoneUpdate, self).__init__(
+        super(ZoneUpdate_1_16, self).__init__(
             request_id=request_id, address=address, timestamp=timestamp
         )
         self.included_zones = included_zones
 
     @classmethod
-    def decode(cls, packet: Packet, options: DecodeOptions | None = None) -> "ZoneUpdate":
+    def decode(
+        cls, packet: Packet, options: DecodeOptions | None = None
+    ) -> "ZoneUpdate_1_16":
         request_id = StatusUpdate.RequestID(int(packet.data[0:2], 16))
-        return ZoneUpdate(
+        return ZoneUpdate_1_16(
             request_id=request_id,
-            included_zones=unpack_unsigned_short_data_enum(packet, ZoneUpdate.Zone),
+            included_zones=unpack_unsigned_short_data_enum(packet, ZoneUpdate_1_16.Zone),
+            timestamp=packet.timestamp,
+            address=packet.address,
+        )
+
+    def encode(self) -> Packet:
+        data = "{:02x}{}".format(
+            self.request_id.value,
+            pack_unsigned_short_data_enum(self.included_zones),
+        )
+        return Packet(
+            address=self.address,
+            seq=0x00,
+            command=CommandType.USER_INTERFACE,
+            data=data,
+            timestamp=None,
+            is_user_interface_resp=True,
+        )
+
+
+class ZoneUpdate_17_32(StatusUpdate):
+    class Zone(Enum):
+        ZONE_17 = 0x0100
+        ZONE_18 = 0x0200
+        ZONE_19 = 0x0400
+        ZONE_20 = 0x0800
+        ZONE_21 = 0x1000
+        ZONE_22 = 0x2000
+        ZONE_23 = 0x4000
+        ZONE_24 = 0x8000
+        ZONE_25 = 0x0001
+        ZONE_26 = 0x0002
+        ZONE_27 = 0x0004
+        ZONE_28 = 0x0008
+        ZONE_29 = 0x0010
+        ZONE_30 = 0x0020
+        ZONE_31 = 0x0040
+        ZONE_32 = 0x0080
+
+    def __init__(
+        self,
+        included_zones: List["ZoneUpdate_17_32.Zone"],
+        request_id: "StatusUpdate.RequestID",
+        address: int | None,
+        timestamp: datetime.datetime | None,
+    ) -> None:
+        super(ZoneUpdate_17_32, self).__init__(
+            request_id=request_id, address=address, timestamp=timestamp
+        )
+        self.included_zones = included_zones
+
+    @classmethod
+    def decode(
+        cls, packet: Packet, options: DecodeOptions | None = None
+    ) -> "ZoneUpdate_17_32":
+        request_id = StatusUpdate.RequestID(int(packet.data[0:2], 16))
+        return ZoneUpdate_17_32(
+            request_id=request_id,
+            included_zones=unpack_unsigned_short_data_enum(packet, ZoneUpdate_17_32.Zone),
             timestamp=packet.timestamp,
             address=packet.address,
         )
@@ -466,6 +545,9 @@ class PanelVersionUpdate(StatusUpdate):
         # D32X panel variants
         D32X = "D32X"
 
+        # DPlus panel variants
+        DPLUS8 = "DPLUS8"
+
     """Panel model and modem combinations prior to documentation revision 16.
 
     Previous documentation revisions did not specify explicit examples beyond:
@@ -526,6 +608,8 @@ class PanelVersionUpdate(StatusUpdate):
         0x10: Model.D16X,
         0x14: Model.D16X_CEL_3G,
         0x15: Model.D16X_CEL_4G,
+        # DPlus based panels
+        0x16: Model.DPLUS8,
     }
 
     def __init__(
@@ -619,6 +703,19 @@ class AuxiliaryOutputsUpdate(StatusUpdate):
             timestamp=timestamp,
         )
         self.outputs = outputs
+
+    def encode(self) -> Packet:
+        data = "{:02x}{}".format(
+            self.request_id.value, pack_unsigned_short_data_enum(self.outputs)
+        )
+        return Packet(
+            address=self.address,
+            seq=0x00,
+            command=CommandType.USER_INTERFACE,
+            data=data,
+            timestamp=None,
+            is_user_interface_resp=True,
+        )
 
     @classmethod
     def decode(

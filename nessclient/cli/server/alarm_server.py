@@ -8,14 +8,17 @@ from datetime import datetime
 from typing import Any, Deque, Iterator, List, Optional
 
 from .alarm import Alarm
+from .aux_output import AuxOutput
 from .server import Server, get_zone_state_event_type
 from .zone import Zone
 from ...event import (
     SystemStatusEvent,
     ArmingUpdate,
-    ZoneUpdate,
+    ZoneUpdate_1_16,
+    ZoneUpdate_17_32,
     StatusUpdate,
     PanelVersionUpdate,
+    AuxiliaryOutputsUpdate,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,14 +29,16 @@ class AlarmServer:
         self,
         host: str,
         port: int,
+        num_zones: int,
         panel_model: PanelVersionUpdate.Model,
         panel_major_version: int,
         panel_minor_version: int,
     ):
         self._alarm = Alarm.create(
-            num_zones=16,
+            num_zones=num_zones,
             alarm_state_changed=self._alarm_state_changed,
             zone_state_changed=self._zone_state_changed,
+            aux_output_state_changed=self._aux_output_state_changed,
         )
         self._server = Server(
             handle_command=self._handle_command,
@@ -54,7 +59,6 @@ class AlarmServer:
 
     def start(self) -> None:
         self._server.start(host=self._host, port=self._port)
-        self._start_simulation()
         curses.wrapper(self._run_ui)
 
     def _run_ui(self, stdscr: Any) -> None:
@@ -149,6 +153,21 @@ class AlarmServer:
             win.addnstr(y, 2, label.ljust(win_width - 4), win_width - 4, attr)
             y += 1
 
+        if y < win_height - 1:
+            win.addnstr(y, 2, "Outputs:", win_width - 4, curses.A_BOLD)
+            y += 1
+        for out in self._alarm.aux_outputs:
+            if y >= win_height - 1:
+                break
+            label = f"AUX{out.id}: {'ON' if out.state == AuxOutput.State.ON else 'OFF'}"
+            attr = (
+                curses.A_NORMAL | curses.color_pair(2)
+                if out.state == AuxOutput.State.ON
+                else curses.A_DIM | curses.color_pair(1)
+            )
+            win.addnstr(y, 2, label.ljust(win_width - 4), win_width - 4, attr)
+            y += 1
+
     def _draw_logs(self, win: Any) -> None:
         win_height, win_width = win.getmaxyx()
         win.addstr(0, 2, " Messages ", curses.A_BOLD)
@@ -172,7 +191,8 @@ class AlarmServer:
         # Legend area
         legend_lines = [
             "Commands: a=away h=home n=night v=vac d=disarm t=trip s=sim on/off",
-            f"Toggle zone: type number then Enter (1-{len(self._alarm.zones)})    q=quit",
+            f"Toggle zone: number then Enter (1-{len(self._alarm.zones)})  "
+            f"Toggle output: o<n> or o <n> (1-{len(self._alarm.aux_outputs)})  q=quit",
         ]
         for i, line in enumerate(legend_lines):
             if 1 + i >= win_height - 2:
@@ -291,6 +311,24 @@ class AlarmServer:
         if lc in ("s off", "sim off", "simulate off"):
             self._toggle_simulation(False)
             return
+        if lc.startswith("o"):
+            output_id: int | None = None
+            num_str = lc[1:].strip()
+            if num_str.isdigit():
+                output_id = int(num_str)
+            if output_id is not None:
+                out = next(
+                    (o for o in self._alarm.aux_outputs if o.id == output_id), None
+                )
+                if out is not None:
+                    activate = out.state == AuxOutput.State.OFF
+                    self._alarm.update_aux_output(output_id, activate)
+                    self._set_status(f"Toggled output {output_id}")
+                else:
+                    self._set_status(f"Invalid output: {output_id}")
+            else:
+                self._set_status("Usage: o<n> or o <n>")
+            return
         if lc.isdigit():
             zone_id = int(lc)
             zone = next((z for z in self._alarm.zones if z.id == zone_id), None)
@@ -344,6 +382,19 @@ class AlarmServer:
         self._log_tx_event(event)
         self._server.write_event(event)
 
+    def _aux_output_state_changed(self, output_id: int, state: bool) -> None:
+        event = AuxiliaryOutputsUpdate(
+            outputs=[
+                AuxiliaryOutputsUpdate.OutputType[f"AUX_{o.id}"]
+                for o in self._alarm.aux_outputs
+                if o.state == AuxOutput.State.ON
+            ],
+            address=0x00,
+            timestamp=None,
+        )
+        self._log_tx_event(event)
+        self._server.write_event(event)
+
     def _handle_command(self, command: str) -> None:
         _LOGGER.info("Incoming User Command: {}".format(command))
         if command == "AE" or command == "A1234E":
@@ -353,11 +404,24 @@ class AlarmServer:
         elif command == "1234E":
             self._alarm.disarm()
         elif command == "S00":
-            self._handle_zone_input_unsealed_status_update_request()
+            self._handle_zone_1_16_input_unsealed_status_update_request()
+        elif command == "S20":
+            self._handle_zone_17_32_input_unsealed_status_update_request()
         elif command == "S14":
             self._handle_arming_status_update_request()
         elif command == "S17":
             self._handle_panel_version_update_request()
+        elif command == "S18":
+            self._handle_aux_outputs_status_update_request()
+        elif (
+            len(command) == 3
+            and command[0] == command[1]
+            and command[0] in "12345678"
+            and command[2] in ("*", "#")
+        ):
+            output_id = int(command[0])
+            state = command[2] == "*"
+            self._alarm.update_aux_output(output_id, state)
 
     def _handle_arming_status_update_request(self) -> None:
         event = ArmingUpdate(
@@ -368,12 +432,26 @@ class AlarmServer:
         self._log_tx_event(event)
         self._server.write_event(event)
 
-    def _handle_zone_input_unsealed_status_update_request(self) -> None:
-        event = ZoneUpdate(
-            request_id=StatusUpdate.RequestID.ZONE_INPUT_UNSEALED,
+    def _handle_zone_1_16_input_unsealed_status_update_request(self) -> None:
+        event = ZoneUpdate_1_16(
+            request_id=StatusUpdate.RequestID.ZONE_1_16_INPUT_UNSEALED,
             included_zones=[
-                get_zone_for_id(z.id)
-                for z in self._alarm.zones
+                get_zone_for_id_1_16(z.id)
+                for z in self._alarm.zones[:16]
+                if z.state == Zone.State.UNSEALED
+            ],
+            address=0x00,
+            timestamp=None,
+        )
+        self._log_tx_event(event)
+        self._server.write_event(event)
+
+    def _handle_zone_17_32_input_unsealed_status_update_request(self) -> None:
+        event = ZoneUpdate_17_32(
+            request_id=StatusUpdate.RequestID.ZONE_17_32_INPUT_UNSEALED,
+            included_zones=[
+                get_zone_for_id_17_32(z.id)
+                for z in self._alarm.zones[16:32]
                 if z.state == Zone.State.UNSEALED
             ],
             address=0x00,
@@ -387,6 +465,19 @@ class AlarmServer:
             model=self._panel_model,
             major_version=self._panel_major_version,
             minor_version=self._panel_minor_version,
+            address=0x00,
+            timestamp=None,
+        )
+        self._log_tx_event(event)
+        self._server.write_event(event)
+
+    def _handle_aux_outputs_status_update_request(self) -> None:
+        event = AuxiliaryOutputsUpdate(
+            outputs=[
+                AuxiliaryOutputsUpdate.OutputType[f"AUX_{o.id}"]
+                for o in self._alarm.aux_outputs
+                if o.state == AuxOutput.State.ON
+            ],
             address=0x00,
             timestamp=None,
         )
@@ -513,6 +604,11 @@ def toggled_state(state: Zone.State) -> Zone.State:
         return Zone.State.SEALED
 
 
-def get_zone_for_id(zone_id: int) -> ZoneUpdate.Zone:
+def get_zone_for_id_1_16(zone_id: int) -> ZoneUpdate_1_16.Zone:
     key = "ZONE_{}".format(zone_id)
-    return ZoneUpdate.Zone[key]
+    return ZoneUpdate_1_16.Zone[key]
+
+
+def get_zone_for_id_17_32(zone_id: int) -> ZoneUpdate_17_32.Zone:
+    key = "ZONE_{}".format(zone_id)
+    return ZoneUpdate_17_32.Zone[key]

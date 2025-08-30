@@ -7,6 +7,18 @@
 
 
 A python implementation/abstraction of the [Ness D8x / D16x Serial Interface ASCII protocol](./D8-32X%20Serial%20Protocol%20Public.pdf)
+
+## Supported Models
+
+- D8X
+- D8X_CEL_3G
+- D8X_CEL_4G
+- D16X
+- D16X_CEL_3G
+- D16X_CEL_4G
+- D32X
+- DPLUS8
+
 ## Installing nessclient
 
 `nessclient` is available directly from pip:
@@ -32,12 +44,35 @@ ness-cli --help
 
 The CLI exposes several high level commands:
 
-- `events` – listen for alarm events emitted by a connected panel. Use `--interactive` for a terminal UI with live zone status and event logs.
+- `events` – listen for alarm events emitted by a connected panel in a terminal UI with live zone status and event logs.
 - `send` – send a raw command to the panel.
 - `server` – run a dummy panel server, useful for local development when an alarm panel isn't available.
 - `version` – print the installed package version.
 
 Run `ness-cli COMMAND --help` for full options on each command.
+
+#### Server zones
+
+The dummy server can simulate a configurable number of zones independent of the panel model. Use `--zones` to set the count (1–32):
+
+```
+ness-cli server --zones 24 --panel-model D8X --panel-version 8.7
+```
+
+- `S00` status includes unsealed zones in 1–16 (or fewer if the configured count is < 16).
+- `S20` always responds: it returns an empty set when the configured count is ≤ 16; otherwise it reports unsealed zones in 17–N.
+
+### Capturing raw packets
+
+When reporting issues it can be helpful to provide the raw ASCII packets
+exchanged with the panel. The `events` command accepts a `--logfile` option that
+records each transmitted (`TX`) and received (`RX`) packet:
+
+```sh
+ness-cli events --logfile packets.log
+```
+
+Include the generated log file with bug reports to assist with troubleshooting.
 
 ## API Documentation
 You can find the full API documentation [here](https://nessclient.readthedocs.io/en/latest/api.html)

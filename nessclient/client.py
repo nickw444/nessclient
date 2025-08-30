@@ -1,14 +1,15 @@
 import asyncio
 import datetime
 import logging
+import warnings
 from asyncio import sleep
 from typing import AsyncIterator, Callable, Dict, List
 
 from justbackoff import Backoff
 
-from .alarm import ArmingState, Alarm, ArmingMode
+from .alarm import ArmingState, Alarm, ArmingMode, PanelInfo
 from .connection import Connection, IP232Connection, Serial232Connection
-from .event import BaseEvent, DecodeOptions, StatusUpdate
+from .event import BaseEvent, DecodeOptions, StatusUpdate, PanelVersionUpdate
 from .packet import CommandType, Packet
 
 _LOGGER = logging.getLogger(__name__)
@@ -79,17 +80,50 @@ class Client:
         return await self.send_command(command)
 
     async def aux(self, output_id: int, state: bool = True) -> None:
-        command = "{}{}{}".format(output_id, output_id, "*" if state else "#")
+        warnings.warn(
+            "Client.aux is deprecated; use aux_output instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        await self.aux_output(output_id, state)
+
+    async def aux_output(self, output_id: int, state: bool = True) -> None:
+        command = f"{output_id}{output_id}{'*' if state else '#'}"
         return await self.send_command(command)
+
+    async def get_panel_info(self) -> PanelInfo:
+        """Fetch and return panel information (model and version)."""
+        # Return panel info if we already know it.
+        if self.alarm.panel_info is not None:
+            return self.alarm.panel_info
+
+        resp = await self.send_command_and_wait("S17")
+        if isinstance(resp, PanelVersionUpdate):
+            # The event dispatcher will also dispatch the event to the alarm
+            # entity which will handle the PanelVersionUpdate internally to set
+            # the panel_info property.
+            return PanelInfo(model=resp.model, version=resp.version)
+
+        raise RuntimeError(f"Unexpected response to S17: {resp}")
 
     async def update(self) -> None:
         """Force update of alarm status and zones"""
-        _LOGGER.debug("Requesting state update from server (S00, S14)")
+        _LOGGER.debug("Requesting state update from server (S00, S20, S14, S18)")
         await asyncio.gather(
-            # List unsealed Zones
+            # List unsealed Zones 1-16
             self.send_command("S00"),
+            # List unsealed Zones 17-32
+            # Note: Request this for all panels. Many panels can exceed 16 zones
+            # via expansion modules, but the ASCII protocol does not provide a
+            # reliable way to detect expansion presence. Panels tested tolerate
+            # S20 when only 8/16 zones are configured and simply return an empty
+            # set for zones 17–32. The extra status request is negligible
+            # overhead and guarantees we observe zones 17–32 whenever they exist.
+            self.send_command("S20"),
             # Arming status update
             self.send_command("S14"),
+            # Auxiliary outputs status
+            self.send_command("S18"),
         )
 
     async def _connect(self) -> None:
@@ -284,3 +318,9 @@ class Client:
 
     def zone_changes(self) -> AsyncIterator[tuple[int, bool]]:
         return self.alarm.zone_changes()
+
+    def on_aux_output_change(
+        self, f: Callable[[int, bool], None]
+    ) -> Callable[[int, bool], None]:
+        self.alarm.on_aux_output_change(f)
+        return f
