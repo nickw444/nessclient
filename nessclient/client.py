@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import logging
+import warnings
 from asyncio import sleep
 from typing import Callable, Dict
 
@@ -78,7 +79,15 @@ class Client:
         return await self.send_command(command)
 
     async def aux(self, output_id: int, state: bool = True) -> None:
-        command = "{}{}{}".format(output_id, output_id, "*" if state else "#")
+        warnings.warn(
+            "Client.aux is deprecated; use aux_output instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        await self.aux_output(output_id, state)
+
+    async def aux_output(self, output_id: int, state: bool = True) -> None:
+        command = f"{output_id}{output_id}{'*' if state else '#'}"
         return await self.send_command(command)
 
     async def get_panel_info(self) -> PanelInfo:
@@ -98,7 +107,7 @@ class Client:
 
     async def update(self) -> None:
         """Force update of alarm status and zones"""
-        _LOGGER.debug("Requesting state update from server (S00, S20, S14)")
+        _LOGGER.debug("Requesting state update from server (S00, S20, S14, S18)")
         await asyncio.gather(
             # List unsealed Zones 1-16
             self.send_command("S00"),
@@ -112,6 +121,8 @@ class Client:
             self.send_command("S20"),
             # Arming status update
             self.send_command("S14"),
+            # Auxiliary outputs status
+            self.send_command("S18"),
         )
 
     async def _connect(self) -> None:
@@ -280,4 +291,10 @@ class Client:
         self, f: Callable[[BaseEvent], None]
     ) -> Callable[[BaseEvent], None]:
         self._on_event_received = f
+        return f
+
+    def on_aux_output_change(
+        self, f: Callable[[int, bool], None]
+    ) -> Callable[[int, bool], None]:
+        self.alarm.on_aux_output_change(f)
         return f

@@ -99,7 +99,8 @@ async def test_update_emits_ascii_payloads(
     connection.write.assert_any_call(b"8300360S00E9\r\n")
     connection.write.assert_any_call(b"8300360S20E7\r\n")
     connection.write.assert_any_call(b"8300360S14E4\r\n")
-    assert connection.write.await_count == 3
+    connection.write.assert_any_call(b"8300360S18E0\r\n")
+    assert connection.write.await_count == 4
 
 
 @pytest.mark.asyncio

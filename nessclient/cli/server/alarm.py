@@ -3,8 +3,9 @@ import threading
 import time
 import uuid
 from enum import Enum
-from typing import List, Callable
+from typing import Callable, List
 
+from .aux_output import AuxOutput
 from .zone import Zone
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,16 +37,20 @@ class Alarm:
         self,
         state: ArmingState,
         zones: List[Zone],
+        aux_outputs: List[AuxOutput],
         _alarm_state_changed: Callable[
             [ArmingState, ArmingState, ArmingMode | None], None
         ],
         _zone_state_changed: Callable[[int, Zone.State], None],
+        _aux_output_state_changed: Callable[[int, bool], None],
     ):
         self.state = state
         self.zones = zones
+        self.aux_outputs = aux_outputs
         self._arming_mode: Alarm.ArmingMode | None = None
         self._alarm_state_changed = _alarm_state_changed
         self._zone_state_changed = _zone_state_changed
+        self._aux_output_state_changed = _aux_output_state_changed
         self._pending_event: str | None = None
 
     @property
@@ -59,12 +64,15 @@ class Alarm:
             [ArmingState, ArmingState, ArmingMode | None], None
         ],
         zone_state_changed: Callable[[int, Zone.State], None],
+        aux_output_state_changed: Callable[[int, bool], None],
     ) -> "Alarm":
         return Alarm(
             state=Alarm.ArmingState.DISARMED,
             zones=Alarm._generate_zones(num_zones),
+            aux_outputs=Alarm._generate_aux_outputs(),
             _alarm_state_changed=alarm_state_changed,
             _zone_state_changed=zone_state_changed,
+            _aux_output_state_changed=aux_output_state_changed,
         )
 
     @staticmethod
@@ -72,6 +80,13 @@ class Alarm:
         rv = []
         for i in range(num_zones):
             rv.append(Zone(id=i + 1, state=Zone.State.SEALED))
+        return rv
+
+    @staticmethod
+    def _generate_aux_outputs() -> List[AuxOutput]:
+        rv = []
+        for i in range(8):
+            rv.append(AuxOutput(id=i + 1, state=AuxOutput.State.OFF))
         return rv
 
     def arm(self, mode: ArmingMode = ArmingMode.ARMED_AWAY) -> None:
@@ -94,6 +109,13 @@ class Alarm:
 
         if self.state == Alarm.ArmingState.ARMED:
             self.trip()
+
+    def update_aux_output(self, output_id: int, active: bool) -> None:
+        out = next(o for o in self.aux_outputs if o.id == output_id)
+        new_state = AuxOutput.State.ON if active else AuxOutput.State.OFF
+        out.state = new_state
+        if self._aux_output_state_changed is not None:
+            self._aux_output_state_changed(output_id, active)
 
     def _arm_complete(self) -> None:
         _LOGGER.debug("Arm completed")

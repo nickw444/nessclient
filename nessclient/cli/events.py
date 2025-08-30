@@ -181,6 +181,25 @@ async def interactive_ui(
                 )
                 y += 1
 
+            # Auxiliary outputs below zones
+            if y < zone_inner_h - 1:
+                zone_win.addnstr(y, 2, "Outputs:", zone_inner_w - 4, curses.A_BOLD)
+                y += 1
+            for i, out in enumerate(client.alarm.aux_outputs, start=1):
+                if y >= zone_inner_h - 1:
+                    break
+                status = "ON" if out.active else "OFF"
+                attr = (
+                    curses.A_NORMAL | curses.color_pair(2)
+                    if out.active
+                    else curses.A_DIM | curses.color_pair(1)
+                )
+                line = f"AUX{i}: {status}"
+                zone_win.addnstr(
+                    y, 2, line.ljust(zone_inner_w - 4), zone_inner_w - 4, attr
+                )
+                y += 1
+
             # Logs/messages pane
             logs_h = top_h - 1
             log_win = stdscr.derwin(logs_h, logs_w, 1, zones_w)
@@ -220,6 +239,7 @@ async def interactive_ui(
             input_win.addstr(0, 2, " Input ", curses.A_BOLD)
             legend = [
                 "Commands: a=arm_away h=arm_home d [code] u=update q=quit",
+                "o<n> or o <n> to toggle outputs",
                 "Arrow/PgUp/PgDn/Home/End to scroll messages",
             ]
             for i, line in enumerate(legend):
@@ -274,6 +294,25 @@ async def interactive_ui(
                         elif lower in {"u", "update"}:
                             _add_log(logs, "TX", "Update")
                             await client.update()
+                        elif lower.startswith("o"):
+                            num_str = lower[1:].strip()
+                            if num_str.isdigit():
+                                output_id = int(num_str)
+                                if 1 <= output_id <= len(client.alarm.aux_outputs):
+                                    current = client.alarm.aux_outputs[
+                                        output_id - 1
+                                    ].active
+                                    new_state = not current
+                                    _add_log(
+                                        logs,
+                                        "TX",
+                                        f"Output {output_id} {'ON' if new_state else 'OFF'}",
+                                    )
+                                    await client.aux_output(output_id, new_state)
+                                else:
+                                    status_message = f"Invalid output: {output_id}"
+                            else:
+                                status_message = "Usage: o<n> or o <n>"
                         else:
                             status_message = f"Unknown command: {cmd}"
                 elif ch in (curses.KEY_BACKSPACE, 127, 8):

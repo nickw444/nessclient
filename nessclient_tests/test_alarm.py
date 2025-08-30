@@ -8,6 +8,7 @@ from nessclient.event import (
     ZoneUpdate_1_16,
     ZoneUpdate_17_32,
     SystemStatusEvent,
+    AuxiliaryOutputsUpdate,
 )
 
 
@@ -24,6 +25,12 @@ def test_32_zones_are_created(alarm):
     assert len(alarm.zones) == 32
 
 
+def test_aux_outputs_are_initially_off(alarm):
+    assert len(alarm.aux_outputs) == 8
+    for out in alarm.aux_outputs:
+        assert out.active is False
+
+
 def test_handle_event_zone_update_1_16(alarm):
     event = ZoneUpdate_1_16(
         included_zones=[ZoneUpdate_1_16.Zone.ZONE_1, ZoneUpdate_1_16.Zone.ZONE_3],
@@ -35,6 +42,34 @@ def test_handle_event_zone_update_1_16(alarm):
     assert alarm.zones[0].triggered is True
     assert alarm.zones[1].triggered is False
     assert alarm.zones[2].triggered is True
+
+
+def test_handle_event_auxiliary_outputs_update(alarm):
+    event = AuxiliaryOutputsUpdate(
+        outputs=[
+            AuxiliaryOutputsUpdate.OutputType.AUX_1,
+            AuxiliaryOutputsUpdate.OutputType.AUX_4,
+        ],
+        address=None,
+        timestamp=None,
+    )
+    alarm.handle_event(event)
+    assert alarm.aux_outputs[0].active is True
+    assert alarm.aux_outputs[3].active is True
+    assert alarm.aux_outputs[1].active is False
+
+
+def test_handle_event_auxiliary_outputs_update_callback(alarm):
+    cb = Mock()
+    alarm.on_aux_output_change(cb)
+    event = AuxiliaryOutputsUpdate(
+        outputs=[AuxiliaryOutputsUpdate.OutputType.AUX_2],
+        address=None,
+        timestamp=None,
+    )
+    alarm.handle_event(event)
+    assert cb.call_count == 1
+    assert cb.call_args[0] == (2, True)
 
 
 def test_handle_event_zone_update_1_16_sealed(alarm):

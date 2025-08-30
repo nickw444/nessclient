@@ -61,30 +61,31 @@ async def test_panic(connection, client):
 
 
 @pytest.mark.asyncio
-async def test_aux_on(connection, client):
-    await client.aux(1, True)
+async def test_aux_output_on(connection, client):
+    await client.aux_output(1, True)
     assert connection.write.call_count == 1
     assert get_data(connection.write.call_args[0][0]) == b"11*"
 
 
 @pytest.mark.asyncio
-async def test_aux_off(connection, client):
-    await client.aux(1, False)
+async def test_aux_output_off(connection, client):
+    await client.aux_output(1, False)
     assert connection.write.call_count == 1
     assert get_data(connection.write.call_args[0][0]) == b"11#"
 
 
 @pytest.mark.asyncio
 async def test_update(connection, client: Client, alarm: Alarm):
-    # Update should send S00, S20 and S14
+    # Update should send S00, S20, S14 and S18
     await client.update()
-    assert connection.write.call_count == 3
+    assert connection.write.call_count == 4
     commands = {
         get_data(connection.write.call_args_list[0][0][0]),
         get_data(connection.write.call_args_list[1][0][0]),
         get_data(connection.write.call_args_list[2][0][0]),
+        get_data(connection.write.call_args_list[3][0][0]),
     }
-    assert commands == {b"S00", b"S20", b"S14"}
+    assert commands == {b"S00", b"S20", b"S14", b"S18"}
 
 
 @pytest.mark.asyncio
