@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, List
+import asyncio
+from typing import AsyncIterator, Callable, List
 
 from .event import (
     BaseEvent,
@@ -79,6 +80,13 @@ class Alarm:
             None
         )
         self._on_zone_change: Callable[[int, bool], None] | None = None
+        # Async iterator subscribers for event streams
+        self._state_subscribers: List[
+            asyncio.Queue[tuple[ArmingState, ArmingMode | None]]
+        ] = []
+        self._zone_subscribers: List[asyncio.Queue[tuple[int, bool]]] = []
+        self._aux_output_subscribers: List[asyncio.Queue[tuple[int, bool]]] = []
+        # Callback for auxiliary output state changes
         self._on_aux_output_change: Callable[[int, bool], None] | None = None
 
     def handle_event(self, event: BaseEvent) -> None:
@@ -198,6 +206,11 @@ class Alarm:
             self.arming_state = state
             if self._on_state_change is not None:
                 self._on_state_change(state, self._arming_mode)
+            for q in list(self._state_subscribers):
+                try:
+                    q.put_nowait((state, self._arming_mode))
+                except Exception:
+                    pass
 
     def _update_zone(self, zone_id: int, state: bool) -> None:
         zone = self.zones[zone_id - 1]
@@ -205,6 +218,11 @@ class Alarm:
             zone.triggered = state
             if self._on_zone_change is not None:
                 self._on_zone_change(zone_id, state)
+            for q in list(self._zone_subscribers):
+                try:
+                    q.put_nowait((zone_id, state))
+                except Exception:
+                    pass
 
     def _update_aux_output(self, output_id: int, state: bool) -> None:
         output = self.aux_outputs[output_id - 1]
@@ -212,6 +230,11 @@ class Alarm:
             output.active = state
             if self._on_aux_output_change is not None:
                 self._on_aux_output_change(output_id, state)
+            for q in list(self._aux_output_subscribers):
+                try:
+                    q.put_nowait((output_id, state))
+                except Exception:
+                    pass
 
     def on_state_change(
         self, f: Callable[[ArmingState, ArmingMode | None], None]
@@ -223,3 +246,44 @@ class Alarm:
 
     def on_aux_output_change(self, f: Callable[[int, bool], None]) -> None:
         self._on_aux_output_change = f
+
+    def stream_state_changes(
+        self,
+    ) -> AsyncIterator[tuple[ArmingState, ArmingMode | None]]:
+        queue: asyncio.Queue[tuple[ArmingState, ArmingMode | None]] = asyncio.Queue()
+        self._state_subscribers.append(queue)
+
+        async def _iterator() -> AsyncIterator[tuple[ArmingState, ArmingMode | None]]:
+            try:
+                while True:
+                    yield await queue.get()
+            finally:
+                self._state_subscribers.remove(queue)
+
+        return _iterator()
+
+    def stream_zone_changes(self) -> AsyncIterator[tuple[int, bool]]:
+        queue: asyncio.Queue[tuple[int, bool]] = asyncio.Queue()
+        self._zone_subscribers.append(queue)
+
+        async def _iterator() -> AsyncIterator[tuple[int, bool]]:
+            try:
+                while True:
+                    yield await queue.get()
+            finally:
+                self._zone_subscribers.remove(queue)
+
+        return _iterator()
+
+    def stream_aux_output_changes(self) -> AsyncIterator[tuple[int, bool]]:
+        queue: asyncio.Queue[tuple[int, bool]] = asyncio.Queue()
+        self._aux_output_subscribers.append(queue)
+
+        async def _iterator() -> AsyncIterator[tuple[int, bool]]:
+            try:
+                while True:
+                    yield await queue.get()
+            finally:
+                self._aux_output_subscribers.remove(queue)
+
+        return _iterator()

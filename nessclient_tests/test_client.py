@@ -3,7 +3,7 @@ from unittest.mock import Mock, AsyncMock
 import pytest
 
 from nessclient import Client
-from nessclient.alarm import Alarm, PanelInfo
+from nessclient.alarm import Alarm, PanelInfo, ArmingState
 from nessclient.connection import Connection
 from nessclient.event import StatusUpdate, BaseEvent, PanelVersionUpdate
 from nessclient.packet import Packet, CommandType
@@ -182,6 +182,79 @@ def test_on_zone_change_callback_is_registered(client, alarm):
     client.on_zone_change(cb)
     assert alarm.on_zone_change.call_count == 1
     assert alarm.on_zone_change.call_args[0][0] == cb
+
+
+@pytest.mark.asyncio
+async def test_events_stream_receives_event(client):
+    stream = client.stream_events()
+    task = asyncio.create_task(stream.__anext__())
+    pkt = Packet(
+        address=0x00,
+        seq=0x00,
+        command=CommandType.USER_INTERFACE,
+        data="140000",
+        timestamp=None,
+        is_user_interface_resp=True,
+    )
+    event = BaseEvent.decode(pkt)
+    client._dispatch_event(event, pkt)
+    result = await asyncio.wait_for(task, 1.0)
+    assert result is event
+    await stream.aclose()
+
+
+@pytest.mark.asyncio
+async def test_stream_state_changes_receives_item(client, alarm):
+    q: asyncio.Queue[tuple[ArmingState, None]] = asyncio.Queue()
+
+    async def iterator():
+        while True:
+            yield await q.get()
+
+    alarm.stream_state_changes.return_value = iterator()
+    stream = client.stream_state_changes()
+    task = asyncio.create_task(stream.__anext__())
+    await q.put((ArmingState.EXIT_DELAY, None))
+    state, mode = await asyncio.wait_for(task, 1.0)
+    assert state == ArmingState.EXIT_DELAY
+    assert mode is None
+    await stream.aclose()
+
+
+@pytest.mark.asyncio
+async def test_stream_zone_changes_receives_item(client, alarm):
+    q: asyncio.Queue[tuple[int, bool]] = asyncio.Queue()
+
+    async def iterator():
+        while True:
+            yield await q.get()
+
+    alarm.stream_zone_changes.return_value = iterator()
+    stream = client.stream_zone_changes()
+    task = asyncio.create_task(stream.__anext__())
+    await q.put((4, True))
+    zone_id, triggered = await asyncio.wait_for(task, 1.0)
+    assert zone_id == 4
+    assert triggered is True
+    await stream.aclose()
+
+
+@pytest.mark.asyncio
+async def test_stream_aux_output_changes_receives_item(client, alarm):
+    q: asyncio.Queue[tuple[int, bool]] = asyncio.Queue()
+
+    async def iterator():
+        while True:
+            yield await q.get()
+
+    alarm.stream_aux_output_changes.return_value = iterator()
+    stream = client.stream_aux_output_changes()
+    task = asyncio.create_task(stream.__anext__())
+    await q.put((2, True))
+    output_id, active = await asyncio.wait_for(task, 1.0)
+    assert output_id == 2
+    assert active is True
+    await stream.aclose()
 
 
 @pytest.mark.asyncio

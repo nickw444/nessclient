@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 
+import asyncio
 import pytest
 
 from nessclient.alarm import Alarm, ArmingState, ArmingMode
@@ -480,6 +481,61 @@ def test_handle_event_system_status_arming_delayed(alarm):
     )
     alarm.handle_event(event)
     assert alarm.arming_state == ArmingState.UNKNOWN
+
+
+@pytest.mark.asyncio
+async def test_state_changes_stream(alarm):
+    stream = alarm.stream_state_changes()
+    task = asyncio.create_task(stream.__anext__())
+    # Drive via public API using a system status event
+    alarm.handle_event(
+        SystemStatusEvent(
+            type=SystemStatusEvent.EventType.ENTRY_DELAY_START,
+            zone=0,
+            area=0,
+            address=None,
+            timestamp=None,
+        )
+    )
+    state, mode = await asyncio.wait_for(task, 1.0)
+    assert state == ArmingState.ENTRY_DELAY
+    assert mode is None
+    await stream.aclose()
+
+
+@pytest.mark.asyncio
+async def test_zone_changes_stream(alarm):
+    stream = alarm.stream_zone_changes()
+    task = asyncio.create_task(stream.__anext__())
+    alarm.handle_event(
+        SystemStatusEvent(
+            type=SystemStatusEvent.EventType.UNSEALED,
+            zone=1,
+            area=0,
+            address=None,
+            timestamp=None,
+        )
+    )
+    zone_id, triggered = await asyncio.wait_for(task, 1.0)
+    assert zone_id == 1
+    assert triggered is True
+    await stream.aclose()
+
+
+@pytest.mark.asyncio
+async def test_aux_output_changes_stream(alarm):
+    stream = alarm.stream_aux_output_changes()
+    task = asyncio.create_task(stream.__anext__())
+    event = AuxiliaryOutputsUpdate(
+        outputs=[AuxiliaryOutputsUpdate.OutputType.AUX_3],
+        address=None,
+        timestamp=None,
+    )
+    alarm.handle_event(event)
+    output_id, active = await asyncio.wait_for(task, 1.0)
+    assert output_id == 3
+    assert active is True
+    await stream.aclose()
 
 
 @pytest.fixture
