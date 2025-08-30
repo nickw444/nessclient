@@ -55,6 +55,7 @@ class Client:
         self._decode_options = decode_options
         self._validate_checksums = validate_checksums
         self._on_event_received: Callable[[BaseEvent], None] | None = None
+        self._on_decode_error: Callable[[str, Exception], None] | None = None
         self._event_subscribers: List[asyncio.Queue[BaseEvent]] = []
         self._connection = connection
         self._closed = False
@@ -66,6 +67,10 @@ class Client:
         # Only a single Future is retained per request id; concurrent waiters share it.
         self._pending_ui_requests: Dict[int, asyncio.Future[StatusUpdate]] = {}
         self._pending_ui_lock = asyncio.Lock()
+
+    def on_decode_error(self, callback: Callable[[str, Exception], None]) -> None:
+        """Register a callback for packet decode errors."""
+        self._on_decode_error = callback
 
     async def arm_away(self, code: str | None = None) -> None:
         command = "A{}E".format(code if code else "")
@@ -220,8 +225,15 @@ class Client:
                             decoded_data, validate_checksum=self._validate_checksums
                         )
                         event = BaseEvent.decode(pkt, self._decode_options)
-                    except Exception:
+                    except Exception as e:
                         _LOGGER.warning("Failed to decode packet", exc_info=True)
+                        if self._on_decode_error is not None:
+                            try:
+                                self._on_decode_error(decoded_data, e)
+                            except Exception:
+                                _LOGGER.debug(
+                                    "on_decode_error raised, ignoring", exc_info=True
+                                )
                         continue
 
                     self._dispatch_event(event, pkt)

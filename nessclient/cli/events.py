@@ -109,6 +109,10 @@ async def interactive_ui(
     def on_state_change(state: ArmingState, arming_mode: ArmingMode | None) -> None:
         _add_log(logs, "RX", f"State: {state.value} Mode: {arming_mode}")
 
+    @client.on_decode_error
+    def on_decode_error(raw: str, exc: Exception) -> None:
+        _add_log(logs, "ERR", f"Failed to decode {raw!r}: {exc}")
+
     keepalive_task = asyncio.create_task(client.keepalive())
     # Initial update and panel info request
     _add_log(logs, "TX", "Update")
@@ -227,6 +231,8 @@ async def interactive_ui(
                     attr |= curses.color_pair(2)
                 elif line.startswith("EVT"):
                     attr |= curses.A_DIM
+                elif line.startswith("ERR"):
+                    attr |= curses.color_pair(3)
                 pieces = textwrap.wrap(
                     line,
                     width=log_inner_w,

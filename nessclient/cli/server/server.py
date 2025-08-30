@@ -1,8 +1,7 @@
 import logging
 import socket
 import threading
-import traceback
-from typing import List, Callable, Any, Optional
+from typing import Any, Callable, List, Optional
 
 from .zone import Zone
 from ...event import BaseEvent, SystemStatusEvent
@@ -120,11 +119,7 @@ class Server:
             else:
                 raise NotImplementedError()
         except Exception as e:
-            msg = (
-                f"Error decoding or handling line: {repr(line)}\n"
-                f"{e}\n"
-                f"{traceback.format_exc()}"
-            )
+            msg = f"Error decoding line {line!r}: {e}"
             if self._rx_callback is not None:
                 try:
                     self._rx_callback(line, None)

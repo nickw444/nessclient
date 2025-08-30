@@ -77,14 +77,15 @@ Include the generated log file with bug reports to assist with troubleshooting.
 ### Checksum validation
 
 By default, the client accepts packets even if their checksums are invalid.
-Enable checksum verification to drop malformed packets:
+Enable checksum verification to detect and reject malformed packets:
 
 - CLI users can pass `--validate-checksum` to the `events` and `server`
   commands.
 - Library users can construct `Client` with
   `validate_checksums=True`.
 
-When enabled, packets with incorrect checksums are ignored.
+When enabled, the library raises an error for packets with invalid checksums.
+The CLI logs such packets in red and ignores them.
 
 ## API Documentation
 You can find the full API documentation [here](https://nessclient.readthedocs.io/en/latest/api.html)

@@ -539,7 +539,7 @@ class AlarmServer:
                 parsed = "<unknown>"
             self._add_log("RX", f"{line} -> {parsed}")
         else:
-            self._add_log("RX", line)
+            self._add_log("ERR", line)
 
 
 def mode_to_event(mode: Alarm.ArmingMode | None) -> SystemStatusEvent.EventType:

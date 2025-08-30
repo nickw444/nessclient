@@ -32,8 +32,9 @@ Include the generated file when raising an issue to help diagnose problems.
 
 ### Checksum validation
 
-Packet checksums can be validated to drop malformed messages. Pass
-`--validate-checksum` to the `events` command to enable verification:
+Packet checksums can be validated to drop malformed messages. When enabled,
+invalid packets are logged in red and ignored. Pass `--validate-checksum` to
+the `events` command to enable verification:
 
 ```sh
 ness-cli events --host PANEL_HOST --port PORT --validate-checksum
