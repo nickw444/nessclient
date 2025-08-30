@@ -204,6 +204,73 @@ async def test_events_stream_receives_event(client):
 
 
 @pytest.mark.asyncio
+async def test_stream_state_changes_receives_item(connection):
+    client = Client(connection=connection)
+    stream = client.stream_state_changes()
+    task = asyncio.create_task(stream.__anext__())
+    from nessclient.event import SystemStatusEvent
+
+    ev = SystemStatusEvent(
+        type=SystemStatusEvent.EventType.EXIT_DELAY_START,
+        zone=0,
+        area=0,
+        address=None,
+        timestamp=None,
+    )
+    pkt = ev.encode()
+    client._dispatch_event(ev, pkt)
+    state, mode = await asyncio.wait_for(task, 1.0)
+    from nessclient.alarm import ArmingState
+
+    assert state == ArmingState.EXIT_DELAY
+    assert mode is None
+    await stream.aclose()
+
+
+@pytest.mark.asyncio
+async def test_stream_zone_changes_receives_item(connection):
+    client = Client(connection=connection)
+    stream = client.stream_zone_changes()
+    task = asyncio.create_task(stream.__anext__())
+    from nessclient.event import SystemStatusEvent
+
+    ev = SystemStatusEvent(
+        type=SystemStatusEvent.EventType.UNSEALED,
+        zone=4,
+        area=0,
+        address=None,
+        timestamp=None,
+    )
+    pkt = ev.encode()
+    client._dispatch_event(ev, pkt)
+    zone_id, triggered = await asyncio.wait_for(task, 1.0)
+    assert zone_id == 4
+    assert triggered is True
+    await stream.aclose()
+
+
+@pytest.mark.asyncio
+async def test_stream_aux_output_changes_receives_item(connection):
+    client = Client(connection=connection)
+    stream = client.stream_aux_output_changes()
+    task = asyncio.create_task(stream.__anext__())
+    from nessclient.event import AuxiliaryOutputsUpdate
+
+    ev = AuxiliaryOutputsUpdate(
+        outputs=[AuxiliaryOutputsUpdate.OutputType.AUX_2],
+        address=None,
+        timestamp=None,
+    )
+    # The packet is not used by the dispatcher logic; provide a reasonable one
+    pkt = ev.encode()
+    client._dispatch_event(ev, pkt)
+    output_id, active = await asyncio.wait_for(task, 1.0)
+    assert output_id == 2
+    assert active is True
+    await stream.aclose()
+
+
+@pytest.mark.asyncio
 async def test_close(connection, client):
     await client.close()
     assert connection.close.call_count == 1

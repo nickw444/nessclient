@@ -505,6 +505,22 @@ async def test_zone_changes_stream(alarm):
     await stream.aclose()
 
 
+@pytest.mark.asyncio
+async def test_aux_output_changes_stream(alarm):
+    stream = alarm.stream_aux_output_changes()
+    task = asyncio.create_task(stream.__anext__())
+    event = AuxiliaryOutputsUpdate(
+        outputs=[AuxiliaryOutputsUpdate.OutputType.AUX_3],
+        address=None,
+        timestamp=None,
+    )
+    alarm.handle_event(event)
+    output_id, active = await asyncio.wait_for(task, 1.0)
+    assert output_id == 3
+    assert active is True
+    await stream.aclose()
+
+
 @pytest.fixture
 def alarm():
     return Alarm()
