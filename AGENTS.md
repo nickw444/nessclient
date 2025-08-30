@@ -1,29 +1,19 @@
-# Agent Contribution Guidelines
+# AI Agent Guidelines
 
-This repository is developed with assistance from AI coding agents. To keep the
-codebase consistent and easy to maintain, agents must follow these rules when
-creating or modifying code and tests.
+This repository uses [uv](https://docs.astral.sh/uv/) for dependency management and task execution.
 
-## Imports
-- All imports must be static at module scope. Do not import inside functions,
-  coroutines, or test cases. This ensures import errors surface early and keeps
-  tests readable and type-checker friendly.
+## Protocol Documentation
+- Refer to [`D8-32X Serial Protocol Public.md`](./D8-32X%20Serial%20Protocol%20Public.md) for details on the device protocol.
 
-## Tests
-- Prefer interacting with objects via their public API only. Avoid calling
-  private or underscored methods in tests.
-- Keep tests deterministic and side-effect free; avoid relying on timing where
-  possible. If concurrency is required, use explicit synchronization (e.g.
-  awaiting a queued item) rather than sleeps.
+## Setup
+- Install dependencies with `uv sync --dev --all-extras`.
 
-## Style
-- Match the repository’s existing style and patterns. Run format/lint/type
-  checks using the documented `uv` tasks before pushing.
+## Style, Linting, and Type Checking
+- Format Python code with `uv run ruff format .`.
+- Lint with `uv run ruff check .`.
+- Run type checks using `uv run mypy --strict nessclient`.
 
-## Documentation
-- Update examples and docs when adding or changing public APIs so they remain
-  consistent and copy-paste runnable.
+## Testing
+- Run the test suite with `uv run pytest`.
 
-If a situation requires deviating from these rules, clearly justify the change
-in the PR description.
-
+These commands should be executed and pass before committing any changes.

@@ -3,15 +3,9 @@ from unittest.mock import Mock, AsyncMock
 import pytest
 
 from nessclient import Client
-from nessclient.alarm import Alarm, PanelInfo, ArmingState
+from nessclient.alarm import Alarm, PanelInfo
 from nessclient.connection import Connection
-from nessclient.event import (
-    StatusUpdate,
-    BaseEvent,
-    PanelVersionUpdate,
-    SystemStatusEvent,
-    AuxiliaryOutputsUpdate,
-)
+from nessclient.event import StatusUpdate, BaseEvent, PanelVersionUpdate
 from nessclient.packet import Packet, CommandType
 import asyncio
 
@@ -214,6 +208,8 @@ async def test_stream_state_changes_receives_item(connection):
     client = Client(connection=connection)
     stream = client.stream_state_changes()
     task = asyncio.create_task(stream.__anext__())
+    from nessclient.event import SystemStatusEvent
+
     # Drive via Alarm public API
     client.alarm.handle_event(
         SystemStatusEvent(
@@ -225,6 +221,8 @@ async def test_stream_state_changes_receives_item(connection):
         )
     )
     state, mode = await asyncio.wait_for(task, 1.0)
+    from nessclient.alarm import ArmingState
+
     assert state == ArmingState.EXIT_DELAY
     assert mode is None
     await stream.aclose()
@@ -235,6 +233,8 @@ async def test_stream_zone_changes_receives_item(connection):
     client = Client(connection=connection)
     stream = client.stream_zone_changes()
     task = asyncio.create_task(stream.__anext__())
+    from nessclient.event import SystemStatusEvent
+
     client.alarm.handle_event(
         SystemStatusEvent(
             type=SystemStatusEvent.EventType.UNSEALED,
@@ -255,6 +255,8 @@ async def test_stream_aux_output_changes_receives_item(connection):
     client = Client(connection=connection)
     stream = client.stream_aux_output_changes()
     task = asyncio.create_task(stream.__anext__())
+    from nessclient.event import AuxiliaryOutputsUpdate
+
     client.alarm.handle_event(
         AuxiliaryOutputsUpdate(
             outputs=[AuxiliaryOutputsUpdate.OutputType.AUX_2],
