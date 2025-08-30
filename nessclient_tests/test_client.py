@@ -124,6 +124,25 @@ def test_on_zone_change_callback_is_registered(client, alarm):
 
 
 @pytest.mark.asyncio
+async def test_events_stream_receives_event(client):
+    stream = client.events()
+    task = asyncio.create_task(stream.__anext__())
+    pkt = Packet(
+        address=0x00,
+        seq=0x00,
+        command=CommandType.USER_INTERFACE,
+        data="140000",
+        timestamp=None,
+        is_user_interface_resp=True,
+    )
+    event = BaseEvent.decode(pkt)
+    client._dispatch_event(event, pkt)
+    result = await asyncio.wait_for(task, 1.0)
+    assert result is event
+    await stream.aclose()
+
+
+@pytest.mark.asyncio
 async def test_close(connection, client):
     await client.close()
     assert connection.close.call_count == 1

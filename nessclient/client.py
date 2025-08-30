@@ -2,7 +2,7 @@ import asyncio
 import datetime
 import logging
 from asyncio import sleep
-from typing import Callable, Dict
+from typing import AsyncIterator, Callable, Dict, List
 
 from justbackoff import Backoff
 
@@ -50,6 +50,7 @@ class Client:
         self.alarm = alarm
         self._decode_options = decode_options
         self._on_event_received: Callable[[BaseEvent], None] | None = None
+        self._event_subscribers: List[asyncio.Queue[BaseEvent]] = []
         self._connection = connection
         self._closed = False
         self._backoff = Backoff()
@@ -222,6 +223,12 @@ class Client:
             except Exception:
                 _LOGGER.warning("on_event_received callback raised", exc_info=True)
 
+        for q in list(self._event_subscribers):
+            try:
+                q.put_nowait(event)
+            except Exception:
+                pass
+
         self.alarm.handle_event(event)
 
     async def _update_loop(self) -> None:
@@ -258,3 +265,22 @@ class Client:
     ) -> Callable[[BaseEvent], None]:
         self._on_event_received = f
         return f
+
+    def events(self) -> AsyncIterator[BaseEvent]:
+        queue: asyncio.Queue[BaseEvent] = asyncio.Queue()
+        self._event_subscribers.append(queue)
+
+        async def _iterator() -> AsyncIterator[BaseEvent]:
+            try:
+                while True:
+                    yield await queue.get()
+            finally:
+                self._event_subscribers.remove(queue)
+
+        return _iterator()
+
+    def state_changes(self) -> AsyncIterator[tuple[ArmingState, ArmingMode | None]]:
+        return self.alarm.state_changes()
+
+    def zone_changes(self) -> AsyncIterator[tuple[int, bool]]:
+        return self.alarm.zone_changes()

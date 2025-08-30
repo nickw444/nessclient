@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 
+import asyncio
 import pytest
 
 from nessclient.alarm import Alarm, ArmingState, ArmingMode
@@ -342,6 +343,28 @@ def test_handle_event_system_status_arming_delayed(alarm):
     )
     alarm.handle_event(event)
     assert alarm.arming_state == ArmingState.UNKNOWN
+
+
+@pytest.mark.asyncio
+async def test_state_changes_stream(alarm):
+    stream = alarm.state_changes()
+    task = asyncio.create_task(stream.__anext__())
+    alarm._update_arming_state(ArmingState.ARMED)
+    state, mode = await asyncio.wait_for(task, 1.0)
+    assert state == ArmingState.ARMED
+    assert mode is None
+    await stream.aclose()
+
+
+@pytest.mark.asyncio
+async def test_zone_changes_stream(alarm):
+    stream = alarm.zone_changes()
+    task = asyncio.create_task(stream.__anext__())
+    alarm._update_zone(1, True)
+    zone_id, triggered = await asyncio.wait_for(task, 1.0)
+    assert zone_id == 1
+    assert triggered is True
+    await stream.aclose()
 
 
 @pytest.fixture

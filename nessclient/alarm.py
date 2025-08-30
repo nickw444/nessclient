@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, List
+import asyncio
+from typing import AsyncIterator, Callable, List
 
 from .event import BaseEvent, ZoneUpdate, ArmingUpdate, SystemStatusEvent
 
@@ -54,6 +55,10 @@ class Alarm:
             None
         )
         self._on_zone_change: Callable[[int, bool], None] | None = None
+        self._state_subscribers: List[
+            asyncio.Queue[tuple[ArmingState, ArmingMode | None]]
+        ] = []
+        self._zone_subscribers: List[asyncio.Queue[tuple[int, bool]]] = []
 
     def handle_event(self, event: BaseEvent) -> None:
         if isinstance(event, ArmingUpdate):
@@ -148,6 +153,11 @@ class Alarm:
             self.arming_state = state
             if self._on_state_change is not None:
                 self._on_state_change(state, self._arming_mode)
+            for q in list(self._state_subscribers):
+                try:
+                    q.put_nowait((state, self._arming_mode))
+                except Exception:
+                    pass
 
     def _update_zone(self, zone_id: int, state: bool) -> None:
         zone = self.zones[zone_id - 1]
@@ -155,6 +165,11 @@ class Alarm:
             zone.triggered = state
             if self._on_zone_change is not None:
                 self._on_zone_change(zone_id, state)
+            for q in list(self._zone_subscribers):
+                try:
+                    q.put_nowait((zone_id, state))
+                except Exception:
+                    pass
 
     def on_state_change(
         self, f: Callable[[ArmingState, ArmingMode | None], None]
@@ -163,3 +178,29 @@ class Alarm:
 
     def on_zone_change(self, f: Callable[[int, bool], None]) -> None:
         self._on_zone_change = f
+
+    def state_changes(self) -> AsyncIterator[tuple[ArmingState, ArmingMode | None]]:
+        queue: asyncio.Queue[tuple[ArmingState, ArmingMode | None]] = asyncio.Queue()
+        self._state_subscribers.append(queue)
+
+        async def _iterator() -> AsyncIterator[tuple[ArmingState, ArmingMode | None]]:
+            try:
+                while True:
+                    yield await queue.get()
+            finally:
+                self._state_subscribers.remove(queue)
+
+        return _iterator()
+
+    def zone_changes(self) -> AsyncIterator[tuple[int, bool]]:
+        queue: asyncio.Queue[tuple[int, bool]] = asyncio.Queue()
+        self._zone_subscribers.append(queue)
+
+        async def _iterator() -> AsyncIterator[tuple[int, bool]]:
+            try:
+                while True:
+                    yield await queue.get()
+            finally:
+                self._zone_subscribers.remove(queue)
+
+        return _iterator()

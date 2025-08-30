@@ -12,3 +12,15 @@ A list of commands that can be sent can be found in the _Input Commands_ section
 ```{literalinclude} ../examples/listening_for_events.py
 :language: python
 ```
+
+## Streaming Events
+
+The `nessclient` API also exposes asynchronous streams as an alternative to
+callbacks. Instead of registering handlers, you can iterate over
+`client.events()`, `client.state_changes()` and `client.zone_changes()`.
+This approach fits naturally into `asyncio` applications and allows
+cooperative scheduling via `await`.
+
+```{literalinclude} ../examples/streaming_events.py
+:language: python
+```
