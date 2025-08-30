@@ -85,6 +85,7 @@ class Alarm:
             asyncio.Queue[tuple[ArmingState, ArmingMode | None]]
         ] = []
         self._zone_subscribers: List[asyncio.Queue[tuple[int, bool]]] = []
+        self._aux_output_subscribers: List[asyncio.Queue[tuple[int, bool]]] = []
         # Callback for auxiliary output state changes
         self._on_aux_output_change: Callable[[int, bool], None] | None = None
 
@@ -229,6 +230,11 @@ class Alarm:
             output.active = state
             if self._on_aux_output_change is not None:
                 self._on_aux_output_change(output_id, state)
+            for q in list(self._aux_output_subscribers):
+                try:
+                    q.put_nowait((output_id, state))
+                except Exception:
+                    pass
 
     def on_state_change(
         self, f: Callable[[ArmingState, ArmingMode | None], None]
@@ -264,5 +270,18 @@ class Alarm:
                     yield await queue.get()
             finally:
                 self._zone_subscribers.remove(queue)
+
+        return _iterator()
+
+    def aux_output_changes(self) -> AsyncIterator[tuple[int, bool]]:
+        queue: asyncio.Queue[tuple[int, bool]] = asyncio.Queue()
+        self._aux_output_subscribers.append(queue)
+
+        async def _iterator() -> AsyncIterator[tuple[int, bool]]:
+            try:
+                while True:
+                    yield await queue.get()
+            finally:
+                self._aux_output_subscribers.remove(queue)
 
         return _iterator()

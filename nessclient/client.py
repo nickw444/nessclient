@@ -324,3 +324,6 @@ class Client:
     ) -> Callable[[int, bool], None]:
         self.alarm.on_aux_output_change(f)
         return f
+
+    def aux_output_changes(self) -> AsyncIterator[tuple[int, bool]]:
+        return self.alarm.aux_output_changes()

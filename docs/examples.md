@@ -16,8 +16,14 @@ A list of commands that can be sent can be found in the _Input Commands_ section
 ## Streaming Events
 
 The `nessclient` API also exposes asynchronous streams as an alternative to
-callbacks. Instead of registering handlers, you can iterate over
-`client.events()`, `client.state_changes()` and `client.zone_changes()`.
+callbacks. Instead of registering handlers, you can iterate over the following
+async generators:
+
+- `client.events()`
+- `client.state_changes()`
+- `client.zone_changes()`
+- `client.aux_output_changes()`
+
 This approach fits naturally into `asyncio` applications and allows
 cooperative scheduling via `await`.
 
