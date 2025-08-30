@@ -210,15 +210,16 @@ async def test_stream_state_changes_receives_item(connection):
     task = asyncio.create_task(stream.__anext__())
     from nessclient.event import SystemStatusEvent
 
-    ev = SystemStatusEvent(
-        type=SystemStatusEvent.EventType.EXIT_DELAY_START,
-        zone=0,
-        area=0,
-        address=None,
-        timestamp=None,
+    # Drive via Alarm public API
+    client.alarm.handle_event(
+        SystemStatusEvent(
+            type=SystemStatusEvent.EventType.EXIT_DELAY_START,
+            zone=0,
+            area=0,
+            address=None,
+            timestamp=None,
+        )
     )
-    pkt = ev.encode()
-    client._dispatch_event(ev, pkt)
     state, mode = await asyncio.wait_for(task, 1.0)
     from nessclient.alarm import ArmingState
 
@@ -234,15 +235,15 @@ async def test_stream_zone_changes_receives_item(connection):
     task = asyncio.create_task(stream.__anext__())
     from nessclient.event import SystemStatusEvent
 
-    ev = SystemStatusEvent(
-        type=SystemStatusEvent.EventType.UNSEALED,
-        zone=4,
-        area=0,
-        address=None,
-        timestamp=None,
+    client.alarm.handle_event(
+        SystemStatusEvent(
+            type=SystemStatusEvent.EventType.UNSEALED,
+            zone=4,
+            area=0,
+            address=None,
+            timestamp=None,
+        )
     )
-    pkt = ev.encode()
-    client._dispatch_event(ev, pkt)
     zone_id, triggered = await asyncio.wait_for(task, 1.0)
     assert zone_id == 4
     assert triggered is True
@@ -256,14 +257,13 @@ async def test_stream_aux_output_changes_receives_item(connection):
     task = asyncio.create_task(stream.__anext__())
     from nessclient.event import AuxiliaryOutputsUpdate
 
-    ev = AuxiliaryOutputsUpdate(
-        outputs=[AuxiliaryOutputsUpdate.OutputType.AUX_2],
-        address=None,
-        timestamp=None,
+    client.alarm.handle_event(
+        AuxiliaryOutputsUpdate(
+            outputs=[AuxiliaryOutputsUpdate.OutputType.AUX_2],
+            address=None,
+            timestamp=None,
+        )
     )
-    # The packet is not used by the dispatcher logic; provide a reasonable one
-    pkt = ev.encode()
-    client._dispatch_event(ev, pkt)
     output_id, active = await asyncio.wait_for(task, 1.0)
     assert output_id == 2
     assert active is True

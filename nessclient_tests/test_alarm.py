@@ -487,9 +487,20 @@ def test_handle_event_system_status_arming_delayed(alarm):
 async def test_state_changes_stream(alarm):
     stream = alarm.stream_state_changes()
     task = asyncio.create_task(stream.__anext__())
-    alarm._update_arming_state(ArmingState.ARMED)
+    # Drive via public API using a system status event
+    from nessclient.event import SystemStatusEvent
+
+    alarm.handle_event(
+        SystemStatusEvent(
+            type=SystemStatusEvent.EventType.ENTRY_DELAY_START,
+            zone=0,
+            area=0,
+            address=None,
+            timestamp=None,
+        )
+    )
     state, mode = await asyncio.wait_for(task, 1.0)
-    assert state == ArmingState.ARMED
+    assert state == ArmingState.ENTRY_DELAY
     assert mode is None
     await stream.aclose()
 
@@ -498,7 +509,17 @@ async def test_state_changes_stream(alarm):
 async def test_zone_changes_stream(alarm):
     stream = alarm.stream_zone_changes()
     task = asyncio.create_task(stream.__anext__())
-    alarm._update_zone(1, True)
+    from nessclient.event import SystemStatusEvent
+
+    alarm.handle_event(
+        SystemStatusEvent(
+            type=SystemStatusEvent.EventType.UNSEALED,
+            zone=1,
+            area=0,
+            address=None,
+            timestamp=None,
+        )
+    )
     zone_id, triggered = await asyncio.wait_for(task, 1.0)
     assert zone_id == 1
     assert triggered is True
