@@ -32,8 +32,9 @@ async def main() -> None:
             print_state_changes(),
             print_zone_changes(),
             print_output_changes(),
-            # Run keepalive last for readability; they all start concurrently.
+            # Start keepalive, then trigger a one-off update for initial state.
             client.keepalive(),
+            client.update(),
         )
     finally:
         await events.aclose()
