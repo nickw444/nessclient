@@ -3,7 +3,7 @@ from unittest.mock import Mock, AsyncMock
 import pytest
 
 from nessclient import Client
-from nessclient.alarm import Alarm, PanelInfo
+from nessclient.alarm import Alarm, PanelInfo, ArmingState
 from nessclient.connection import Connection
 from nessclient.event import StatusUpdate, BaseEvent, PanelVersionUpdate
 from nessclient.packet import Packet, CommandType
@@ -204,46 +204,35 @@ async def test_events_stream_receives_event(client):
 
 
 @pytest.mark.asyncio
-async def test_stream_state_changes_receives_item(connection):
-    client = Client(connection=connection)
+async def test_stream_state_changes_receives_item(client, alarm):
+    q: asyncio.Queue[tuple[ArmingState, None]] = asyncio.Queue()
+
+    async def iterator():
+        while True:
+            yield await q.get()
+
+    alarm.stream_state_changes.return_value = iterator()
     stream = client.stream_state_changes()
     task = asyncio.create_task(stream.__anext__())
-    from nessclient.event import SystemStatusEvent
-
-    # Drive via Alarm public API
-    client.alarm.handle_event(
-        SystemStatusEvent(
-            type=SystemStatusEvent.EventType.EXIT_DELAY_START,
-            zone=0,
-            area=0,
-            address=None,
-            timestamp=None,
-        )
-    )
+    await q.put((ArmingState.EXIT_DELAY, None))
     state, mode = await asyncio.wait_for(task, 1.0)
-    from nessclient.alarm import ArmingState
-
     assert state == ArmingState.EXIT_DELAY
     assert mode is None
     await stream.aclose()
 
 
 @pytest.mark.asyncio
-async def test_stream_zone_changes_receives_item(connection):
-    client = Client(connection=connection)
+async def test_stream_zone_changes_receives_item(client, alarm):
+    q: asyncio.Queue[tuple[int, bool]] = asyncio.Queue()
+
+    async def iterator():
+        while True:
+            yield await q.get()
+
+    alarm.stream_zone_changes.return_value = iterator()
     stream = client.stream_zone_changes()
     task = asyncio.create_task(stream.__anext__())
-    from nessclient.event import SystemStatusEvent
-
-    client.alarm.handle_event(
-        SystemStatusEvent(
-            type=SystemStatusEvent.EventType.UNSEALED,
-            zone=4,
-            area=0,
-            address=None,
-            timestamp=None,
-        )
-    )
+    await q.put((4, True))
     zone_id, triggered = await asyncio.wait_for(task, 1.0)
     assert zone_id == 4
     assert triggered is True
@@ -251,19 +240,17 @@ async def test_stream_zone_changes_receives_item(connection):
 
 
 @pytest.mark.asyncio
-async def test_stream_aux_output_changes_receives_item(connection):
-    client = Client(connection=connection)
+async def test_stream_aux_output_changes_receives_item(client, alarm):
+    q: asyncio.Queue[tuple[int, bool]] = asyncio.Queue()
+
+    async def iterator():
+        while True:
+            yield await q.get()
+
+    alarm.stream_aux_output_changes.return_value = iterator()
     stream = client.stream_aux_output_changes()
     task = asyncio.create_task(stream.__anext__())
-    from nessclient.event import AuxiliaryOutputsUpdate
-
-    client.alarm.handle_event(
-        AuxiliaryOutputsUpdate(
-            outputs=[AuxiliaryOutputsUpdate.OutputType.AUX_2],
-            address=None,
-            timestamp=None,
-        )
-    )
+    await q.put((2, True))
     output_id, active = await asyncio.wait_for(task, 1.0)
     assert output_id == 2
     assert active is True
