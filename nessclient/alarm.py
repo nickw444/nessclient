@@ -247,7 +247,9 @@ class Alarm:
     def on_aux_output_change(self, f: Callable[[int, bool], None]) -> None:
         self._on_aux_output_change = f
 
-    def state_changes(self) -> AsyncIterator[tuple[ArmingState, ArmingMode | None]]:
+    def stream_state_changes(
+        self,
+    ) -> AsyncIterator[tuple[ArmingState, ArmingMode | None]]:
         queue: asyncio.Queue[tuple[ArmingState, ArmingMode | None]] = asyncio.Queue()
         self._state_subscribers.append(queue)
 
@@ -260,7 +262,7 @@ class Alarm:
 
         return _iterator()
 
-    def zone_changes(self) -> AsyncIterator[tuple[int, bool]]:
+    def stream_zone_changes(self) -> AsyncIterator[tuple[int, bool]]:
         queue: asyncio.Queue[tuple[int, bool]] = asyncio.Queue()
         self._zone_subscribers.append(queue)
 
@@ -273,7 +275,7 @@ class Alarm:
 
         return _iterator()
 
-    def aux_output_changes(self) -> AsyncIterator[tuple[int, bool]]:
+    def stream_aux_output_changes(self) -> AsyncIterator[tuple[int, bool]]:
         queue: asyncio.Queue[tuple[int, bool]] = asyncio.Queue()
         self._aux_output_subscribers.append(queue)
 

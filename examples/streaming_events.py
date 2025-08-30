@@ -5,10 +5,10 @@ from nessclient import Client
 
 async def main() -> None:
     client = Client(host="127.0.0.1", port=65432)
-    events = client.events()
-    state_changes = client.state_changes()
-    zone_changes = client.zone_changes()
-    output_changes = client.aux_output_changes()
+    events = client.stream_events()
+    state_changes = client.stream_state_changes()
+    zone_changes = client.stream_zone_changes()
+    output_changes = client.stream_aux_output_changes()
 
     async def print_events() -> None:
         async for event in events:

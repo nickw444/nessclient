@@ -300,7 +300,7 @@ class Client:
         self._on_event_received = f
         return f
 
-    def events(self) -> AsyncIterator[BaseEvent]:
+    def stream_events(self) -> AsyncIterator[BaseEvent]:
         queue: asyncio.Queue[BaseEvent] = asyncio.Queue()
         self._event_subscribers.append(queue)
 
@@ -313,11 +313,13 @@ class Client:
 
         return _iterator()
 
-    def state_changes(self) -> AsyncIterator[tuple[ArmingState, ArmingMode | None]]:
-        return self.alarm.state_changes()
+    def stream_state_changes(
+        self,
+    ) -> AsyncIterator[tuple[ArmingState, ArmingMode | None]]:
+        return self.alarm.stream_state_changes()
 
-    def zone_changes(self) -> AsyncIterator[tuple[int, bool]]:
-        return self.alarm.zone_changes()
+    def stream_zone_changes(self) -> AsyncIterator[tuple[int, bool]]:
+        return self.alarm.stream_zone_changes()
 
     def on_aux_output_change(
         self, f: Callable[[int, bool], None]
@@ -325,5 +327,5 @@ class Client:
         self.alarm.on_aux_output_change(f)
         return f
 
-    def aux_output_changes(self) -> AsyncIterator[tuple[int, bool]]:
-        return self.alarm.aux_output_changes()
+    def stream_aux_output_changes(self) -> AsyncIterator[tuple[int, bool]]:
+        return self.alarm.stream_aux_output_changes()

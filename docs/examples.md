@@ -19,10 +19,10 @@ The `nessclient` API also exposes asynchronous streams as an alternative to
 callbacks. Instead of registering handlers, you can iterate over the following
 async generators:
 
-- `client.events()`
-- `client.state_changes()`
-- `client.zone_changes()`
-- `client.aux_output_changes()`
+- `client.stream_events()`
+- `client.stream_state_changes()`
+- `client.stream_zone_changes()`
+- `client.stream_aux_output_changes()`
 
 This approach fits naturally into `asyncio` applications and allows
 cooperative scheduling via `await`.

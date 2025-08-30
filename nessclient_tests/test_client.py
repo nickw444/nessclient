@@ -186,7 +186,7 @@ def test_on_zone_change_callback_is_registered(client, alarm):
 
 @pytest.mark.asyncio
 async def test_events_stream_receives_event(client):
-    stream = client.events()
+    stream = client.stream_events()
     task = asyncio.create_task(stream.__anext__())
     pkt = Packet(
         address=0x00,
