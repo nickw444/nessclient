@@ -22,7 +22,7 @@ class PacketTestCase(unittest.TestCase):
 
         for case in cases:
             pkt = Packet.decode(case)
-            self.assertEqual(case, pkt.encode())
+            assert case == pkt.encode()
 
     def test_decode(self):
         with open(fixture_path("sample_output.txt")) as f:
