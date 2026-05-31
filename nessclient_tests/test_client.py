@@ -130,9 +130,9 @@ async def test_get_panel_info_probes_when_missing(
 
 @pytest.mark.asyncio
 async def test_send_command(connection, client):
-    await client.send_command("ABCDEFGHI")
+    await client.send_command("AHEXFVPDM")
     assert connection.write.call_count == 1
-    assert get_data(connection.write.call_args[0][0]) == b"ABCDEFGHI"
+    assert get_data(connection.write.call_args[0][0]) == b"AHEXFVPDM"
 
 
 @pytest.mark.asyncio
@@ -144,10 +144,10 @@ async def test_send_command_has_newlines(connection, client):
 
 @pytest.mark.asyncio
 async def test_send_command_2(connection, client):
-    await client.send_command("FOOBARBAZ")
+    await client.send_command("V*#3468DM")
     assert connection.write.call_count == 1
     print(connection.write.call_args[0][0])
-    assert get_data(connection.write.call_args[0][0]) == b"FOOBARBAZ"
+    assert get_data(connection.write.call_args[0][0]) == b"V*#3468DM"
 
 
 def test_keepalive_bad_data_does_not_crash():

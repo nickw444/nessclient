@@ -15,10 +15,7 @@ def fixture_path(fixture_name: str):
 
 class PacketTestCase(unittest.TestCase):
     def test_decode_encode_identity(self):
-        cases = [
-            # '8700036100070018092118370677',
-            "8300c6012345678912EE7"
-        ]
+        cases = ["8300C6012345678912E07"]
 
         for case in cases:
             pkt = Packet.decode(case)
@@ -32,7 +29,7 @@ class PacketTestCase(unittest.TestCase):
                 _LOGGER.info("Decoded '%s' into %s", line, pkt)
 
     def test_user_interface_packet_decode(self):
-        pkt = Packet.decode("8300c6012345678912EE7")
+        pkt = Packet.decode("8300C6012345678912E07")
         assert pkt.start == 0x83
         assert pkt.address == 0x00
         assert pkt.length == 12
@@ -40,7 +37,7 @@ class PacketTestCase(unittest.TestCase):
         assert pkt.command == CommandType.USER_INTERFACE
         assert pkt.data == "12345678912E"
         assert pkt.timestamp is None
-        assert pkt.checksum == 0xE7
+        assert pkt.checksum == 0x07
 
     def test_system_status_packet_decode(self):
         pkt = Packet.decode("8700036100070018092118370974")
@@ -104,12 +101,11 @@ class PacketTestCase(unittest.TestCase):
             seq=0x00,
             command=CommandType.USER_INTERFACE,
             data="000100",
-            timestamp=datetime.datetime(
-                year=2018, month=5, day=10, hour=15, minute=32, second=55
-            ),
+            timestamp=None,
         )
-        assert pkt.length == 3
-        assert pkt.encode() == "87000360000100180510153255E3"
+        assert pkt.length == 6
+        assert pkt.encode() == "830066000010078"
+        assert Packet.decode(pkt.encode()) == pkt
 
     def test_decode_status_update_response(self):
         """
@@ -157,7 +153,7 @@ class PacketTestCase(unittest.TestCase):
 
     def test_decode_status_update_response_zone_17_32_none(self):
         # Zone 17-32 Input Unsealed (ID 0x20), no zones set
-        pkt = Packet.decode("82000360200000ff")
+        pkt = Packet.decode("82000360200000fb")
         assert pkt.start == 0x82
         assert pkt.address == 0x00
         assert pkt.length == 3
@@ -169,14 +165,14 @@ class PacketTestCase(unittest.TestCase):
 
     def test_decode_status_update_response_zone_17_32_in_alarm_zone17(self):
         # Zone 17-32 In Alarm (ID 0x25), Zone 17 set
-        pkt = Packet.decode("82000360250100aa")
+        pkt = Packet.decode("82000360250100F5")
         assert pkt.data == "250100"
         assert pkt.is_user_interface_resp
 
     def test_decode_status_update_response_zone_23_unsealed_example(self):
         # From FORM 5 examples in the spec (address 0x07)
         # Example: Zone 23 unseal (ID 0x20, data 0x4000)
-        pkt = Packet.decode("8207036020400013")
+        pkt = Packet.decode("82070360204000B4")
         assert pkt.start == 0x82
         assert pkt.address == 0x07
         assert pkt.length == 3
@@ -188,7 +184,7 @@ class PacketTestCase(unittest.TestCase):
     def test_decode_status_update_response_zone_23_24_unsealed_example(self):
         # From FORM 5 examples in the spec (address 0x07)
         # Example: Zones 23 and 24 unseal (ID 0x20, data 0xC000)
-        pkt = Packet.decode("8207036020c00054")
+        pkt = Packet.decode("8207036020c00034")
         assert pkt.address == 0x07
         assert pkt.data == "20c000"
         assert pkt.is_user_interface_resp

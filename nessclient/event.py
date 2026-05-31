@@ -99,6 +99,10 @@ class SystemStatusEvent(BaseEvent):
         OUTPUT_ON = 0x31
         OUTPUT_OFF = 0x32
 
+    # There are a few event types that violate the
+    # decimal ID field by allowing a hex 0xf0 value
+    ZONE_ID_VIOLATING_DECIMAL_ID = 0xF0
+
     def __init__(
         self,
         type: "SystemStatusEvent.EventType",
@@ -106,18 +110,32 @@ class SystemStatusEvent(BaseEvent):
         area: int,
         address: int | None,
         timestamp: datetime.datetime | None,
+        sequence: bool = False,
     ) -> None:
         super(SystemStatusEvent, self).__init__(address=address, timestamp=timestamp)
         self.type = type
         self.zone = zone
         self.area = area
+        self.sequence = sequence
 
     @classmethod
     def decode(
         cls, packet: Packet, options: DecodeOptions | None = None
     ) -> "SystemStatusEvent":
         event_type = int(packet.data[0:2], 16)
-        zone = int(packet.data[2:4])
+        if packet.data[2:4].upper() == "F0" and SystemStatusEvent.EventType(
+            event_type
+        ) in [
+            SystemStatusEvent.EventType.ALARM,
+            SystemStatusEvent.EventType.ALARM_RESTORE,
+            SystemStatusEvent.EventType.TAMPER_UNSEALED,
+            SystemStatusEvent.EventType.TAMPER_NORMAL,
+        ]:
+            # These types violate the decimal ID field by having a
+            # hex 0xf0 value instead of decimal
+            zone = int(packet.data[2:4], 16)
+        else:
+            zone = int(packet.data[2:4])
         area = int(packet.data[4:6], 16)
         return SystemStatusEvent(
             type=SystemStatusEvent.EventType(event_type),
@@ -125,16 +143,32 @@ class SystemStatusEvent(BaseEvent):
             area=area,
             timestamp=packet.timestamp,
             address=packet.address,
+            sequence=packet.seq == 1,
         )
 
     def encode(self) -> Packet:
-        data = "{:02x}{:02d}{:02x}".format(self.type.value, self.zone, self.area)
+        if (
+            self.zone == SystemStatusEvent.ZONE_ID_VIOLATING_DECIMAL_ID
+            and SystemStatusEvent.EventType(self.type)
+            in [
+                SystemStatusEvent.EventType.ALARM,
+                SystemStatusEvent.EventType.ALARM_RESTORE,
+                SystemStatusEvent.EventType.TAMPER_UNSEALED,
+                SystemStatusEvent.EventType.TAMPER_NORMAL,
+            ]
+        ):
+            # These types violate the decimal ID field by having a
+            # hex 0xf0 value instead of decimal 15
+            data = "{:02x}{:02x}{:02x}".format(self.type.value, self.zone, self.area)
+        else:
+            data = "{:02x}{:02d}{:02x}".format(self.type.value, self.zone, self.area)
+
         return Packet(
             address=self.address,
-            seq=0x00,
+            seq=(1 if self.sequence else 0),
             command=CommandType.SYSTEM_STATUS,
             data=data,
-            timestamp=None,
+            timestamp=self.timestamp,
             is_user_interface_resp=False,
         )
 
@@ -210,6 +244,12 @@ class StatusUpdate(BaseEvent):
             return AuxiliaryOutputsUpdate.decode(packet, options)
         else:
             raise ValueError("Unhandled request_id case: {}".format(request_id))
+
+    def encode(self) -> Packet:
+        """Abstract method - do not call."""
+        raise NotImplementedError(
+            "Encode not supported for {}".format(self.request_id.name)
+        )
 
 
 class ZoneUpdate_1_16(StatusUpdate):
@@ -379,6 +419,31 @@ class MiscellaneousAlarmsUpdate(StatusUpdate):
             address=packet.address,
         )
 
+    def encode(self) -> Packet:
+        """
+        Encode a Miscellaneous Alarms Update packet.
+
+        Encode this :py:class:`MiscellaneousAlarmsUpdate`
+        object into a :py:class:`Packet` object.
+
+        Note: Primarily for testing and simulating a Ness alarm
+
+        :return: The :py:class:`Packet` object representing this
+                 encoded :py:class:`ZoneUpdate` object
+        """
+        data = (
+            f"{self.request_id.value:02x}"
+            f"{pack_unsigned_short_data_enum(self.included_alarms)}"
+        )
+        return Packet(
+            address=self.address,
+            seq=0x00,
+            command=CommandType.USER_INTERFACE,
+            data=data,
+            timestamp=None,
+            is_user_interface_resp=True,
+        )
+
 
 class ArmingUpdate(StatusUpdate):
     class ArmingStatus(Enum):
@@ -493,6 +558,25 @@ class OutputsUpdate(StatusUpdate):
             address=packet.address,
         )
 
+    def encode(self) -> Packet:
+        """
+        Encode this :py:class:`OutputsUpdate` object into a :py:class:`Packet` object.
+
+        Note: Primarily for testing and simulating a Ness alarm
+
+        :return: The :py:class:`Packet` object representing this
+                 encoded :py:class:`OutputsUpdate` object
+        """
+        data = f"{self.request_id.value:02x}{pack_unsigned_short_data_enum(self.outputs)}"
+        return Packet(
+            address=self.address,
+            seq=0x00,
+            command=CommandType.USER_INTERFACE,
+            data=data,
+            timestamp=None,
+            is_user_interface_resp=True,
+        )
+
 
 class ViewStateUpdate(StatusUpdate):
     class State(Enum):
@@ -527,6 +611,25 @@ class ViewStateUpdate(StatusUpdate):
             state=state,
             timestamp=packet.timestamp,
             address=packet.address,
+        )
+
+    def encode(self) -> Packet:
+        """
+        Encode this :py:class:`ViewStateUpdate` object into a :py:class:`Packet` object.
+
+        Note: Primarily for testing and simulating a Ness alarm
+
+        :return: The :py:class:`Packet` object representing this
+                 encoded :py:class:`ViewStateUpdate` object
+        """
+        data = f"{self.request_id.value:02x}{self.state.value:04x}"
+        return Packet(
+            address=self.address,
+            seq=0x00,
+            command=CommandType.USER_INTERFACE,
+            data=data,
+            timestamp=None,
+            is_user_interface_resp=True,
         )
 
 
@@ -636,7 +739,7 @@ class PanelVersionUpdate(StatusUpdate):
         return "{}.{}".format(self.major_version, self.minor_version)
 
     def encode(self) -> Packet:
-        model_mapper = self._model_mapper or PanelVersionUpdate.ModelRev16Mapper
+        model_mapper = self._model_mapper or PanelVersionUpdate.ModelLegacyMapper
         model_mapper_inv = {v: k for k, v in model_mapper.items()}
         model = model_mapper_inv[self.model]
         data = "{:02x}{:02x}{:x}{:x}".format(
@@ -702,6 +805,12 @@ class AuxiliaryOutputsUpdate(StatusUpdate):
             address=address,
             timestamp=timestamp,
         )
+
+        for o in outputs:
+            if o not in AuxiliaryOutputsUpdate.OutputType:
+                msg = "Invalid aux output value"
+                raise ValueError(msg)
+
         self.outputs = outputs
 
     def encode(self) -> Packet:

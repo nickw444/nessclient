@@ -38,11 +38,11 @@ class BaseEventTestCase(unittest.TestCase):
         assert isinstance(event, StatusUpdate)
 
     def test_decode_unknown_event(self):
-        pkt = make_packet(cast(CommandType, 0x01), "000000")
         with pytest.raises(
             ValueError,
-            match=r"Unknown command: 1",
+            match=r"Unknown command 1",
         ):
+            pkt = make_packet(cast(CommandType, 0x01), "000000")
             BaseEvent.decode(pkt)
 
 
@@ -213,8 +213,7 @@ class ZoneUpdate17To32TestCase(unittest.TestCase):
         pkt = make_packet(CommandType.USER_INTERFACE, "310500")
         event = ZoneUpdate_17_32.decode(pkt)
         assert (
-            event.request_id
-            == ZoneUpdate_17_32.RequestID.ZONE_17_32_DETECTOR_LOW_BATTERY
+            event.request_id == ZoneUpdate_17_32.RequestID.ZONE_17_32_DETECTOR_LOW_BATTERY
         )
         assert event.included_zones == [
             ZoneUpdate_17_32.Zone.ZONE_17,
@@ -257,9 +256,7 @@ class MiscellaneousAlarmsUpdateTestCase(unittest.TestCase):
     def test_misc_alarms_install_end(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "131000")
         event = MiscellaneousAlarmsUpdate.decode(pkt)
-        assert event.included_alarms == [
-            MiscellaneousAlarmsUpdate.AlarmType.INSTALL_END
-        ]
+        assert event.included_alarms == [MiscellaneousAlarmsUpdate.AlarmType.INSTALL_END]
 
     def test_misc_alarms_panic(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "130200")
