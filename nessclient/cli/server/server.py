@@ -26,20 +26,64 @@ class Server:
         self._clients: List[socket.socket] = []
 
     def start(self, host: str, port: int) -> None:
-        threading.Thread(target=self._loop, args=(host, port), daemon=True).start()
+        self._stopflag = False
+        self._server_accept_thread = threading.Thread(
+            target=self._loop, args=(host, port), daemon=True, name="Server accept loop"
+        )
+        self._server_accept_thread.start()
+
+    def stop(self) -> None:
+        _LOGGER.debug("Stopping Server")
+        self._stopflag = True
+        self._server_accept_thread.join()
+
+    def _disconnect_one_connection(self, conn: socket.socket) -> None:
+        """Close a connection with a client."""
+        _LOGGER.debug("Disconnecting client %s", conn)
+        self._clients.remove(conn)
+        if conn.fileno() != -1:
+            try:
+                conn.shutdown(socket.SHUT_RDWR)
+                conn.close()
+            except OSError:
+                _LOGGER.debug("Shutdown while already disconnected - ignore")
+
+    def disconnect_all_clients(self) -> None:
+        _LOGGER.debug("Server disconnecting all clients")
+        for conn in self._clients:
+            _LOGGER.debug(f"Disconnecting client {conn}")
+            if conn.fileno() != -1:
+                try:
+                    conn.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass  # not connected is fine
+                conn.close()
 
     def _loop(self, host: str, port: int) -> None:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind((host, port))
             s.listen(5)
+            s.settimeout(0.5)
+            threadlist = []
 
             _LOGGER.info("Server listening on {}:{}".format(host, port))
-            while True:
-                conn, addr = s.accept()
-                threading.Thread(
+            while not self._stopflag:
+                try:
+                    conn, addr = s.accept()
+                except TimeoutError:
+                    continue
+                newthread = threading.Thread(
                     target=self._on_client_connected, args=(conn, addr), daemon=True
-                ).start()
+                )
+                threadlist.append(newthread)
+                newthread.start()
+            s.close()
+            self.disconnect_all_clients()
+            for t in threadlist:
+                _LOGGER.info(f"Server accept loop - waiting for {t} to end")
+                t.join()
+            _LOGGER.info("Server accept loop ended")
 
     def write_event(self, event: BaseEvent) -> None:
         pkt = event.encode()
@@ -64,7 +108,11 @@ class Server:
         buffer = b""
         try:
             while True:
-                data = conn.recv(1024)
+                try:
+                    data = conn.recv(1024)
+                except OSError as e:
+                    _LOGGER.info("Exception during recv: %s", e)
+                    data = None
                 if not data:
                     _LOGGER.info("client %s disconnected", addr)
                     break

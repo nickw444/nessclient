@@ -3,10 +3,11 @@ import contextlib
 
 from nessclient import Client
 
+host = "127.0.0.1"
+port = 65432
+
 
 async def main() -> None:
-    host = "127.0.0.1"
-    port = 65432
     client = Client(host=host, port=port)
     # Run background loops so responses are received while awaiting
     keepalive_task = asyncio.create_task(client.keepalive())

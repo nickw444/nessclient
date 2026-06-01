@@ -10,3 +10,5 @@ class Zone:
 
     id: int
     state: State
+    in_alarm: bool
+    in_delay: bool

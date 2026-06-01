@@ -58,6 +58,9 @@ class Client:
         self._connect_lock = asyncio.Lock()
         self._last_recv: datetime.datetime | None = None
         self._update_interval = update_interval
+        self.connected_count = 0
+        self.reconnect_count = 0
+        self.disconnection_count = 0
         # Track pending USER_INTERFACE status request futures keyed by request id
         # Only a single Future is retained per request id; concurrent waiters share it.
         self._pending_ui_requests: Dict[int, asyncio.Future[StatusUpdate]] = {}
@@ -75,8 +78,13 @@ class Client:
         command = "{}E".format(code)
         return await self.send_command(command)
 
-    async def panic(self, code: str) -> None:
-        command = "*{}#".format(code)
+    async def panic(self, code: str | None) -> None:
+        """
+        Send the 'Panic' command to the Ness alarm device.
+
+        :param code: The user code to send
+        """
+        command = "*{}E".format(code)
         return await self.send_command(command)
 
     async def aux(self, output_id: int, state: bool = True) -> None:
@@ -131,11 +139,13 @@ class Client:
             if self._should_reconnect():
                 _LOGGER.debug("Closing stale connection and reconnecting")
                 await self._connection.close()
+                self.reconnect_count += 1
 
             while not self._connection.connected:
                 _LOGGER.debug("Attempting to connect")
                 try:
                     await self._connection.connect()
+                    self.connected_count += 1
                 except (ConnectionRefusedError, OSError) as e:
                     _LOGGER.warning("Failed to connect: %s", e)
                     await sleep(self._backoff.duration())
@@ -200,6 +210,7 @@ class Client:
                 data = await self._connection.read()
                 if data is None:
                     _LOGGER.debug("Received None data from connection.read()")
+                    self.disconnection_count += 1
                     break
 
                 self._last_recv = datetime.datetime.now()
@@ -283,20 +294,35 @@ class Client:
         await self._connection.close()
 
     def on_state_change(
-        self, f: Callable[[ArmingState, ArmingMode | None], None]
-    ) -> Callable[[ArmingState, ArmingMode | None], None]:
+        self, f: Callable[[ArmingState, ArmingMode | None], None] | None
+    ) -> Callable[[ArmingState, ArmingMode | None], None] | None:
+        """
+        Provide a decorator @client.on_state_change for alarm state-change handlers.
+
+        Can also be called directly to set the state-change handler
+        """
         self.alarm.on_state_change(f)
         return f
 
     def on_zone_change(
-        self, f: Callable[[int, bool], None]
-    ) -> Callable[[int, bool], None]:
+        self, f: Callable[[int, bool], None] | None
+    ) -> Callable[[int, bool], None] | None:
+        """
+        Provide a decorator @client.on_zone_change for alarm zone-sealed handlers.
+
+        Can also be called directly to set the zone-sealed handler
+        """
         self.alarm.on_zone_change(f)
         return f
 
     def on_event_received(
-        self, f: Callable[[BaseEvent], None]
-    ) -> Callable[[BaseEvent], None]:
+        self, f: Callable[[BaseEvent], None] | None
+    ) -> Callable[[BaseEvent], None] | None:
+        """
+        Provide a decorator @client.on_event_received for alarm general event handler.
+
+        Can also be called directly to set the general event handler
+        """
         self._on_event_received = f
         return f
 

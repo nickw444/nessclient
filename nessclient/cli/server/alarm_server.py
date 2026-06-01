@@ -61,6 +61,11 @@ class AlarmServer:
         self._server.start(host=self._host, port=self._port)
         curses.wrapper(self._run_ui)
 
+    def stop(self) -> None:
+        _LOGGER.debug("Stopping AlarmServer")
+        self._stop_simulation()
+        self._server.stop()
+
     def _run_ui(self, stdscr: Any) -> None:
         curses.curs_set(1)
         curses.start_color()
@@ -285,15 +290,18 @@ class AlarmServer:
             self._alarm.arm(Alarm.ArmingMode.ARMED_AWAY)
             self._set_status("Arming: Away")
             return
-        if lc in ("h", "home"):
+        if lc in ("h", "ah", "home"):
             self._alarm.arm(Alarm.ArmingMode.ARMED_HOME)
             self._set_status("Arming: Home")
             return
-        if lc in ("n", "night"):
+        if lc in ("ad", "day"):
+            self._alarm.arm(Alarm.ArmingMode.ARMED_DAY)
+            return
+        if lc in ("n", "an", "night"):
             self._alarm.arm(Alarm.ArmingMode.ARMED_NIGHT)
             self._set_status("Arming: Night")
             return
-        if lc in ("v", "vac", "vacation"):
+        if lc in ("v", "av", "vac", "vacation"):
             self._alarm.arm(Alarm.ArmingMode.ARMED_VACATION)
             self._set_status("Arming: Vacation")
             return
@@ -422,6 +430,39 @@ class AlarmServer:
             output_id = int(command[0])
             state = command[2] == "*"
             self._alarm.update_aux_output(output_id, state)
+        elif command in ("*E", "*1234E"):
+            self._alarm.panic()
+        elif command[0] in ["5", "6", "8", "9"] and command == f"{command[0]}1234E":
+            self._alarm.duress()
+        elif command == "2E":
+            self._alarm.medical()
+        elif command == "3E":
+            self._alarm.fire()
+        elif command.startswith(("XE", "X1234E")):
+            # Zone Exclude
+            # Following command characters are a list where each zone has:
+            # <Zone_ID> + 'E'
+            # Ends with another 'E' to exit Exclude-mode
+            msg = "Zone Exclude not implemented"
+            raise NotImplementedError(msg)
+        elif command.startswith(("VE", "V1234E")):
+            # Event Memory
+            # Following command characters should be 'V' to iterate through
+            # the memory items.
+            # Ends with 'E' to exit memory-mode
+            msg = "Event Memory not implemented"
+            raise NotImplementedError(msg)
+        elif command.startswith("PE"):
+            # Following command characters are a list where each zone has:
+            # <Zone_ID> + 'E'
+            # Ends with another 'E' to exit Exclude-mode
+            msg = "Temporary Day Zones not implemented"
+            raise NotImplementedError(msg)
+        elif command in ["11*", "22*", "33*", "44*", "11#", "22#", "33#", "44#"]:
+            # Set AUX outputs
+            aux_id = int(command[0])
+            aux_state = command[2] == "*"
+            self._alarm.update_aux_output(output_id=aux_id, active=aux_state)
 
     def _handle_arming_status_update_request(self) -> None:
         event = ArmingUpdate(

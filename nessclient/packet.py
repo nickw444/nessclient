@@ -22,6 +22,10 @@ class Packet:
     # Whether or not this packet is a USER_INTERFACE response
     is_user_interface_resp: bool = False
 
+    # Input Packets can have a command separator delay marker
+    # This is a "?" character after the checksum
+    has_delay_marker: bool = False
+
     @property
     def start(self) -> int:
         rv = 0x02 | 0x80

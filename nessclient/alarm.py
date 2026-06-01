@@ -237,11 +237,12 @@ class Alarm:
                     pass
 
     def on_state_change(
-        self, f: Callable[[ArmingState, ArmingMode | None], None]
+        self, f: Callable[[ArmingState, ArmingMode | None], None] | None
     ) -> None:
         self._on_state_change = f
 
-    def on_zone_change(self, f: Callable[[int, bool], None]) -> None:
+    def on_zone_change(self, f: Callable[[int, bool], None] | None) -> None:
+        """Set the callback that receives Zone sealed/unsealed updates."""
         self._on_zone_change = f
 
     def on_aux_output_change(self, f: Callable[[int, bool], None]) -> None:

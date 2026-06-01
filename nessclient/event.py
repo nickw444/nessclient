@@ -99,6 +99,72 @@ class SystemStatusEvent(BaseEvent):
         OUTPUT_ON = 0x31
         OUTPUT_OFF = 0x32
 
+    class AlarmArea(Enum):
+        """Alarm area values."""
+
+        Area1 = 0x01
+        Area2 = 0x02
+        Home = 0x03
+        Day = 0x04
+        TwentyFourHour = 0x80
+        Fire = 0x81
+        Panic = 0x82
+        Medical = 0x83
+        Duress = 0x84
+        Door = 0x85
+
+    class OutputId(Enum):
+        """Output ID values."""
+
+        AUX1 = 1
+        AUX2 = 2
+        AUX3 = 3
+        AUX4 = 4
+        AUX5 = 5
+        AUX6 = 6
+        AUX7 = 7
+        AUX8 = 8
+        AUX9 = 9
+        AUX10 = 10
+        Siren = 90
+        Soft_Siren = 91
+        Soft_Home = 92
+        Siren_Fire = 93
+        Strobe = 94
+        Reset = 95
+        Sonalert = 96
+        Keypad_Display_Enable = 97
+
+    ZONE_ID_MIN = 1
+    ZONE_ID_MAX = 16
+
+    USER_ID_MIN = 1
+    USER_ID_MAX = 56
+
+    AREA_SEALED_USER_DOOR_1 = 0xA1
+    AREA_SEALED_USER_DOOR_2 = 0xA2
+    AREA_SEALED_USER_DOOR_3 = 0xA3
+
+    # Manual/Auto Exclude Area codes not defined in spec
+    AREA_TAMPER_INTERNAL = 0x00
+    AREA_TAMPER_EXTERNAL = 0x01
+    AREA_TAMPER_RADIO_DETECTOR = 0x91
+    AREA_BATTERY_RADIO_KEY = 0x92
+    AREA_BATTERY_RADIO_DETECTOR = 0x92
+    AREA_DELAY_AREA_1 = 0x01
+    AREA_DELAY_AREA_2 = 0x02
+    AREA_DELAY_HOME = 0x03
+    AREA_ARMED_AWAY_AREA_1 = 0x01
+    AREA_ARMED_AWAY_AREA_2 = 0x02
+    AREA_ARMED_HOME_HOME = 0x03
+    AREA_ARMED_DAY_DAY = 0x04
+    AREA_DISARMED_AREA_1 = 0x01
+    AREA_DISARMED_AREA_2 = 0x02
+    AREA_DISARMED_HOME = 0x03
+    AREA_DISARMED_DAY = 0x04
+
+    ZONE_ID_VIOLATING_DECIMAL_ID = 0xF0
+
     def __init__(
         self,
         type: "SystemStatusEvent.EventType",

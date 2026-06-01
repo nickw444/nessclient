@@ -57,7 +57,7 @@ async def test_disarm(connection, client):
 async def test_panic(connection, client):
     await client.panic("1234")
     assert connection.write.call_count == 1
-    assert get_data(connection.write.call_args[0][0]) == b"*1234#"
+    assert get_data(connection.write.call_args[0][0]) == b"*1234E"
 
 
 @pytest.mark.asyncio
@@ -182,6 +182,20 @@ def test_on_zone_change_callback_is_registered(client, alarm):
     client.on_zone_change(cb)
     assert alarm.on_zone_change.call_count == 1
     assert alarm.on_zone_change.call_args[0][0] == cb
+
+
+def test_bad_args() -> None:
+    """Check that bad arguments are rejected by Client constructor."""
+    with pytest.raises(
+        ValueError,
+        match=r"Must provide host\+port or serial_tty or connection object",
+    ):
+        Client(host=None, port=1234)
+    with pytest.raises(
+        ValueError,
+        match=r"Must provide host\+port or serial_tty or connection object",
+    ):
+        Client(host="test123", port=None)
 
 
 @pytest.mark.asyncio

@@ -10,14 +10,14 @@ from .zone import Zone
 
 _LOGGER = logging.getLogger(__name__)
 
-EXIT_DELAY = 10
-ENTRY_DELAY = 10
-
 
 class Alarm:
     """
     Represents the complex alarm state machine
     """
+
+    EXIT_DELAY = 10
+    ENTRY_DELAY = 10
 
     class ArmingState(Enum):
         DISARMED = "DISARMED"
@@ -25,6 +25,10 @@ class Alarm:
         ARMED = "ARMED"
         ENTRY_DELAY = "ENTRY_DELAY"
         TRIPPED = "TRIPPED"
+        PANIC = "PANIC"
+        DURESS = "DURESS"
+        MEDICAL = "MEDICAL"
+        FIRE = "FIRE"
 
     class ArmingMode(Enum):
         ARMED_AWAY = "ARMED_AWAY"
@@ -52,6 +56,8 @@ class Alarm:
         self._zone_state_changed = _zone_state_changed
         self._aux_output_state_changed = _aux_output_state_changed
         self._pending_event: str | None = None
+        self.exit_delay = 10
+        self.entry_delay = 10
 
     @property
     def arming_mode(self) -> "Alarm.ArmingMode | None":
@@ -79,7 +85,9 @@ class Alarm:
     def _generate_zones(num_zones: int) -> List[Zone]:
         rv = []
         for i in range(num_zones):
-            rv.append(Zone(id=i + 1, state=Zone.State.SEALED))
+            rv.append(
+                Zone(id=i + 1, state=Zone.State.SEALED, in_alarm=False, in_delay=False)
+            )
         return rv
 
     @staticmethod
@@ -91,15 +99,42 @@ class Alarm:
 
     def arm(self, mode: ArmingMode = ArmingMode.ARMED_AWAY) -> None:
         self._update_state(Alarm.ArmingState.EXIT_DELAY, mode)
-        self._schedule(EXIT_DELAY, self._arm_complete)
+        for z in self.zones:
+            z.in_alarm = False
+            z.in_delay = False
+        self._schedule(self.exit_delay, self._arm_complete)
 
     def disarm(self) -> None:
         self._cancel_pending_update()
+        for z in self.zones:
+            z.in_alarm = False
+            z.in_delay = False
         self._update_state(Alarm.ArmingState.DISARMED, None)
 
-    def trip(self) -> None:
-        self._update_state_no_mode(Alarm.ArmingState.ENTRY_DELAY)
-        self._schedule(ENTRY_DELAY, self._trip_complete)
+    def trip(self, *, delay: bool = True, zone: int = 1) -> None:
+        """
+        Trip (trigger, unseal) one of the zones.
+
+        If delay == False: zone is immediately set to 'In-Alarm' state
+        If delay == False: zone is set to 'In-Delay' state, then transitions
+            to 'In-Alarm' state after the standard Entry delay time
+        """
+        if delay:
+            self._update_state_no_mode(Alarm.ArmingState.ENTRY_DELAY)
+            self.zones[zone - 1].in_delay = True
+
+            def _trip_complete() -> None:
+                _LOGGER.debug("Trip completed")
+                self.zones[zone - 1].in_delay = False
+                self.zones[zone - 1].in_alarm = True
+                self._update_state_no_mode(Alarm.ArmingState.TRIPPED)
+                _LOGGER.debug("Tripped %s", self)
+
+            self._schedule(self.entry_delay, _trip_complete)
+        else:
+            self._update_state_no_mode(Alarm.ArmingState.TRIPPED)
+            self.zones[zone - 1].in_delay = False
+            self.zones[zone - 1].in_alarm = True
 
     def update_zone(self, zone_id: int, state: Zone.State) -> None:
         zone = next(z for z in self.zones if z.id == zone_id)
@@ -124,6 +159,25 @@ class Alarm:
     def _trip_complete(self) -> None:
         _LOGGER.debug("Trip completed")
         self._update_state_no_mode(Alarm.ArmingState.TRIPPED)
+
+    def panic(self) -> None:
+        """Put alarm into Panic alarm state."""
+        _LOGGER.info("setting panic")
+        self._update_state_no_mode(Alarm.ArmingState.PANIC)
+
+    def duress(self) -> None:
+        """Put alarm into Duress alarm state."""
+        _LOGGER.info("setting duress")
+        self._cancel_pending_update()
+        self._update_state_no_mode(Alarm.ArmingState.DURESS)
+
+    def medical(self) -> None:
+        """Put alarm into Medical alarm state."""
+        self._update_state_no_mode(Alarm.ArmingState.MEDICAL)
+
+    def fire(self) -> None:
+        """Put alarm into Fire alarm state."""
+        self._update_state_no_mode(Alarm.ArmingState.FIRE)
 
     def _cancel_pending_update(self) -> None:
         if self._pending_event is not None:
@@ -160,3 +214,11 @@ class Alarm:
             self._alarm_state_changed(self.state, state, self._arming_mode)
 
         self.state = state
+
+    def get_state(self) -> ArmingState:
+        """Get the current Alarm State."""
+        return self.state
+
+    def get_arming_mode(self) -> ArmingMode | None:
+        """Get the current Arming Mode."""
+        return self._arming_mode

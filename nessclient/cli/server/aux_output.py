@@ -10,3 +10,6 @@ class AuxOutput:
 
     id: int
     state: State
+
+    def bool_state(self) -> bool:
+        return self.state == AuxOutput.State.ON
