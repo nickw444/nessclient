@@ -1,18 +1,46 @@
 import asyncio
-import datetime
 import logging
+import re
+import time
 import warnings
-from asyncio import sleep
 from typing import AsyncIterator, Callable, Dict, List
 
 from justbackoff import Backoff
+from serialx import SerialException
 
 from .alarm import ArmingState, Alarm, ArmingMode, PanelInfo
 from .connection import Connection, IP232Connection, Serial232Connection
+from .errors import ClientClosedError, PanelNotRespondingError
 from .event import BaseEvent, DecodeOptions, StatusUpdate, PanelVersionUpdate
 from .packet import CommandType, Packet
 
 _LOGGER = logging.getLogger(__name__)
+
+# Transport errors that the reconnect loop retries
+CONNECTION_ERRORS = (OSError, SerialException)
+
+DEFAULT_CONNECT_TIMEOUT = 10.0
+DEFAULT_RESPONSE_TIMEOUT = 10.0
+DEFAULT_PROBE_TIMEOUT = 15.0
+
+# Arming status: a read-only request answered by every supported panel
+HEALTH_CHECK_COMMAND = "S14"
+
+# Wait between refreshes while the panel is not answering
+UNAVAILABLE_REFRESH_INTERVAL = 10.0
+
+# Reopen a connection that has received nothing for this long beyond the
+# refresh interval. Covers half-open TCP sessions and stalled proxies.
+STALE_CONNECTION_GRACE = 30.0
+
+_STATUS_REQUEST_RE = re.compile(r"^S[0-9A-F]{2}$", re.IGNORECASE)
+
+
+def _redact_command(command: str) -> str:
+    """Hide user codes, which are part of most non-status commands."""
+    if _STATUS_REQUEST_RE.match(command):
+        return command
+    return re.sub(r"[0-9]", "*", command)
 
 
 class Client:
@@ -22,6 +50,10 @@ class Client:
     :param infer_arming_state: Infer the `DISARMED` arming state only via
         system status events. This works around a bug with some panels
         (`<v5.8`) which emit `update.status = []` when they are armed.
+    :param connect_timeout: Deadline (in seconds) for a single attempt to open
+        the connection.
+    :param response_timeout: Deadline (in seconds) for the panel to answer the
+        status request used to confirm that it is communicating.
     """
 
     def __init__(
@@ -30,10 +62,12 @@ class Client:
         host: str | None = None,
         port: int | None = None,
         serial_tty: str | None = None,
-        update_interval: int = 60,
+        update_interval: float = 60,
         infer_arming_state: bool = False,
         alarm: Alarm | None = None,
         decode_options: DecodeOptions | None = None,
+        connect_timeout: float = DEFAULT_CONNECT_TIMEOUT,
+        response_timeout: float = DEFAULT_RESPONSE_TIMEOUT,
     ):
         if connection is None:
             if host is not None and port is not None:
@@ -51,17 +85,33 @@ class Client:
         self.alarm = alarm
         self._decode_options = decode_options
         self._on_event_received: Callable[[BaseEvent], None] | None = None
+        self._on_availability_change: Callable[[bool], None] | None = None
         self._event_subscribers: List[asyncio.Queue[BaseEvent]] = []
         self._connection = connection
+        self._connect_timeout = connect_timeout
+        self._response_timeout = response_timeout
         self._closed = False
+        self._available = False
         self._backoff = Backoff()
+        self._connect_failures = 0
         self._connect_lock = asyncio.Lock()
-        self._last_recv: datetime.datetime | None = None
+        # Pulsed whenever a session is established or the client is closed
+        self._connection_event = asyncio.Event()
+        # Set when state should be refreshed without waiting for the interval
+        self._refresh_event = asyncio.Event()
+        self._last_recv: float | None = None
         self._update_interval = update_interval
-        # Track pending USER_INTERFACE status request futures keyed by request id
-        # Only a single Future is retained per request id; concurrent waiters share it.
-        self._pending_ui_requests: Dict[int, asyncio.Future[StatusUpdate]] = {}
-        self._pending_ui_lock = asyncio.Lock()
+        self._recv_task: asyncio.Task[None] | None = None
+        self._update_task: asyncio.Task[None] | None = None
+        # Waiters for USER_INTERFACE status responses, keyed by request id. A
+        # response resolves every waiter for its id; the panel answers repeated
+        # requests for the same id identically, so they cannot be told apart.
+        self._pending_ui_requests: Dict[int, List[asyncio.Future[StatusUpdate]]] = {}
+
+    @property
+    def available(self) -> bool:
+        """Whether the panel answered the most recent status request."""
+        return self._available
 
     async def arm_away(self, code: str | None = None) -> None:
         command = "A{}E".format(code if code else "")
@@ -126,23 +176,132 @@ class Client:
             self.send_command("S18"),
         )
 
-    async def _connect(self) -> None:
+    async def probe(self, timeout: float = DEFAULT_PROBE_TIMEOUT) -> StatusUpdate:
+        """Confirm that the alarm panel is answering on this client's connection.
+
+        Opens the connection if needed (a single attempt, without retrying),
+        starts processing incoming data, and requests the arming status. The
+        connection and receive processing stay active afterwards, call
+        `keepalive()` to keep them running or `close()` to release them.
+
+        :raises PanelNotRespondingError: the connection opened, but no valid
+            matching response arrived before the deadline.
+        :raises OSError: the connection could not be opened or was lost.
+        :raises serialx.SerialException: the serial backend rejected the port.
+        """
+        connected = False
+        try:
+            async with asyncio.timeout(timeout):
+                if self._receiving:
+                    # The receive loop owns reconnection, never open a second
+                    # connection alongside it.
+                    if not self._connection.connected:
+                        raise ConnectionError("Not connected to the alarm panel")
+                else:
+                    await self._connect_once()
+                    self._start_receiving()
+                connected = True
+                response = await self.send_command_and_wait(
+                    HEALTH_CHECK_COMMAND, timeout=None
+                )
+        except TimeoutError as err:
+            if not connected:
+                raise
+            raise PanelNotRespondingError(
+                "The alarm panel did not respond to a status request"
+            ) from err
+
+        self._set_available(True)
+        return response
+
+    @property
+    def _receiving(self) -> bool:
+        return self._recv_task is not None and not self._recv_task.done()
+
+    def _start_receiving(self) -> asyncio.Task[None]:
+        if self._recv_task is None or self._recv_task.done():
+            self._recv_task = asyncio.create_task(
+                self._recv_loop(), name="nessclient receive loop"
+            )
+        return self._recv_task
+
+    async def _open_connection(self) -> None:
+        """Make one attempt to open the connection."""
+        await asyncio.wait_for(self._connection.connect(), self._connect_timeout)
+        if self._closed:
+            # Opened while shutting down, release it straight away
+            await self._connection.close()
+            raise ClientClosedError("Client is closed")
+
+        if self._connect_failures:
+            _LOGGER.info("Reconnected to the alarm panel")
+        self._connect_failures = 0
+        self._backoff.reset()
+        self._last_recv = time.monotonic()
+        self._refresh_event.set()
+        self._pulse_connection_event()
+
+    async def _connect_once(self) -> None:
         async with self._connect_lock:
-            if self._should_reconnect():
-                _LOGGER.debug("Closing stale connection and reconnecting")
-                await self._connection.close()
+            if self._closed:
+                raise ClientClosedError("Client is closed")
+            if not self._connection.connected:
+                await self._open_connection()
 
-            while not self._connection.connected:
-                _LOGGER.debug("Attempting to connect")
+    async def _connect(self) -> None:
+        """Connect, retrying with bounded backoff until connected or closed."""
+        while True:
+            async with self._connect_lock:
+                if self._closed:
+                    raise ClientClosedError("Client is closed")
+                if self._connection.connected:
+                    return
                 try:
-                    await self._connection.connect()
-                except (ConnectionRefusedError, OSError) as e:
-                    _LOGGER.warning("Failed to connect: %s", e)
-                    await sleep(self._backoff.duration())
+                    await self._open_connection()
+                    return
+                except ClientClosedError:
+                    raise
+                except CONNECTION_ERRORS as e:
+                    error = e
 
-                self._last_recv = datetime.datetime.now()
+            self._connect_failures += 1
+            delay = self._backoff.duration()
+            _LOGGER.log(
+                logging.INFO if self._connect_failures == 1 else logging.DEBUG,
+                "Failed to connect to the alarm panel (%s), retrying in %.1fs",
+                str(error) or type(error).__name__,
+                delay,
+            )
+            await self._wait_for_connection_event(delay)
 
-            self._backoff.reset()
+    async def _wait_for_connection_event(self, delay: float) -> None:
+        """Sleep for `delay` seconds, waking early on connect or close."""
+        if self._closed:
+            return
+        self._connection_event.clear()
+        try:
+            async with asyncio.timeout(delay):
+                await self._connection_event.wait()
+        except TimeoutError:
+            pass
+
+    async def _ensure_connected(self) -> None:
+        if not self._receiving:
+            await self._connect()
+            return
+
+        # The receive loop owns reconnection, wait for it to succeed
+        while not self._connection.connected:
+            if self._closed:
+                raise ClientClosedError("Client is closed")
+            if not self._receiving:
+                await self._connect()
+                return
+            self._connection_event.clear()
+            await self._connection_event.wait()
+
+    def _pulse_connection_event(self) -> None:
+        self._connection_event.set()
 
     async def send_command(self, command: str) -> None:
         packet = Packet(
@@ -152,9 +311,9 @@ class Client:
             data=command,
             timestamp=None,
         )
-        await self._connect()
+        await self._ensure_connected()
         payload = packet.encode() + "\r\n"
-        _LOGGER.debug("Sending payload: %s", repr(payload))
+        _LOGGER.debug("Sending command: %s", _redact_command(command))
         return await self._connection.write(payload.encode("ascii"))
 
     async def send_command_and_wait(
@@ -164,7 +323,10 @@ class Client:
 
         - Requires the command to be a status request (SXX). If not, raises a
           ValueError because those commands do not elicit a status response.
+        - Requires incoming data to be processed, by `keepalive()` or `probe()`.
         - Resolves when a matching USER_INTERFACE response arrives, else times out.
+        - Raises ConnectionError if the connection is lost while waiting, so a
+          response from a later session is never matched to this request.
         """
         waiter_req_id: int | None = None
         try:
@@ -176,55 +338,71 @@ class Client:
         if waiter_req_id is None:
             raise ValueError(f"Command does not expect a status response: '{command}'")
 
-        loop = asyncio.get_running_loop()
-        async with self._pending_ui_lock:
-            existing = self._pending_ui_requests.get(waiter_req_id)
-            if existing is None or existing.done():
-                fut: asyncio.Future[StatusUpdate] = loop.create_future()
-                self._pending_ui_requests[waiter_req_id] = fut
-            else:
-                fut = existing
-
+        fut: asyncio.Future[StatusUpdate] = asyncio.get_running_loop().create_future()
+        self._pending_ui_requests.setdefault(waiter_req_id, []).append(fut)
         try:
             await self.send_command(command)
             return await asyncio.wait_for(fut, timeout=timeout)
         finally:
-            # Do not clear mapping here; dispatcher pops the future on resolution.
-            pass
+            waiters = self._pending_ui_requests.get(waiter_req_id)
+            if waiters is not None and fut in waiters:
+                waiters.remove(fut)
+                if not waiters:
+                    del self._pending_ui_requests[waiter_req_id]
+            if fut.done() and not fut.cancelled():
+                # Mark a failure delivered before we started waiting as retrieved
+                fut.exception()
+
+    def _fail_pending_requests(self, error: Exception) -> None:
+        pending, self._pending_ui_requests = self._pending_ui_requests, {}
+        for waiters in pending.values():
+            for fut in waiters:
+                if not fut.done():
+                    fut.set_exception(error)
 
     async def _recv_loop(self) -> None:
-        while not self._closed:
-            await self._connect()
-
-            while True:
-                data = await self._connection.read()
-                if data is None:
-                    _LOGGER.debug("Received None data from connection.read()")
-                    break
-
-                self._last_recv = datetime.datetime.now()
+        try:
+            while not self._closed:
                 try:
-                    decoded_data = data.decode("utf-8").strip()
-                except UnicodeDecodeError:
-                    _LOGGER.warning("Failed to decode data", exc_info=True)
-                    continue
+                    await self._connect()
+                except ClientClosedError:
+                    return
 
-                _LOGGER.debug("Decoding data: '%s'", decoded_data)
-                if len(decoded_data) > 0:
-                    try:
-                        pkt = Packet.decode(decoded_data)
-                        event = BaseEvent.decode(pkt, self._decode_options)
-                    except Exception:
-                        _LOGGER.warning("Failed to decode packet", exc_info=True)
-                        continue
+                while True:
+                    data = await self._connection.read()
+                    if data is None:
+                        _LOGGER.debug("Received None data from connection.read()")
+                        break
 
-                    self._dispatch_event(event, pkt)
+                    self._last_recv = time.monotonic()
+                    self._handle_data(data)
 
-    def _should_reconnect(self) -> bool:
-        now = datetime.datetime.now()
-        return self._last_recv is not None and self._last_recv < now - datetime.timedelta(
-            seconds=self._update_interval + 30
-        )
+                self._fail_pending_requests(
+                    ConnectionError("Connection to the alarm panel was lost")
+                )
+                if not self._closed:
+                    self._set_available(False)
+        finally:
+            # Wake commands waiting on this loop so they can observe its exit
+            self._pulse_connection_event()
+
+    def _handle_data(self, data: bytes) -> None:
+        try:
+            decoded_data = data.decode("utf-8").strip()
+        except UnicodeDecodeError:
+            _LOGGER.warning("Failed to decode data", exc_info=True)
+            return
+
+        _LOGGER.debug("Decoding data: '%s'", decoded_data)
+        if len(decoded_data) > 0:
+            try:
+                pkt = Packet.decode(decoded_data)
+                event = BaseEvent.decode(pkt, self._decode_options)
+            except Exception:
+                _LOGGER.warning("Failed to decode packet", exc_info=True)
+                return
+
+            self._dispatch_event(event, pkt)
 
     def _dispatch_event(self, event: BaseEvent, pkt: Packet) -> None:
         """Internal dispatcher for decoded events.
@@ -235,21 +413,9 @@ class Client:
         # Resolve pending status requests if applicable
         if isinstance(event, StatusUpdate):
             req_id = int(event.request_id.value)
-            ev: StatusUpdate = event
-
-            if self._pending_ui_requests.get(req_id):
-
-                async def _resolve() -> None:
-                    fut: asyncio.Future[StatusUpdate] | None = None
-                    async with self._pending_ui_lock:
-                        fut = self._pending_ui_requests.pop(req_id, None)
-                    if fut is not None and not fut.done():
-                        try:
-                            fut.set_result(ev)
-                        except Exception:
-                            pass
-
-                asyncio.create_task(_resolve())
+            for fut in self._pending_ui_requests.pop(req_id, []):
+                if not fut.done():
+                    fut.set_result(event)
 
         if self._on_event_received is not None:
             try:
@@ -265,21 +431,120 @@ class Client:
 
         self.alarm.handle_event(event)
 
-    async def _update_loop(self) -> None:
-        """Schedule a state update to keep the connection alive"""
-        await asyncio.sleep(self._update_interval)
-        while not self._closed:
-            await self.update()
-            await asyncio.sleep(self._update_interval)
+    def _set_available(self, available: bool) -> None:
+        if available == self._available:
+            return
 
-    async def keepalive(self) -> None:
-        await asyncio.gather(
-            self._recv_loop(),
-            self._update_loop(),
+        self._available = available
+        _LOGGER.info(
+            "Communication with the alarm panel %s",
+            "established" if available else "lost",
+        )
+        if self._on_availability_change is not None:
+            try:
+                self._on_availability_change(available)
+            except Exception:
+                _LOGGER.warning("on_availability_change callback raised", exc_info=True)
+
+    def _is_stale(self) -> bool:
+        return (
+            self._last_recv is not None
+            and time.monotonic() - self._last_recv
+            > self._update_interval + STALE_CONNECTION_GRACE
         )
 
+    async def _refresh(self) -> None:
+        """Request current state and confirm that the panel answers."""
+        try:
+            for command in ("S00", "S20", "S18"):
+                # A serial panel may drop a burst of back-to-back requests.
+                try:
+                    await self.send_command_and_wait(
+                        command, timeout=self._response_timeout
+                    )
+                except TimeoutError:
+                    # Older panels may not implement every status report.
+                    # The arming status below determines availability.
+                    _LOGGER.debug("No response to %s", command)
+            await self.send_command_and_wait(
+                HEALTH_CHECK_COMMAND, timeout=self._response_timeout
+            )
+        except TimeoutError:
+            if self._closed:
+                return
+            _LOGGER.debug("No response to %s", HEALTH_CHECK_COMMAND)
+            self._set_available(False)
+            if self._is_stale():
+                _LOGGER.debug("Nothing received recently, reopening the connection")
+                await self._connection.close()
+            return
+        except CONNECTION_ERRORS as e:
+            # The receive loop reports and recovers from lost connections
+            _LOGGER.debug("State refresh failed: %s", e)
+            return
+
+        self._set_available(True)
+
+    async def _update_loop(self) -> None:
+        """Refresh state periodically and after each new connection."""
+        while not self._closed:
+            interval = (
+                self._update_interval
+                if self._available
+                else min(self._update_interval, UNAVAILABLE_REFRESH_INTERVAL)
+            )
+            try:
+                async with asyncio.timeout(interval):
+                    await self._refresh_event.wait()
+            except TimeoutError:
+                pass
+
+            self._refresh_event.clear()
+            if self._closed:
+                return
+            if self._connection.connected:
+                await self._refresh()
+
+    async def keepalive(self) -> None:
+        """Receive events and refresh state until the client is closed.
+
+        Reconnects with bounded backoff when the connection is lost, and
+        reports panel communication through `on_availability_change`.
+        """
+        recv_task = self._start_receiving()
+        if self._update_task is None or self._update_task.done():
+            self._update_task = asyncio.create_task(
+                self._update_loop(), name="nessclient update loop"
+            )
+        tasks = {recv_task, self._update_task}
+        try:
+            done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                if not task.cancelled() and (error := task.exception()) is not None:
+                    raise error
+        finally:
+            await self._cancel_tasks(tasks)
+
+    async def _cancel_tasks(self, tasks: "set[asyncio.Task[None]]") -> None:
+        current = asyncio.current_task()
+        pending = [task for task in tasks if task is not current and not task.done()]
+        for task in pending:
+            task.cancel()
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
+
     async def close(self) -> None:
+        """Stop all background work and release the connection.
+
+        Safe to call more than once, and after a failed connection attempt.
+        """
         self._closed = True
+        self._refresh_event.set()
+        self._pulse_connection_event()
+        await self._cancel_tasks(
+            {task for task in (self._recv_task, self._update_task) if task is not None}
+        )
+        self._fail_pending_requests(ClientClosedError("Client is closed"))
         await self._connection.close()
 
     def on_state_change(
@@ -298,6 +563,15 @@ class Client:
         self, f: Callable[[BaseEvent], None]
     ) -> Callable[[BaseEvent], None]:
         self._on_event_received = f
+        return f
+
+    def on_availability_change(self, f: Callable[[bool], None]) -> Callable[[bool], None]:
+        """Register a callback for changes in panel communication.
+
+        Called with False when the connection is lost or the panel stops
+        answering status requests, and with True once it answers again.
+        """
+        self._on_availability_change = f
         return f
 
     def on_aux_output_change(

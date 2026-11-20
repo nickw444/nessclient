@@ -18,6 +18,13 @@ displays a terminal UI with live zone status and event logs.
 ness-cli events --host PANEL_HOST --port PORT
 ```
 
+To connect through a serial port instead of IP232, pass the port path or a
+serialx URL:
+
+```sh
+ness-cli events --serial-tty /dev/ttyUSB0
+```
+
 ### Logging raw packets
 
 When troubleshooting or reporting issues it can be useful to capture the raw

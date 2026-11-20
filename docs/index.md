@@ -26,6 +26,19 @@ A python implementation/abstraction of the [Ness D8x / D16x Serial Interface ASC
 pip install nessclient
 ```
 
+## Connecting
+
+Use `Client(host=..., port=...)` for an IP232 module or
+`Client(serial_tty=...)` for a local serial port or registered serial proxy URL.
+Serial connections use 9600 baud, 8N1 and no flow control. For a standalone
+ESPHome proxy, install `serialx[esphome]`.
+
+Call `await client.probe()` to wait for an arming status reply.
+`PanelNotRespondingError` means the connection opened but the panel did not
+answer in time. Run `keepalive()` to refresh state and reconnect, register
+`on_availability_change` to receive communication updates, and call
+`await client.close()` to release the port.
+
 ```{toctree}
 :maxdepth: 2
 :caption: Contents:
