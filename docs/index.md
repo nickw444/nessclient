@@ -28,6 +28,9 @@ pip install nessclient
 
 ## Connecting
 
+Starting with nessclient 1.4.0, `serial_tty` supports serial proxies and
+`Client.probe()` checks communication with the panel.
+
 `Client` connects either to an IP232 module or directly to the panel's serial
 interface. The serial interface always runs at 9600 baud, 8 data bits, no
 parity, one stop bit and no flow control; the library applies these settings.
