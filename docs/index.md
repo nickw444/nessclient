@@ -28,41 +28,16 @@ pip install nessclient
 
 ## Connecting
 
-Starting with nessclient 1.4.0, `serial_tty` supports serial proxies and
-`Client.probe()` checks communication with the panel.
+Use `Client(host=..., port=...)` for an IP232 module or
+`Client(serial_tty=...)` for a local serial port or registered serial proxy URL.
+Serial connections use 9600 baud, 8N1 and no flow control. For a standalone
+ESPHome proxy, install `serialx[esphome]`.
 
-`Client` connects either to an IP232 module or directly to the panel's serial
-interface. The serial interface always runs at 9600 baud, 8 data bits, no
-parity, one stop bit and no flow control; the library applies these settings.
-
-```python
-# IP232 module
-client = Client(host="192.168.1.50", port=2401)
-
-# Local serial port, or any port or URL supported by serialx
-client = Client(serial_tty="/dev/ttyUSB0")
-client = Client(serial_tty="COM3")
-```
-
-Serial ports are opened with [serialx](https://github.com/puddly/serialx), so
-`serial_tty` accepts its URLs as well as local paths, including serial proxy
-URLs provided by Home Assistant. Using ESPHome serial proxy URLs outside Home
-Assistant requires `pip install 'serialx[esphome]'`.
-
-Call `await client.probe()` to confirm that the panel itself is answering. It
-opens the connection, starts processing responses and waits for a valid reply to
-an arming status request. It raises `PanelNotRespondingError` when the
-connection opens but the panel does not reply in time, and `OSError` (or
-`serialx.SerialException`) when the connection cannot be opened. Keep the
-client running with `keepalive()` afterwards, or release it with `close()`.
-
-While `keepalive()` runs, the client reconnects with bounded backoff, refreshes
-state after every reconnection and periodically confirms that the panel answers
-status requests. Register `on_availability_change` to be told when communication
-with the panel is lost or restored. `close()` stops all background work and
-releases the connection, and can be called more than once.
-
-nessclient requires Python 3.11 or newer.
+Call `await client.probe()` to wait for an arming status reply.
+`PanelNotRespondingError` means the connection opened but the panel did not
+answer in time. Run `keepalive()` to refresh state and reconnect, register
+`on_availability_change` to receive communication updates, and call
+`await client.close()` to release the port.
 
 ```{toctree}
 :maxdepth: 2
