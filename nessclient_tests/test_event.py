@@ -213,8 +213,7 @@ class ZoneUpdate17To32TestCase(unittest.TestCase):
         pkt = make_packet(CommandType.USER_INTERFACE, "310500")
         event = ZoneUpdate_17_32.decode(pkt)
         assert (
-            event.request_id
-            == ZoneUpdate_17_32.RequestID.ZONE_17_32_DETECTOR_LOW_BATTERY
+            event.request_id == ZoneUpdate_17_32.RequestID.ZONE_17_32_DETECTOR_LOW_BATTERY
         )
         assert event.included_zones == [
             ZoneUpdate_17_32.Zone.ZONE_17,
@@ -257,9 +256,7 @@ class MiscellaneousAlarmsUpdateTestCase(unittest.TestCase):
     def test_misc_alarms_install_end(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "131000")
         event = MiscellaneousAlarmsUpdate.decode(pkt)
-        assert event.included_alarms == [
-            MiscellaneousAlarmsUpdate.AlarmType.INSTALL_END
-        ]
+        assert event.included_alarms == [MiscellaneousAlarmsUpdate.AlarmType.INSTALL_END]
 
     def test_misc_alarms_panic(self):
         pkt = make_packet(CommandType.USER_INTERFACE, "130200")

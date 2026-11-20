@@ -89,6 +89,11 @@ class Alarm:
         # Callback for auxiliary output state changes
         self._on_aux_output_change: Callable[[int, bool], None] | None = None
 
+    @property
+    def arming_mode(self) -> ArmingMode | None:
+        """Mode of the most recent arming, or None when disarmed or unknown."""
+        return self._arming_mode
+
     def handle_event(self, event: BaseEvent) -> None:
         if isinstance(event, ArmingUpdate):
             self._handle_arming_update(event)
